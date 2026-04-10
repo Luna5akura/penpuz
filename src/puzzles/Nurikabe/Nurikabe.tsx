@@ -5,34 +5,33 @@ import { PuzzleData } from '../types';
 
 interface Props {
   puzzle: PuzzleData;
-  startTime: number;          // 由父组件传入开始时间（毫秒时间戳）
+  startTime: number;
   onComplete: (time: number) => void;
 }
 
-type CellState = 0 | 1 | 2; // 0=空白, 1=涂黑, 2=标记×
+type CellState = 0 | 1 | 2;
 
 export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) {
   const { width, height, clues } = puzzle;
   const [grid, setGrid] = useState<CellState[][]>([]);
+  const [cellSize, setCellSize] = useState(52); // 默认桌面尺寸
   const isDragging = useRef(false);
   const dragMode = useRef<'none' | 'add-shade' | 'remove-shade' | 'add-mark' | 'remove-mark'>('none');
   const boardRef = useRef<HTMLDivElement>(null);
 
-  // 拦截右键菜单
+  // === 新增：响应式单元格尺寸 ===
   useEffect(() => {
-    const board = boardRef.current;
-    if (!board) return;
-    const preventContextMenu = (e: MouseEvent) => {
-      if (e.button === 2) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-      }
+    const updateCellSize = () => {
+      const isMobile = window.innerWidth < 640; // Tailwind sm 断点以下视为移动端
+      // 可根据实际需要调整数值（移动端建议 36~42px，避免溢出）
+      setCellSize(isMobile ? 25 : 52);
     };
-    board.addEventListener('contextmenu', preventContextMenu, { capture: true });
-    return () => board.removeEventListener('contextmenu', preventContextMenu, { capture: true });
+
+    updateCellSize();
+    window.addEventListener('resize', updateCellSize);
+    return () => window.removeEventListener('resize', updateCellSize);
   }, []);
 
-  // 初始化空白网格
   useEffect(() => {
     setGrid(Array.from({ length: height }, () => Array(width).fill(0)));
   }, [height, width]);
@@ -54,34 +53,28 @@ export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     const isClueCell = isClue(r, c);
     const isLeftClick = e.button === 0;
-
-    // 左键禁止操作线索格；右键允许在线索格打叉
     if (isLeftClick && isClueCell) return;
-
     e.preventDefault();
     e.nativeEvent.stopImmediatePropagation();
-
     const target = e.currentTarget as HTMLElement;
     target.setPointerCapture(e.pointerId);
-
     isDragging.current = true;
     const currentState = grid[r][c];
-
     if (isLeftClick) {
       dragMode.current = currentState === 1 ? 'remove-shade' : 'add-shade';
     } else {
       dragMode.current = currentState === 2 ? 'remove-mark' : 'add-mark';
     }
-
     toggleCell(r, c, dragMode.current);
   };
 
+  // === 修改：使用动态 cellSize 计算行列 ===
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || dragMode.current === 'none') return;
-
     const rect = e.currentTarget.getBoundingClientRect();
-    const col = Math.floor((e.clientX - rect.left) / 53);
-    const row = Math.floor((e.clientY - rect.top) / 53);
+    const gap = 1; // 与 style.gap 一致
+    const col = Math.floor((e.clientX - rect.left) / (cellSize + gap));
+    const row = Math.floor((e.clientY - rect.top) / (cellSize + gap));
     if (row >= 0 && row < height && col >= 0 && col < width) {
       toggleCell(row, col, dragMode.current);
     }
@@ -90,14 +83,10 @@ export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) 
   const handlePointerUp = () => {
     isDragging.current = false;
     dragMode.current = 'none';
-
-    // 关键修复：把标记格（state=2）视为“已处理”，不参与未连接空白格检查
     const currentGrid: boolean[][] = grid.map((row) =>
-      row.map((state) => state === 1) // 仅黑色为 true，标记和空白均为 false
+      row.map((state) => state === 1)
     );
-
     const result = validateNurikabe(currentGrid, clues, width, height);
-
     if (result.valid) {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       onComplete(elapsed);
@@ -110,7 +99,7 @@ export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) 
       className="puzzle-container mx-auto select-none"
       style={{
         display: 'inline-grid',
-        gridTemplateColumns: `repeat(${width}, 52px)`,
+        gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
         gap: '1px',
         background: '#d2b48c',
         padding: '3px',
@@ -122,6 +111,7 @@ export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) 
     >
       {grid.flatMap((row, r) =>
         row.map((state, c) => {
+          // === 必须先声明所有用到的变量（修复 TDZ 错误）===
           const clue = clues.find((cl) => cl.row === r && cl.col === c);
           const isShaded = state === 1;
           const isMarked = state === 2;
@@ -130,18 +120,22 @@ export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) 
             <div
               key={`${r}-${c}`}
               onPointerDown={(e) => handlePointerDown(r, c, e)}
-              className={`w-[52px] h-[52px] flex items-center justify-center text-xl font-bold cursor-pointer border-0 touch-none
-                ${clue 
-                  ? isMarked 
-                    ? 'bg-[#f0e6d2] text-[#3f2a1e]'   // 线索格 + 标记 = 浅色阴影 + 显示数字
-                    : 'bg-[#f8f1e3] text-[#3f2a1e]' 
-                  : isShaded 
-                    ? 'bg-[#3f2a1e] text-white' 
-                    : isMarked 
-                      ? 'bg-[#f0e6d2] text-gray-400' 
-                      : 'bg-[#f8f1e3]'}`}
+              style={{
+                width: `${cellSize}px`,
+                height: `${cellSize}px`,
+                fontSize: `${Math.floor(cellSize * 0.56)}px`,
+              }}
+              className={`flex items-center justify-center font-mono font-bold tracking-tighter leading-none border-0 cursor-pointer touch-none
+                ${clue
+                  ? isMarked
+                    ? 'bg-[#f0e6d2] dark:bg-gray-700 text-[#3f2a1e] dark:text-gray-200'
+                    : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'
+                  : isShaded
+                    ? 'bg-[#3f2a1e] text-white'
+                    : isMarked
+                      ? 'bg-[#f0e6d2] dark:bg-gray-700 text-gray-400'
+                      : 'bg-[#f8f1e3] dark:bg-gray-800'}`}
             >
-              {/* 线索格永远显示数字，标记状态只改变背景 */}
               {clue ? clue.value : isMarked ? '×' : ''}
             </div>
           );

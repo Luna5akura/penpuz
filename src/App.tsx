@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useState, useEffect } from 'react';
 import NurikabeBoard from './puzzles/Nurikabe/Nurikabe';
 import RulesSection from './components/RulesSection';
@@ -21,7 +22,6 @@ function App() {
     if (data) setHistory(getHistoryPuzzles(data.index));
   }, []);
 
-  // 实时计时器
   useEffect(() => {
     if (!started || !startTime || completed) return;
     const interval = setInterval(() => {
@@ -41,7 +41,6 @@ function App() {
     setCompleted(true);
   };
 
-  // 加载历史题目
   const loadHistoryPuzzle = (item: { puzzle: any; index: number }) => {
     setDaily(item);
     setStarted(false);
@@ -53,14 +52,14 @@ function App() {
   if (!daily) return <div className="text-center py-12">加载每日谜题中...</div>;
 
   return (
-    <div className="min-h-screen bg-[#f8f1e3] py-8 font-serif">
+    <div className="min-h-screen bg-[#f8f1e3] dark:bg-gray-950 py-8 font-serif">
       <div className="max-w-4xl mx-auto px-6">
-        {/* 标题栏 + 今日序号 + 历史按钮 */}
-        <Card className="mb-8 p-6 text-center flex flex-col md:flex-row items-center justify-between gap-4">
+        {/* 标题栏 */}
+        <Card className="mb-8 p-6 text-center flex flex-col md:flex-row items-center justify-between gap-4 dark:bg-gray-900 dark:border-gray-700">
           <div>
-            <h1 className="text-3xl font-bold text-[#3f2a1e]">每日纸笔谜题</h1>
-            <p className="text-lg text-muted-foreground mt-2">
-              今日题型：Nurikabe（数墙） • 第 {daily.index} 个
+            <h1 className="text-3xl font-bold text-[#3f2a1e] dark:text-gray-100">每日纸笔谜题</h1>
+            <p className="text-lg text-muted-foreground dark:text-gray-400 mt-2">
+              今日题型：Nurikabe（数墙）
             </p>
           </div>
           <Button
@@ -73,33 +72,31 @@ function App() {
         </Card>
 
         {!started ? (
-          /* 开始界面（保持不变） */
-          <Card className="max-w-md mx-auto p-8 text-center">
+          <Card className="max-w-md mx-auto p-8 text-center dark:bg-gray-900 dark:border-gray-700">
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold text-[#3f2a1e] mb-2">准备开始</h2>
-              <p className="text-lg text-muted-foreground">
+              <h2 className="text-2xl font-semibold text-[#3f2a1e] dark:text-gray-100 mb-2">准备开始</h2>
+              <p className="text-lg text-muted-foreground dark:text-gray-400">
                 本次谜题：<span className="font-medium">Nurikabe（数墙）</span>
               </p>
-              <p className="text-4xl font-bold text-[#3f2a1e] mt-6">
-                第 {daily.index} 题
+              <p className="text-4xl font-bold text-[#3f2a1e] dark:text-gray-100 mt-6">
+                第 {daily.index + 1} 题
               </p>
             </div>
             <Button onClick={handleStart} size="lg" className="px-10 py-6 text-lg font-medium">
               开始解题
             </Button>
-            <p className="text-xs text-muted-foreground mt-8">
+            <p className="text-xs text-muted-foreground dark:text-gray-400 mt-8">
               计时将在您点击开始后启动
             </p>
           </Card>
         ) : (
-          /* 谜题主区域 + 实时计时（保持不变） */
           <>
             <div className="flex justify-between items-center mb-6 px-2">
-              <div className="text-lg font-medium text-[#3f2a1e]">
+              <div className="text-lg font-medium text-[#3f2a1e] dark:text-gray-100">
                 用时：{elapsedTime} 秒
               </div>
-              <div className="text-sm text-muted-foreground">
-                Nurikabe • 第 {daily.index} 题
+              <div className="text-sm text-muted-foreground dark:text-gray-400">
+                Nurikabe • 第 {daily.index + 1} 题
               </div>
             </div>
             <div className="flex justify-center mb-12">
@@ -117,26 +114,26 @@ function App() {
         {/* 历史题目列表 Modal */}
         {showHistory && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-            <Card className="max-w-lg w-full max-h-[80vh] overflow-auto">
-              <div className="p-6 border-b flex items-center justify-between">
-                <h2 className="text-2xl font-semibold text-[#3f2a1e]">历史题目</h2>
+            <Card className="max-w-lg w-full max-h-[80vh] overflow-auto dark:bg-gray-900 dark:border-gray-700">
+              <div className="p-6 border-b flex items-center justify-between dark:border-gray-700">
+                <h2 className="text-2xl font-semibold text-[#3f2a1e] dark:text-gray-100">历史题目</h2>
                 <Button variant="ghost" onClick={() => setShowHistory(false)}>
                   关闭
                 </Button>
               </div>
               <div className="p-6 space-y-3">
                 {history.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">暂无历史题目</p>
+                  <p className="text-muted-foreground dark:text-gray-400 text-center py-8">暂无历史题目</p>
                 ) : (
                   history.map((item) => (
                     <Button
                       key={item.index}
                       variant="outline"
-                      className="w-full justify-start text-left h-auto py-4"
+                      className="w-full justify-start text-left h-auto py-4 dark:bg-gray-800"
                       onClick={() => loadHistoryPuzzle(item)}
                     >
                       <span className="font-medium">Nurikabe（数墙）</span>
-                      <span className="ml-auto text-muted-foreground">第 {item.index} 题</span>
+                      <span className="ml-auto text-muted-foreground dark:text-gray-400">第 {item.index + 1} 题</span>
                     </Button>
                   ))
                 )}

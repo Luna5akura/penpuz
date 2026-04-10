@@ -243,3 +243,74 @@ function has2x2Shaded(grid: boolean[][], width: number, height: number): boolean
   }
   return false;
 }
+
+// ==================== 新增：详细违规检测（供例题实时高亮使用） ====================
+export interface NurikabeViolations {
+  violatedRules: number[];           // 违反的规则序号 [1,2,3,4,5,6]
+  bad2x2Cells: { r: number; c: number }[];   // 需要标红的 2×2 左上角坐标
+  badClueIndices: number[];          // 需要标红的线索下标（对应 clues 数组）
+}
+
+export function getNurikabeViolations(
+  grid: boolean[][],
+  clues: NurikabeClue[],
+  width: number,
+  height: number
+): NurikabeViolations {
+  const violations: NurikabeViolations = {
+    violatedRules: [],
+    bad2x2Cells: [],
+    badClueIndices: [],
+  };
+
+  const visited = Array.from({ length: height }, () => Array(width).fill(false));
+
+  // 规则1：线索格被涂黑
+  for (let i = 0; i < clues.length; i++) {
+    const clue = clues[i];
+    if (grid[clue.row][clue.col]) {
+      violations.violatedRules.push(1);
+      violations.badClueIndices.push(i);
+    }
+  }
+
+  // 规则2：岛屿面积不符（? 不检查）
+  for (let i = 0; i < clues.length; i++) {
+    const clue = clues[i];
+    const size = floodFillIsland(grid, clue.row, clue.col, visited, width, height);
+    if (clue.value !== '?' && size !== clue.value) {
+      violations.violatedRules.push(2);
+      violations.badClueIndices.push(i);
+    }
+  }
+
+  // 规则3：存在未连接数字的空白格
+  let hasUnconnected = false;
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (!grid[r][c] && !visited[r][c]) hasUnconnected = true;
+    }
+  }
+  if (hasUnconnected) violations.violatedRules.push(3);
+
+  // 规则4：岛屿正交相邻
+  if (hasAdjacentIslands(grid, width, height)) violations.violatedRules.push(4);
+
+  // 规则5：海域未连通
+  if (!isSeaConnected(grid, width, height)) violations.violatedRules.push(5);
+
+  // 规则6：2×2 全黑区域（同时记录具体位置）
+  for (let r = 0; r < height - 1; r++) {
+    for (let c = 0; c < width - 1; c++) {
+      if (grid[r][c] && grid[r][c + 1] && grid[r + 1][c] && grid[r + 1][c + 1]) {
+        violations.violatedRules.push(6);
+        violations.bad2x2Cells.push({ r, c });
+      }
+    }
+  }
+
+  // 去重规则序号
+  violations.violatedRules = [...new Set(violations.violatedRules)];
+
+  return violations;
+}
