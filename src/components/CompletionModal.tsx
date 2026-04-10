@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 export default function CompletionModal({ isOpen, time, onClose }: { isOpen: boolean; time: number; onClose: () => void }) {
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
-  const shareText = `我在每日纸笔谜题网站完成了今天的 Nurikabe！用时 ${minutes} 分 ${seconds} 秒\nhttps://penpuz.daily`;
+  const shareText = `我在每日纸笔谜题网站完成了今天的 Nurikabe！用时 ${minutes} 分 ${seconds} 秒\nhttps://penpuz.today`;
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(shareText).then(() => alert('已复制到剪贴板！'));
