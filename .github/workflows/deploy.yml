@@ -4,7 +4,10 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch:  # 允许手动触发
+  workflow_dispatch:
+
+permissions:
+  contents: write   # 关键修复：授予写入权限
 
 jobs:
   deploy:
@@ -22,11 +25,11 @@ jobs:
         run: npm install
 
       - name: Build Vite project
-        run: npm run build
+        run: vite build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist          # 如您的构建输出是 build 文件夹，请改为 ./build
-          cname: penpuz.today        # 如需使用其他域名，请在此处修改
+          publish_dir: ./dist
+          cname: lunasakura.top
