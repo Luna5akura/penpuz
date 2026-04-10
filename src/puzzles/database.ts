@@ -27,3 +27,14 @@ export function getDailyPuzzle(): { puzzle: PuzzleData; index: number } | null {
     index: index,
   };
 }
+
+export function getHistoryPuzzles(currentIndex: number): { puzzle: PuzzleData; index: number }[] {
+  return allPuzzles
+    .map((entry, i) => {
+      if (i === currentIndex) return null;
+      const parsed = parsePuzzLink(entry.puzzLink);
+      if (!parsed) return null;
+      return { puzzle: parsed, index: i };
+    })
+    .filter((item): item is { puzzle: PuzzleData; index: number } => item !== null);
+}

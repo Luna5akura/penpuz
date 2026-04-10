@@ -100,7 +100,7 @@ export function validateNurikabe(
     }
   }
 
-  // 3. 所有空白格必须属于某个岛屿
+    // 3. 所有空白格必须属于某个岛屿（已忽略标记格）
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
       if (!grid[r][c] && !visited[r][c]) {
