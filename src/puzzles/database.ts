@@ -11,6 +11,10 @@ const allPuzzles = [
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/11/11/zg87zn4l3g9q1n2q6h5zj',
   },
+  {
+    type: 'nurikabe' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/9/9/4k8g2zm3s5q7o9g1k6',
+  },
 ];
 
 export function getDailyPuzzle(): { puzzle: PuzzleData; index: number } | null {
