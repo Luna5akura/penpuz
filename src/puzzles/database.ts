@@ -13,7 +13,7 @@ const allPuzzles = [
   },
   {
     type: 'nurikabe' as const,
-    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/9/9/4k8g2zm3s5q7o9g1k6',
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/9/9/4k8g2zp5s73w9i1i6',
   },
 ];
 
