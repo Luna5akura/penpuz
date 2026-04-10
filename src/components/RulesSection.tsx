@@ -167,7 +167,14 @@ export default function RulesSection() {
                       <div
                         key={`${r}-${c}`}
                         onPointerDown={(e) => handlePointerDown(r, c, e)}
-                        className={`w-[44px] h-[44px] flex items-center justify-center text-[29px] font-mono font-bold tracking-tighter leading-none border-0 cursor-pointer
+                        style={{
+                          paddingTop: '4px',                    // ← 与主棋盘同步
+                          width: '44px',
+                          height: '44px',
+                          fontSize: '35px',                     // ← 对应 44 * 0.8 的效果
+                          lineHeight: '44px',                   // ← 关键垂直居中修正
+                        }}
+                        className={`flex items-center justify-center font-mono font-bold tracking-tight border-0 cursor-pointer
                           ${isBad2x2 ? 'bg-red-500 text-white' :
                             clue ? (isMarked ? 'bg-[#f0e6d2] dark:bg-gray-700 text-[#3f2a1e] dark:text-gray-200' : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100') :
                             isShaded ? 'bg-[#3f2a1e] text-white' :
@@ -209,8 +216,15 @@ export default function RulesSection() {
                     row.map((isBlack, c) => (
                       <div
                         key={`${r}-${c}`}
-                        className={`w-[44px] h-[44px] flex items-center justify-center text-[29px] font-mono font-bold tracking-tighter leading-none border-0
+                        className={`flex items-center justify-center font-mono font-bold tracking-tight border-0
                           ${isBlack ? 'bg-[#3f2a1e] text-white' : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'}`}
+                        style={{
+                          paddingTop: '4px',
+                          width: '44px',
+                          height: '44px',
+                          fontSize: '35px',
+                          lineHeight: '44px',
+                        }}
                       >
                         {(r === 1 && c === 0) ? '2' : (r === 0 && c === 3) ? '3' : (r === 3 && c === 1) ? '?' : (r === 3 && c === 4) ? '1' : ''}
                       </div>

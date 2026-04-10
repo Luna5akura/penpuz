@@ -121,11 +121,13 @@ export default function NurikabeBoard({ puzzle, startTime, onComplete }: Props) 
               key={`${r}-${c}`}
               onPointerDown={(e) => handlePointerDown(r, c, e)}
               style={{
+                paddingTop: '4px',
                 width: `${cellSize}px`,
                 height: `${cellSize}px`,
-                fontSize: `${Math.floor(cellSize * 0.56)}px`,
+                fontSize: `${Math.floor(cellSize * 0.8)}px`,
+                lineHeight: `${cellSize}px`,          // ← 新增：关键修正
               }}
-              className={`flex items-center justify-center font-mono font-bold tracking-tighter leading-none border-0 cursor-pointer touch-none
+              className={`flex items-center justify-center font-mono font-bold tracking-tight border-0 cursor-pointer touch-none
                 ${clue
                   ? isMarked
                     ? 'bg-[#f0e6d2] dark:bg-gray-700 text-[#3f2a1e] dark:text-gray-200'

@@ -7,6 +7,10 @@ const allPuzzles = [
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/2l2u2l2n2m2m.k2g2i2q2l2s',
   },
+  {
+    type: 'nurikabe' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/11/11/zg87zn4l3g9q1n2q6h5zj',
+  },
 ];
 
 export function getDailyPuzzle(): { puzzle: PuzzleData; index: number } | null {
