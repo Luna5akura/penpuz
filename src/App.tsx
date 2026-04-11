@@ -19,7 +19,7 @@ function App() {
   useEffect(() => {
     const data = getDailyPuzzle();
     setDaily(data);
-    if (data) setHistory(getHistoryPuzzles(data.index));
+    if (data) setHistory(getHistoryPuzzles(data.daysSinceStart));
   }, []);
 
   useEffect(() => {

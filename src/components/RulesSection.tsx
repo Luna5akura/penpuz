@@ -11,13 +11,12 @@ export default function RulesSection() {
     width: 5,
     height: 5,
     clues: [
-      { row: 0, col: 3, value: 3 },
-      { row: 1, col: 0, value: 2 },
-      { row: 3, col: 1, value: '?' },
-      { row: 3, col: 4, value: 1 },
+      { row: 0, col: 0, value: '?' },
+      { row: 3, col: 4, value: 5 },
+      { row: 2, col: 0, value: 3 },
+      { row: 4, col: 1, value: 1 },
     ],
   };
-
   const [exampleGrid, setExampleGrid] = useState<(0 | 1 | 2)[][]>([]);
   const [showAnswer, setShowAnswer] = useState(false);
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
@@ -26,13 +25,26 @@ export default function RulesSection() {
     bad2x2Cells: [],
     badClueIndices: [],
   });
-
+  const [isMobile, setIsMobile] = useState(false);
   const isDragging = useRef(false);
+  const hasDragged = useRef(false);
   const dragMode = useRef<'none' | 'add-shade' | 'remove-shade' | 'add-mark' | 'remove-mark'>('none');
+  const startRow = useRef(-1);
+  const startCol = useRef(-1);
   const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setExampleGrid(Array.from({ length: 5 }, () => Array(5).fill(0)));
+  }, []);
+
+  // 手机端检测
+  useEffect(() => {
+    const updateSize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
   }, []);
 
   useEffect(() => {
@@ -40,7 +52,6 @@ export default function RulesSection() {
     const boolGrid: boolean[][] = exampleGrid.map(row => row.map(s => s === 1));
     const v = getNurikabeViolations(boolGrid, examplePuzzle.clues, 5, 5);
     setViolations(v);
-
     const result = validateNurikabe(boolGrid, examplePuzzle.clues, 5, 5);
     if (result.valid) setShowAnswer(true);
   }, [exampleGrid]);
@@ -59,9 +70,21 @@ export default function RulesSection() {
     });
   };
 
+  // 手机端点击循环
+  const cycleCell = (r: number, c: number) => {
+    if (isClue(r, c)) return;
+    setExampleGrid((prev) => {
+      const newGrid = prev.map((row) => [...row]);
+      const current = newGrid[r][c];
+      newGrid[r][c] = current === 0 ? 1 : current === 1 ? 2 : 0;
+      return newGrid;
+    });
+  };
+
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     const isClueCell = isClue(r, c);
     const isLeftClick = e.button === 0;
+
     if (isLeftClick && isClueCell) {
       e.preventDefault();
       e.stopImmediatePropagation();
@@ -75,18 +98,39 @@ export default function RulesSection() {
     target.setPointerCapture(e.pointerId);
 
     isDragging.current = true;
+    hasDragged.current = false;
+    startRow.current = r;
+    startCol.current = c;
+
     const currentState = exampleGrid[r][c];
 
-    if (isLeftClick) {
-      dragMode.current = currentState === 1 ? 'remove-shade' : 'add-shade';
+    if (isMobile) {
+      // 手机端：按您最新要求实现拖拽循环
+      if (currentState === 0) {
+        dragMode.current = 'add-shade';
+      } else if (currentState === 1) {
+        dragMode.current = 'add-mark';
+      } else if (currentState === 2) {
+        dragMode.current = 'remove-mark';
+      }
     } else {
-      dragMode.current = currentState === 2 ? 'remove-mark' : 'add-mark';
+      // 电脑端：恢复原始左右键逻辑
+      if (isLeftClick) {
+        dragMode.current = currentState === 1 ? 'remove-shade' : 'add-shade';
+      } else {
+        dragMode.current = currentState === 2 ? 'remove-mark' : 'add-mark';
+      }
     }
-    toggleCell(r, c, dragMode.current);
+  };
+
+  const handleContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || dragMode.current === 'none') return;
+
     const rect = e.currentTarget.getBoundingClientRect();
     const relativeX = e.clientX - rect.left - 12;
     const relativeY = e.clientY - rect.top - 12;
@@ -94,24 +138,35 @@ export default function RulesSection() {
     const row = Math.floor(relativeY / 45);
 
     if (row >= 0 && row < 5 && col >= 0 && col < 5) {
-      if (dragMode.current.startsWith('add-shade') || dragMode.current.startsWith('remove-shade')) {
-        if (isClue(row, col)) return;
-      }
+      if (dragMode.current.includes('shade') && isClue(row, col)) return;
+      hasDragged.current = true;
       toggleCell(row, col, dragMode.current);
     }
   };
 
   const handlePointerUp = () => {
+    if (!isDragging.current) return;
+
+    if (!hasDragged.current && startRow.current >= 0 && startCol.current >= 0) {
+      if (isMobile) {
+        cycleCell(startRow.current, startCol.current);
+      } else {
+        toggleCell(startRow.current, startCol.current, dragMode.current);
+      }
+    }
+
     isDragging.current = false;
     dragMode.current = 'none';
+    startRow.current = -1;
+    startCol.current = -1;
   };
 
   const correctSolution = [
-    [1, 1, 1, 0, 0],
-    [0, 0, 1, 1, 0],
-    [1, 1, 0, 1, 1],
-    [1, 0, 0, 1, 0],
-    [1, 1, 1, 1, 1],
+    [0, 0, 0, 1, 1],
+    [1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 0],
+    [1, 1, 1, 1, 0],
+    [1, 0, 1, 0, 0],
   ];
 
   return (
@@ -134,10 +189,8 @@ export default function RulesSection() {
             <p className="text-lg pt-1">数字表示其所在的留白的连通组格数。</p>
           </div>
         </div>
-
         <div className="mt-10">
           <h3 className="text-2xl font-semibold mb-8 text-center text-[#3f2a1e] dark:text-gray-100">例题（5×5）</h3>
-
           <div className="flex flex-col lg:flex-row gap-10 justify-center">
             <div className="flex flex-col items-center">
               <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">可游玩例题（点击或拖动练习）</p>
@@ -154,7 +207,7 @@ export default function RulesSection() {
                     const clue = examplePuzzle.clues.find(cl => cl.row === r && cl.col === c);
                     const isShaded = state === 1;
                     const isMarked = state === 2;
-                    const isBad2x2 = violations.bad2x2Cells.some(cell => 
+                    const isBad2x2 = violations.bad2x2Cells.some(cell =>
                       (cell.r === r && cell.c === c) ||
                       (cell.r === r-1 && cell.c === c) ||
                       (cell.r === r && cell.c === c-1) ||
@@ -162,17 +215,17 @@ export default function RulesSection() {
                     );
                     const clueIndex = examplePuzzle.clues.findIndex(cl => cl.row === r && cl.col === c);
                     const isBadClue = clueIndex >= 0 && violations.badClueIndices.includes(clueIndex);
-
                     return (
                       <div
                         key={`${r}-${c}`}
                         onPointerDown={(e) => handlePointerDown(r, c, e)}
+                        onContextMenu={handleContextMenu}
                         style={{
-                          paddingTop: '4px',                    // ← 与主棋盘同步
+                          paddingTop: '4px',
                           width: '44px',
                           height: '44px',
-                          fontSize: '35px',                     // ← 对应 44 * 0.8 的效果
-                          lineHeight: '44px',                   // ← 关键垂直居中修正
+                          fontSize: '35px',
+                          lineHeight: '44px',
                         }}
                         className={`flex items-center justify-center font-mono font-bold tracking-tight border-0 cursor-pointer
                           ${isBad2x2 ? 'bg-red-500 text-white' :
@@ -191,7 +244,6 @@ export default function RulesSection() {
                 )}
               </div>
             </div>
-
             <div className="flex flex-col items-center">
               <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">正确答案</p>
               {!showAnswer ? (
@@ -226,7 +278,7 @@ export default function RulesSection() {
                           lineHeight: '44px',
                         }}
                       >
-                        {(r === 1 && c === 0) ? '2' : (r === 0 && c === 3) ? '3' : (r === 3 && c === 1) ? '?' : (r === 3 && c === 4) ? '1' : ''}
+                        {(r === 0 && c === 0) ? '?' : (r === 2 && c === 0) ? '3' : (r === 4 && c === 1) ? '1' : (r === 3 && c === 4) ? '5' : ''}
                       </div>
                     ))
                   )}
@@ -235,7 +287,6 @@ export default function RulesSection() {
             </div>
           </div>
         </div>
-
         {confirmSpoiler && !showAnswer && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <Card className="max-w-sm w-full mx-4 dark:bg-gray-900">
