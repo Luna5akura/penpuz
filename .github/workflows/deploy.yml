@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # 确保可切换到 dev 分支
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -39,11 +39,17 @@ jobs:
       - name: Build main branch version (生产环境 → 根路径)
         run: pnpm run build
 
+      - name: Debug - list dist after main build
+        run: ls -la dist/
+
       - name: Build dev branch version (开发环境 → /dev/ 子路径)
         run: |
           git checkout dev
-          pnpm run build -- --base=/dev/ --outDir dist/dev
+          pnpm exec vite build --base=/dev/ --outDir dist/dev
           git checkout main
+
+      - name: Debug - list dist after dev build
+        run: ls -R dist/   # 关键调试：确认 dist/dev/index.html 是否生成
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
