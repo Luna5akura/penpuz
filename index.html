@@ -5,6 +5,22 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>penpuz</title>
+    
+    <!-- dev 分支切换逻辑：检测 ?dev=true 并重定向至 /dev/ 子路径 -->
+    <script>
+      (() => {
+        const urlParams = new URLSearchParams(location.search);
+        if (urlParams.get('dev') === 'true') {
+          if (!location.pathname.startsWith('/dev')) {
+            // 清理 dev 参数，保留其他参数
+            urlParams.delete('dev');
+            const newSearch = urlParams.toString() ? '?' + urlParams.toString() : '';
+            const target = `/dev${location.pathname}${newSearch}${location.hash}`;
+            location.replace(target);
+          }
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
