@@ -1,0 +1,238 @@
+// src/components/examples/NurikabeExample.tsx
+
+import { useState, useEffect, useRef } from 'react';
+import { validateNurikabe, getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
+import type { NurikabeClue } from '../../puzzles/types';
+
+interface Props {
+  width: number;
+  height: number;
+  clues: NurikabeClue[];
+  correctSolution: (0 | 1)[][];
+  playableLabel: string;
+  answerLabel: string;
+}
+
+export default function NurikabeExample({ width, height, clues, correctSolution, playableLabel, answerLabel }: Props) {
+  const [exampleGrid, setExampleGrid] = useState<(0 | 1 | 2)[][]>([]);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
+  const [violations, setViolations] = useState<NurikabeViolations>({ violatedRules: [], bad2x2Cells: [], badClueIndices: [] });
+  const isMobile = useRef(false);
+  const isDragging = useRef(false);
+  const hasDragged = useRef(false);
+  const dragMode = useRef<'none' | 'add-shade' | 'remove-shade' | 'add-mark' | 'remove-mark'>('none');
+  const startRow = useRef(-1);
+  const startCol = useRef(-1);
+
+  useEffect(() => {
+    setExampleGrid(Array.from({ length: height }, () => Array(width).fill(0)));
+  }, [height, width]);
+
+  useEffect(() => {
+    const update = () => { isMobile.current = window.innerWidth < 640; };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  useEffect(() => {
+    if (exampleGrid.length === 0) return;
+    const boolGrid = exampleGrid.map(row => row.map(s => s === 1));
+    const v = getNurikabeViolations(boolGrid, clues, width, height);
+    setViolations(v);
+    const result = validateNurikabe(boolGrid, clues, width, height);
+    if (result.valid) setShowAnswer(true);
+  }, [exampleGrid, clues, width, height]);
+
+  const isClue = (r: number, c: number) => clues.some(cl => cl.row === r && cl.col === c);
+
+  const toggleCell = (r: number, c: number, mode: typeof dragMode.current) => {
+    setExampleGrid(prev => {
+      const newGrid = prev.map(row => [...row]);
+      if (mode === 'add-shade') newGrid[r][c] = 1;
+      else if (mode === 'remove-shade') newGrid[r][c] = 0;
+      else if (mode === 'add-mark') newGrid[r][c] = 2;
+      else if (mode === 'remove-mark') newGrid[r][c] = 0;
+      return newGrid;
+    });
+  };
+
+  const cycleCell = (r: number, c: number) => {
+    if (isClue(r, c)) return;
+    setExampleGrid(prev => {
+      const newGrid = prev.map(row => [...row]);
+      const cur = newGrid[r][c];
+      newGrid[r][c] = cur === 0 ? 1 : cur === 1 ? 2 : 0;
+      return newGrid;
+    });
+  };
+
+  const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
+    const isClueCell = isClue(r, c);
+    const isLeftClick = e.button === 0;
+    if (isLeftClick && isClueCell) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    e.preventDefault();
+    e.nativeEvent.stopImmediatePropagation();
+    const target = e.currentTarget as HTMLElement;
+    target.setPointerCapture(e.pointerId);
+    isDragging.current = true;
+    hasDragged.current = false;
+    startRow.current = r;
+    startCol.current = c;
+    const currentState = exampleGrid[r][c];
+    if (isMobile.current) {
+      if (currentState === 0) dragMode.current = 'add-shade';
+      else if (currentState === 1) dragMode.current = 'add-mark';
+      else if (currentState === 2) dragMode.current = 'remove-mark';
+    } else {
+      if (isLeftClick) {
+        dragMode.current = currentState === 1 ? 'remove-shade' : 'add-shade';
+      } else {
+        dragMode.current = currentState === 2 ? 'remove-mark' : 'add-mark';
+      }
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current || dragMode.current === 'none') return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeX = e.clientX - rect.left - 12;
+    const relativeY = e.clientY - rect.top - 12;
+    const col = Math.floor(relativeX / 45);
+    const row = Math.floor(relativeY / 45);
+    if (row >= 0 && row < height && col >= 0 && col < width) {
+      if (dragMode.current.includes('shade') && isClue(row, col)) return;
+      hasDragged.current = true;
+      toggleCell(row, col, dragMode.current);
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (!isDragging.current) return;
+    if (!hasDragged.current && startRow.current >= 0 && startCol.current >= 0) {
+      if (isMobile.current) {
+        cycleCell(startRow.current, startCol.current);
+      } else {
+        toggleCell(startRow.current, startCol.current, dragMode.current);
+      }
+    }
+    isDragging.current = false;
+    dragMode.current = 'none';
+    startRow.current = -1;
+    startCol.current = -1;
+  };
+
+  const getClueValue = (r: number, c: number) => {
+    const clue = clues.find(cl => cl.row === r && cl.col === c);
+    return clue ? clue.value : '';
+  };
+
+  return (
+    <>
+      <div className="flex flex-col lg:flex-row gap-10 justify-center">
+        {/* 可游玩例题 */}
+        <div className="flex flex-col items-center">
+          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+            {playableLabel}
+          </p>
+          <div
+            className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700 select-none"
+            style={{ gridTemplateColumns: `repeat(${width}, 44px)` }}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+          >
+            {exampleGrid.flatMap((row, r) =>
+              row.map((state, c) => {
+                const isShaded = state === 1;
+                const isMarked = state === 2;
+                const isBad2x2 = violations.bad2x2Cells.some(cell =>
+                  (cell.r === r && cell.c === c) || (cell.r === r - 1 && cell.c === c) ||
+                  (cell.r === r && cell.c === c - 1) || (cell.r === r - 1 && cell.c === c - 1)
+                );
+                const clueIndex = clues.findIndex(cl => cl.row === r && cl.col === c);
+                const isBadClue = clueIndex >= 0 && violations.badClueIndices.includes(clueIndex);
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    onPointerDown={(e) => handlePointerDown(r, c, e)}
+                    onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    style={{ paddingTop: '4px', width: '44px', height: '44px', fontSize: '35px', lineHeight: '44px' }}
+                    className={`flex items-center justify-center font-mono font-bold tracking-tight border-0 cursor-pointer
+                      ${isBad2x2 ? 'bg-red-500 text-white' :
+                        isClue(r, c) ? (isMarked ? 'bg-[#f0e6d2] dark:bg-gray-700 text-[#3f2a1e]' : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e]') :
+                        isShaded ? 'bg-[#3f2a1e] text-white' :
+                        isMarked ? 'bg-[#f0e6d2] dark:bg-gray-700 text-gray-400' : 'bg-[#f8f1e3] dark:bg-gray-800'}`}
+                  >
+                    {isClue(r, c) ? (
+                      <span className={isBadClue ? 'text-red-600 dark:text-red-400' : ''}>
+                        {getClueValue(r, c)}
+                      </span>
+                    ) : isMarked ? '×' : ''}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* 正确答案 */}
+        <div className="flex flex-col items-center">
+          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+            {answerLabel}
+          </p>
+          {!showAnswer ? (
+            <div
+              onClick={() => setConfirmSpoiler(true)}
+              className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700 cursor-pointer hover:opacity-90 relative"
+              style={{ gridTemplateColumns: `repeat(${width}, 44px)` }}
+            >
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80 rounded-lg">
+                <div className="text-white text-6xl">👁️‍🗨️</div>
+              </div>
+              {correctSolution.flatMap((row, r) =>
+                row.map((_, c) => <div key={`${r}-${c}`} className="w-[44px] h-[44px] bg-[#f8f1e3] dark:bg-gray-800" />)
+              )}
+            </div>
+          ) : (
+            <div
+              className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700"
+              style={{ gridTemplateColumns: `repeat(${width}, 44px)` }}
+            >
+              {correctSolution.flatMap((row, r) =>
+                row.map((isBlack, c) => (
+                  <div
+                    key={`${r}-${c}`}
+                    className={`flex items-center justify-center font-mono font-bold tracking-tight border-0
+                      ${isBlack ? 'bg-[#3f2a1e] text-white' : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'}`}
+                    style={{ paddingTop: '4px', width: '44px', height: '44px', fontSize: '35px', lineHeight: '44px' }}
+                  >
+                    {getClueValue(r, c)}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 确认弹窗 */}
+      {confirmSpoiler && !showAnswer && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="max-w-sm w-full mx-4 bg-white dark:bg-gray-900 rounded-lg p-6 text-center shadow-xl">
+            <p className="text-lg mb-6 dark:text-gray-200">你确定要查看答案吗？<br />(完成左边的题目可以自动解锁)</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmSpoiler(false)} className="flex-1 py-3 border rounded-lg">取消</button>
+              <button onClick={() => { setShowAnswer(true); setConfirmSpoiler(false); }} className="flex-1 py-3 bg-[#3f2a1e] text-white rounded-lg">确定查看</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
