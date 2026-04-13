@@ -51,6 +51,10 @@ const allPuzzles = [
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/g5p5k5p5s5p5zo5k5g5m',
   },
+  {
+    type: 'fillomino' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/9h9h9h9g34i332h454i13g94g9h9g39j51n14j9g19h94g9g331i23h32i323g9h9h9h9000000000000000000000000000000000008',
+  },
 ];
 
 const START_DATE = '2026-04-09';
