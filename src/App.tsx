@@ -228,6 +228,8 @@ function App() {
           isOpen={completed}
           time={elapsedTime}
           onClose={() => setCompleted(false)}
+          puzzleType={daily?.puzzle.type || 'fillomino'}   // 新增
+          dateStr={new Date().toISOString().slice(0, 10)}   // 新增（或使用你已有的 todayStr）
         />
       </div>
     </div>

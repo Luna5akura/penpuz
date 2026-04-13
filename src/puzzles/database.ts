@@ -27,7 +27,7 @@ const allPuzzles = [
   },
 ];
 
-const START_DATE = '2026-04-10';
+const START_DATE = '2026-04-09';
 
 export function getDailyPuzzle(): DailyPuzzleData | null {
   // 获取北京时间（Asia/Shanghai）当天日期字符串 YYYY-MM-DD
@@ -117,7 +117,7 @@ const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
       '数字表示其所在的留白的连通组格数。',
     ],
     exampleTitle: '例题（5×5）',
-    playableLabel: '可游玩例题（点击或拖动练习）',
+    playableLabel: '可游玩例题',
     answerLabel: '正确答案',
     example: {
       puzzleType: 'nurikabe',
@@ -148,7 +148,7 @@ const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
       '数字表示其所在区域的面积。',
     ],
     exampleTitle: '例题（6×6）',
-    playableLabel: '可游玩例题（点击或拖动练习）',
+    playableLabel: '可游玩例题',
     answerLabel: '正确答案',
     example: {
       puzzleType: 'fillomino',
