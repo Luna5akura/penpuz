@@ -57,34 +57,30 @@ export function parseFillominoLink(link: string): FillominoPuzzleData | null {
 
 
 
-// ==================== 完整 Fillomino 验证逻辑（最终版：集成 autoThinLines 自动封闭） ====================
+// ==================== 完整 Fillomino 验证逻辑（最终版：集成 autoThinLines + 纯空白区域支持） ====================
 export function validateFillomino(
   grid: (number | null)[][],
   width: number,
   height: number,
   deepLines: Set<string> = new Set()
 ) {
-  console.log('[VALIDATE DEBUG] === 开始验证 Fillomino（最终版：集成 autoThinLines 自动封闭） ===');
-  
+  console.log('[VALIDATE DEBUG] === 开始验证 Fillomino（支持纯空白区域） ===');
+
   // ==================== 打印 grid 与 deepLines ====================
   console.log('[GRID DEBUG] 当前 grid：');
   console.table(grid);
   console.log('[DEEP LINES DEBUG] deepLines Set（共', deepLines.size, '条）：');
   console.log(Array.from(deepLines).sort());
-
   console.log('[VALIDATE DEBUG] grid size:', height, 'x', width);
-  console.log('[VALIDATE DEBUG] filled cells:', grid.flat().filter(v => v !== null).length);
-  console.log('[VALIDATE DEBUG] deepLines count:', deepLines.size);
 
   const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-
   const getEdgeKey = (r1: number, c1: number, r2: number, c2: number): string | null => {
     if (r1 === r2 && Math.abs(c1 - c2) === 1) return `h-${r1}-${Math.min(c1, c2)}`;
     if (c1 === c2 && Math.abs(r1 - r2) === 1) return `v-${Math.min(r1, r2)}-${c1}`;
     return null;
   };
 
-  // ==================== 计算 autoThinLines（完全复制自 Board.tsx） ====================
+  // ==================== 计算 autoThinLines ====================
   const autoThinLines = (() => {
     const keys = new Set<string>();
     const visited = Array.from({ length: height }, () => Array(width).fill(false));
@@ -123,48 +119,33 @@ export function validateFillomino(
         }
       }
     }
-    console.log('[AUTO THIN LINES DEBUG] 自动边界数量:', keys.size);
     return keys;
   })();
 
   const hasBoundary = (r1: number, c1: number, r2: number, c2: number): boolean => {
     if (r1 < 0 || r1 >= height || c1 < 0 || c1 >= width ||
         r2 < 0 || r2 >= height || c2 < 0 || c2 >= width) return true;
-
     const key = getEdgeKey(r1, c1, r2, c2);
     if (!key) return true;
-
-    if (deepLines.has(key)) {
-      console.log(`[BOUNDARY DEBUG] hard boundary (deepLines) at ${key}`);
-      return true;
-    }
-    if (autoThinLines.has(key)) {
-      console.log(`[BOUNDARY DEBUG] auto closed boundary (autoThinLines) at ${key}`);
-      return true;
-    }
-
+    if (deepLines.has(key) || autoThinLines.has(key)) return true;
     const v1 = grid[r1][c1];
     const v2 = grid[r2][c2];
-    if (v1 !== null && v2 !== null && v1 !== v2) {
-      console.log(`[BOUNDARY DEBUG] auto boundary (different numbers) at ${key}`);
-      return true;
-    }
+    if (v1 !== null && v2 !== null && v1 !== v2) return true;
     return false;
   };
 
-  // ==================== clue 锚点区域发现（尊重 auto 封闭） ====================
+  // ==================== 区域发现 ====================
   const visited = Array.from({ length: height }, () => Array(width).fill(false));
-  const regions: { size: number; clueValue: number; cells: { r: number; c: number }[] }[] = [];
+  const regions: { size: number; clueValue: number | null; cells: { r: number; c: number }[] }[] = [];
   const invalidCells: { r: number; c: number }[] = [];
 
+  // 第一遍：clue 锚点区域（含附着的 null 格子）
   console.log('[VALIDATE DEBUG] 开始 clue 锚点区域发现...');
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
       if (visited[r][c]) continue;
       const clueValue = grid[r][c];
       if (clueValue === null) continue;
-
-      console.log(`[REGION DEBUG] 发现新区域起点 (${r},${c}), clue=${clueValue}`);
 
       const cells: { r: number; c: number }[] = [];
       const stack = [{ r, c }];
@@ -173,7 +154,6 @@ export function validateFillomino(
       while (stack.length > 0) {
         const cell = stack.pop()!;
         cells.push(cell);
-
         for (const [dr, dc] of dirs) {
           const nr = cell.r + dr;
           const nc = cell.c + dc;
@@ -188,18 +168,51 @@ export function validateFillomino(
       }
 
       const size = cells.length;
-      console.log(`[REGION DEBUG] → 区域大小=${size} (含 ${cells.filter(p => grid[p.r][p.c] === null).length} 个 null), cells=${cells.map(p => `(${p.r},${p.c})`).join(' ')}`);
+      console.log(`[REGION DEBUG] 有数字区域 clue=${clueValue}, 大小=${size}, cells=${cells.map(p => `(${p.r},${p.c})`).join(' ')}`);
 
-      if (size !== clueValue) {
+      // 仅对含有数字的区域检查大小匹配
+      if (clueValue !== null && size !== clueValue) {
         console.log(`[INVALID] 区域大小不匹配: clue=${clueValue}, size=${size}`);
         invalidCells.push(...cells);
       }
-
       regions.push({ size, clueValue, cells });
     }
   }
 
-  // ==================== 相同大小区域不能正交相邻 ====================
+  // 第二遍：纯空白区域（无任何数字）
+  console.log('[VALIDATE DEBUG] 开始发现纯空白区域...');
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (visited[r][c] || grid[r][c] !== null) continue;
+
+      console.log(`[BLANK REGION DEBUG] 发现新空白区域起点 (${r},${c})`);
+      const cells: { r: number; c: number }[] = [];
+      const stack = [{ r, c }];
+      visited[r][c] = true;
+
+      while (stack.length > 0) {
+        const cell = stack.pop()!;
+        cells.push(cell);
+        for (const [dr, dc] of dirs) {
+          const nr = cell.r + dr;
+          const nc = cell.c + dc;
+          if (nr >= 0 && nr < height && nc >= 0 && nc < width &&
+              !visited[nr][nc] &&
+              !hasBoundary(cell.r, cell.c, nr, nc) &&
+              grid[nr][nc] === null) {
+            visited[nr][nc] = true;
+            stack.push({ r: nr, c: nc });
+          }
+        }
+      }
+
+      const size = cells.length;
+      console.log(`[BLANK REGION DEBUG] → 空白区域大小=${size}, cells=${cells.map(p => `(${p.r},${p.c})`).join(' ')}`);
+      regions.push({ size, clueValue: null, cells });
+    }
+  }
+
+  // ==================== 相同大小区域不能正交相邻（覆盖所有区域） ====================
   console.log(`[VALIDATE DEBUG] 共发现 ${regions.length} 个区域，开始相邻检查...`);
   for (let i = 0; i < regions.length; i++) {
     for (let j = i + 1; j < regions.length; j++) {
@@ -223,7 +236,7 @@ export function validateFillomino(
       }
 
       if (adjacent) {
-        console.log(`[INVALID] 发现两个大小为 ${regA.size} 的区域正交相邻`);
+        console.log(`[INVALID] 发现两个大小为 ${regA.size} 的区域正交相邻（其中至少一个可能为纯空白区域）`);
         invalidCells.push(...regA.cells, ...regB.cells);
       }
     }
