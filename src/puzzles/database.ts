@@ -14,12 +14,12 @@ const allPuzzles = [
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/n2n2u2k2g2l2r2k2n2s2n-16',
   },
   {
-    type: 'fillomino' as const,
-    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/5i1g1h2g1g3h6g1g1i36g1g1g3g1h1g6i3g52g6g11g5g34g4i5g1h1g4k54k1g5h4g1g3i1j4000000000100040000000200080000000000',
-  },
-  {
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/8i1h2g5p2zi5j22k4zh1p6g1h2i7',
+  },
+  {
+    type: 'fillomino' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/5i1g1h2g1g3h6g1g1i36g1g1g3g1h1g6i3g52g6g11g5g34g4i5g1h1g4k54k1g5h4g1g3i1j4000000000100040000000200080000000000',
   },
   {
     type: 'nurikabe' as const,
@@ -141,7 +141,7 @@ const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
   fillomino: {
     type: 'fillomino' as const,
     name: 'Fillomino',
-    nameCn: '分区',
+    nameCn: '码牌',
     rulesTitle: '游戏规则',
     rules: [
       '沿虚格线把盘面分成若干个区域，使得任意两个相邻的区域面积都不同。',
