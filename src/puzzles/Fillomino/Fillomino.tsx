@@ -1,9 +1,5 @@
 // src/puzzles/Fillomino/FillominoBoard.tsx
-<<<<<<< HEAD
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-=======
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
->>>>>>> main
 import type { FillominoPuzzleData } from '../types';
 import { validateFillomino } from './utils';
 
@@ -27,14 +23,11 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   const [grid, setGrid] = useState<(number | null)[][]>(clues.map(row => [...row]));
   const [thinLines, setThinLines] = useState<Set<string>>(new Set());
   const [deepLines, setDeepLines] = useState<Set<string>>(new Set());
-<<<<<<< HEAD
-=======
 
   // ==================== 长按数字面板相关状态 ====================
   const [showNumpad, setShowNumpad] = useState(false);
   const [numpadTarget, setNumpadTarget] = useState<{ row: number; col: number } | null>(null);
 
->>>>>>> main
   const hoveredCellRef = useRef<{ row: number; col: number } | null>(null);
   const isDragging = useRef(false);
   const startRow = useRef(-1);
@@ -48,10 +41,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   const hasEditedBoundary = useRef(false);
   const boundaryOperationRef = useRef<'add' | 'delete' | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-<<<<<<< HEAD
-  const gap = 0;
-=======
->>>>>>> main
 
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressThreshold = 500;
@@ -81,7 +70,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   };
   useEffect(() => { validate(); }, [grid, deepLines, width, height, startTime, onComplete]);
 
-<<<<<<< HEAD
   // ==================== 键盘输入（带详细调试日志） ====================
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const hovered = hoveredCellRef.current;
@@ -96,18 +84,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     }
 
     // 新增：同时支持主键盘和小键盘数字键
-=======
-  useEffect(() => { validate(); }, [grid, deepLines, width, height, startTime, onComplete]);
-
-  // ==================== 键盘输入 ====================
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const hovered = hoveredCellRef.current;
-    if (!hovered) return;
-
-    const { row, col } = hovered;
-    if (clues[row][col] !== null) return;
-
->>>>>>> main
     let num: number | null = null;
     if (e.key >= '1' && e.key <= '9') {
       num = parseInt(e.key);
@@ -118,25 +94,18 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
 
     if (num !== null) {
       e.preventDefault();
-<<<<<<< HEAD
       console.log(`[DEBUG] Setting number ${num} at row=${row}, col=${col} (key: ${e.key})`);
-=======
->>>>>>> main
       setGrid(prev => {
         const newGrid = prev.map(r => [...r]);
         newGrid[row][col] = num;
         return newGrid;
       });
-<<<<<<< HEAD
     } else {
       console.log(`[DEBUG] Ignored key: ${e.key} (not a digit 1-9)`);
-=======
->>>>>>> main
     }
   }, [clues]);
 
   useEffect(() => {
-<<<<<<< HEAD
     console.log('[DEBUG] Keyboard listener attached to document');
     document.addEventListener('keydown', handleKeyDown);
     return () => {
@@ -155,41 +124,21 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   }, [cellSize, gap]);
 
   // ==================== getEdgeKey ====================
-=======
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  // ==================== 工具函数 ====================
-  const getCenter = useCallback((r: number, c: number) => {
-    const step = cellSize + gap;
-    return { x: c * step + cellSize / 2, y: r * step + cellSize / 2 };
-  }, [cellSize, gap]);
-
->>>>>>> main
   const getEdgeKey = useCallback((r1: number, c1: number, r2: number, c2: number): string | null => {
     if (r1 === r2 && Math.abs(c1 - c2) === 1) return `h-${r1}-${Math.min(c1, c2)}`;
     if (c1 === c2 && Math.abs(r1 - r2) === 1) return `v-${Math.min(r1, r2)}-${c1}`;
     return null;
   }, []);
 
-<<<<<<< HEAD
   // ==================== 自动灰色边界线 ====================
-=======
->>>>>>> main
   const autoThinLines = useMemo(() => {
     const keys = new Set<string>();
     const visited = Array.from({ length: height }, () => Array(width).fill(false));
     const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-<<<<<<< HEAD
-
-=======
->>>>>>> main
     for (let r = 0; r < height; r++) {
       for (let c = 0; c < width; c++) {
         const val = grid[r][c];
         if (val === null || visited[r][c] || val === 0) continue;
-<<<<<<< HEAD
 
         const component: { r: number; c: number }[] = [];
         const stack = [{ r, c }];
@@ -208,41 +157,21 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
               !visited[nr][nc] &&
               grid[nr][nc] === val
             ) {
-=======
-        const component: { r: number; c: number }[] = [];
-        const stack = [{ r, c }];
-        visited[r][c] = true;
-        while (stack.length > 0) {
-          const cell = stack.pop()!;
-          component.push(cell);
-          for (const [dr, dc] of directions) {
-            const nr = cell.r + dr;
-            const nc = cell.c + dc;
-            if (nr >= 0 && nr < height && nc >= 0 && nc < width && !visited[nr][nc] && grid[nr][nc] === val) {
->>>>>>> main
               visited[nr][nc] = true;
               stack.push({ r: nr, c: nc });
             }
           }
         }
-<<<<<<< HEAD
-
-=======
->>>>>>> main
         if (component.length === val) {
           for (const cell of component) {
             for (const [dr, dc] of directions) {
               const nr = cell.r + dr;
               const nc = cell.c + dc;
-<<<<<<< HEAD
               if (
                 nr >= 0 && nr < height &&
                 nc >= 0 && nc < width &&
                 grid[nr][nc] !== val
               ) {
-=======
-              if (nr >= 0 && nr < height && nc >= 0 && nc < width && grid[nr][nc] !== val) {
->>>>>>> main
                 const edgeKey = getEdgeKey(cell.r, cell.c, nr, nc);
                 if (edgeKey) keys.add(edgeKey);
               }
@@ -327,7 +256,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   }, [thinLines, deepLines]);
 
   const getLineStyle = useCallback((key: string): { stroke: string; strokeWidth: number } => {
-<<<<<<< HEAD
     if (deepLines.has(key)) {
       return { stroke: '#374151', strokeWidth: 4 };
     }
@@ -335,10 +263,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       return { stroke: '#6b7280', strokeWidth: 2 };
     }
 
-=======
-    if (deepLines.has(key)) return { stroke: '#374151', strokeWidth: 4 };
-    if (autoThinLines.has(key)) return { stroke: '#6b7280', strokeWidth: 2 };
->>>>>>> main
     const [type, rStr, cStr] = key.split('-');
     const r = parseInt(rStr);
     const c = parseInt(cStr);
@@ -352,13 +276,9 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       const v2 = grid[r + 1][c];
       hasDiff = v1 !== v2 && v1 !== null && v2 !== null;
     }
-<<<<<<< HEAD
     if (hasDiff) {
       return { stroke: '#6b7280', strokeWidth: 2 };
     }
-=======
-    if (hasDiff) return { stroke: '#6b7280', strokeWidth: 2 };
->>>>>>> main
     return { stroke: '#e5e7eb', strokeWidth: 1 };
   }, [deepLines, autoThinLines, grid, width, height]);
 
@@ -411,12 +331,8 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     }
     lastRowRef.current = currentCell.row;
     lastColRef.current = currentCell.col;
-<<<<<<< HEAD
     if (dragType.current === 'copy' &&
         (currentCell.row !== startRow.current || currentCell.col !== startCol.current)) {
-=======
-    if (dragType.current === 'copy' && (currentCell.row !== startRow.current || currentCell.col !== startCol.current)) {
->>>>>>> main
       copyValueDrag(currentCell.row, currentCell.col);
     }
   }, [getCellFromPos, getNearestVertex, getEdgeKey, handleBoundaryEdit, copyValueDrag, clearCellDrag, height, width]);
@@ -427,15 +343,10 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       longPressTimerRef.current = null;
     }
     if (!isDragging.current) return;
-<<<<<<< HEAD
     const isSameCell = lastRowRef.current === startRow.current &&
                        lastColRef.current === startCol.current &&
                        startRow.current >= 0 && startCol.current >= 0;
 
-=======
-
-    const isSameCell = lastRowRef.current === startRow.current && lastColRef.current === startCol.current && startRow.current >= 0 && startCol.current >= 0;
->>>>>>> main
     if (isSameCell && !hasEditedBoundary.current) {
       if (dragIsLeft.current) {
         changeNumber(startRow.current, startCol.current, 1);
@@ -456,29 +367,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     document.removeEventListener('pointermove', handleDocumentPointerMove);
     document.removeEventListener('pointerup', handleDocumentPointerUp);
   }, [handleDocumentPointerMove, changeNumber, grid]);
-<<<<<<< HEAD
-=======
-
-  const handleNumpadInput = useCallback((num: number | null) => {
-    if (!numpadTarget) return;
-    const { row, col } = numpadTarget;
-    if (clues[row][col] !== null) return;
-
-    setGrid(prev => {
-      const newGrid = prev.map(r => [...r]);
-      newGrid[row][col] = num;
-      return newGrid;
-    });
-
-    setShowNumpad(false);
-    setNumpadTarget(null);
-  }, [numpadTarget, clues]);
-
-  const closeNumpad = useCallback(() => {
-    setShowNumpad(false);
-    setNumpadTarget(null);
-  }, []);
->>>>>>> main
 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current) {           // ← 新增
@@ -492,24 +380,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       board.setPointerCapture(e.pointerId);
       pointerIdRef.current = e.pointerId;
     }
-<<<<<<< HEAD
-=======
-
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-
-    if (e.pointerType === 'touch' && clues[r][c] === null) {
-      longPressTimerRef.current = setTimeout(() => {
-        if (longPressTimerRef.current === null) return;
-        isDragging.current = false;
-        setNumpadTarget({ row: r, col: c });
-        setShowNumpad(true);
-      }, longPressThreshold);
-    }
-
->>>>>>> main
     isDragging.current = true;
     startRow.current = r;
     startCol.current = c;
@@ -586,7 +456,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
                 key={`${r}-${c}`}
                 onPointerDown={(e) => handlePointerDown(r, c, e)}
                 onMouseEnter={() => {
-<<<<<<< HEAD
                   if (!isPreFilled) {
                     hoveredCellRef.current = { row: r, col: c };
                     console.log(`[DEBUG] Hover enter editable cell: row=${r}, col=${c}`);
@@ -599,23 +468,12 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
                     }
                 }}
                 className={`flex items-center justify-center font-mono font-bold text-3xl cursor-pointer border-0 relative
-=======
-                  if (!isPreFilled) hoveredCellRef.current = { row: r, col: c };
-                }}
-                onMouseLeave={() => {
-                  if (!isDragging.current) hoveredCellRef.current = null;
-                }}
-                className={`flex items-center justify-center font-mono font-bold cursor-pointer border-0 relative
->>>>>>> main
                   ${isPreFilled ? 'bg-[#f0e6d2] text-[#3f2a1e]' : 'bg-white hover:bg-gray-100 active:bg-gray-200'}`}
                 style={{
                   width: `${cellSize}px`,
                   height: `${cellSize}px`,
-<<<<<<< HEAD
-=======
                   fontSize: `${Math.floor(cellSize * 0.7)}px`,
                   lineHeight: `${cellSize}px`,
->>>>>>> main
                 }}
               >
                 {value ?? ''}
@@ -638,10 +496,7 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
           zIndex: 10,
         }}
       >
-<<<<<<< HEAD
         {/* 1. 边界线体系（deep + 自动灰线 + 数字不同） */}
-=======
->>>>>>> main
         {Array.from({ length: height }, (_, r) =>
           Array.from({ length: width - 1 }, (_, c) => {
             const key = `h-${r}-${c}`;
@@ -649,7 +504,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
             const x = (c + 1) * cellSize;
             const y1 = r * cellSize;
             const y2 = (r + 1) * cellSize;
-<<<<<<< HEAD
             return (
               <line
                 key={`edge-v-${r}-${c}`}
@@ -659,9 +513,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
                 strokeLinecap="butt"
               />
             );
-=======
-            return <line key={`edge-v-${r}-${c}`} x1={x} y1={y1} x2={x} y2={y2} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="butt" />;
->>>>>>> main
           })
         )}
         {Array.from({ length: height - 1 }, (_, r) =>
@@ -671,7 +522,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
             const y = (r + 1) * cellSize;
             const x1 = c * cellSize;
             const x2 = (c + 1) * cellSize;
-<<<<<<< HEAD
             return (
               <line
                 key={`edge-h-${r}-${c}`}
@@ -685,11 +535,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
         )}
 
         {/* 2. 中心连线体系（thinLines，右键专用） */}
-=======
-            return <line key={`edge-h-${r}-${c}`} x1={x1} y1={y} x2={x2} y2={y} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="butt" />;
-          })
-        )}
->>>>>>> main
         {Array.from(thinLines).map((key) => {
           const [type, rStr, cStr] = key.split('-');
           const r = parseInt(rStr);
@@ -704,7 +549,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
             const { y: cy2 } = getCenter(r + 1, c);
             x1 = cx; y1 = cy1; x2 = cx; y2 = cy2;
           }
-<<<<<<< HEAD
           return (
             <line
               key={`thin-${key}`}
@@ -714,9 +558,6 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
               strokeLinecap="round"
             />
           );
-=======
-          return <line key={`thin-${key}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#6b7280" strokeWidth="2" strokeLinecap="round" />;
->>>>>>> main
         })}
       </svg>
 

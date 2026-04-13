@@ -30,27 +30,58 @@ export default function CompletionModal({
   const [copied, setCopied] = useState(false);
 
   const copyToClipboard = useCallback(async () => {
+    let success = false;
+
     try {
-      await navigator.clipboard.writeText(shareText);
-      setCopied(true);
-    } catch {
-      // 移动端 fallback
+      // 优先使用现代 Clipboard API（要求安全上下文）
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareText);
+        success = true;
+      } else {
+        throw new Error('Clipboard API not supported or insecure context');
+      }
+    } catch (err) {
+      console.warn('Clipboard API 失败，尝试增强版 fallback:', err);
+
+      // 增强版移动端 fallback（兼容 iOS Safari 与 Android）
       const textArea = document.createElement('textarea');
       textArea.value = shareText;
+
+      // 关键优化样式
       textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
+      textArea.style.left = '-9999px';
+      textArea.style.top = '-9999px';
+      textArea.style.opacity = '0';
+      textArea.style.pointerEvents = 'none';
+      textArea.style.zIndex = '-1';
+
+      // iOS 必需属性
+      textArea.setAttribute('readonly', 'true');
+      textArea.contentEditable = 'true';
+
       document.body.appendChild(textArea);
+
+      // 确保文本被正确选中（移动端关键）
       textArea.focus();
       textArea.select();
+      textArea.setSelectionRange(0, textArea.value.length);
+
       try {
-        document.execCommand('copy');
-        setCopied(true);
+        success = document.execCommand('copy');
+      } catch (fallbackErr) {
+        console.error('execCommand("copy") 执行失败:', fallbackErr);
       } finally {
         document.body.removeChild(textArea);
       }
     }
-    setTimeout(() => setCopied(false), 2000);
+
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      console.error('复制操作未能成功');
+      // 未来可在此处集成 Toast 组件提示用户“复制失败，请手动长按分享文本”
+    }
   }, [shareText]);
 
   return (

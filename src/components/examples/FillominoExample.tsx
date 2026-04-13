@@ -504,7 +504,7 @@ export default function FillominoExample({
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        fontSize: `${Math.floor(cellSize * 0.8)}px`,
+                        fontSize: `${Math.floor(cellSize * 0.7)}px`,
                         lineHeight: `${cellSize}px`,
                       }}
                     >
