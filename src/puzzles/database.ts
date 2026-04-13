@@ -27,7 +27,7 @@ const allPuzzles = [
   },
 ];
 
-const START_DATE = '2026-04-10';
+const START_DATE = '2026-04-09';
 
 export function getDailyPuzzle(): DailyPuzzleData | null {
   // 获取北京时间（Asia/Shanghai）当天日期字符串 YYYY-MM-DD
@@ -117,7 +117,7 @@ const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
       '数字表示其所在的留白的连通组格数。',
     ],
     exampleTitle: '例题（5×5）',
-    playableLabel: '可游玩例题（点击或拖动练习）',
+    playableLabel: '可游玩例题',
     answerLabel: '正确答案',
     example: {
       puzzleType: 'nurikabe',
@@ -141,14 +141,14 @@ const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
   fillomino: {
     type: 'fillomino' as const,
     name: 'Fillomino',
-    nameCn: '分区',
+    nameCn: '码牌',
     rulesTitle: '游戏规则',
     rules: [
       '沿虚格线把盘面分成若干个区域，使得任意两个相邻的区域面积都不同。',
       '数字表示其所在区域的面积。',
     ],
     exampleTitle: '例题（6×6）',
-    playableLabel: '可游玩例题（点击或拖动练习）',
+    playableLabel: '可游玩例题',
     answerLabel: '正确答案',
     example: {
       puzzleType: 'fillomino',
