@@ -45,18 +45,16 @@ function App() {
   useEffect(() => {
     const data = getDailyPuzzle();
     if (!data) return;
-
     setDaily(data);
     setHistory(getHistoryPuzzles(data.daysSinceStart));
-
     const todayStr = new Date().toISOString().slice(0, 10);
     const alreadyCompleted = loadSavedCompletion(todayStr);
-
     if (alreadyCompleted) {
       setStarted(true);
     }
   }, [loadSavedCompletion]);
 
+  // ==================== 计时逻辑（完成时立即停止） ====================
   useEffect(() => {
     if (!started || !startTime || completed) return;
 
@@ -75,9 +73,11 @@ function App() {
     setSavedCompletion(null);
   }, []);
 
+  // ==================== 关键修改：完成时立即停止计时 ====================
   const handleComplete = useCallback((finalTime: number) => {
     setElapsedTime(finalTime);
     setCompleted(true);
+    setStartTime(null);          // ← 新增：立即让计时器停止
     saveCompletion(finalTime);
   }, [saveCompletion]);
 
@@ -102,7 +102,6 @@ function App() {
   const renderBoard = useCallback(() => {
     if (!daily) return null;
     const { puzzle } = daily;
-
     if (puzzle.type === 'nurikabe') {
       return (
         <NurikabeBoard
@@ -176,11 +175,9 @@ function App() {
                 {template.name} • 第 {daily.index + 1} 题
               </div>
             </div>
-
             <div className="flex justify-center mb-12">
               {renderBoard()}
             </div>
-
             {isTodayCompleted && (
               <div className="flex justify-center mb-8">
                 <Button onClick={handleViewResult} variant="outline" size="lg">
@@ -228,8 +225,8 @@ function App() {
           isOpen={completed}
           time={elapsedTime}
           onClose={() => setCompleted(false)}
-          puzzleType={daily?.puzzle.type || 'fillomino'}   // 新增
-          dateStr={new Date().toISOString().slice(0, 10)}   // 新增（或使用你已有的 todayStr）
+          puzzleType={daily?.puzzle.type || 'fillomino'}
+          dateStr={new Date().toISOString().slice(0, 10)}
         />
       </div>
     </div>
