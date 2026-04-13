@@ -1,7 +1,25 @@
-// src/puzzles/database.ts
 import { PuzzleData, DailyPuzzleData, HistoryPuzzleData, PuzzleTemplate } from './types';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
+
+// ==================== 统一获取北京时间日期字符串 ====================
+/**
+ * 返回当前北京时间（Asia/Shanghai）的 YYYY-MM-DD 字符串
+ * 严格以北京时间 00:00 为日期分界点
+ */
+export function getBeijingDateStr(): string {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find(p => p.type === 'year')!.value;
+  const month = parts.find(p => p.type === 'month')!.value.padStart(2, '0');
+  const day = parts.find(p => p.type === 'day')!.value.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 // ==================== 统一存储所有谜题 ====================
 const allPuzzles = [
@@ -38,23 +56,10 @@ const allPuzzles = [
 const START_DATE = '2026-04-09';
 
 export function getDailyPuzzle(): DailyPuzzleData | null {
-  // 获取北京时间（Asia/Shanghai）当天日期字符串 YYYY-MM-DD
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Shanghai',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-
-  // 格式化为 YYYY-MM-DD
-  const parts = formatter.formatToParts(new Date());
-  const year = parts.find(p => p.type === 'year')!.value;
-  const month = parts.find(p => p.type === 'month')!.value.padStart(2, '0');
-  const day = parts.find(p => p.type === 'day')!.value.padStart(2, '0');
-  const todayStr = `${year}-${month}-${day}`;
+  const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
 
   // 开始日期也按北京时间解释
-  const start = new Date(START_DATE + 'T00:00:00+08:00'); // ← 明确使用北京时区
+  const start = new Date(START_DATE + 'T00:00:00+08:00');
   const today = new Date(todayStr + 'T00:00:00+08:00');
 
   let daysSinceStart = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -170,7 +175,7 @@ const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
         [null, 2, null, 1, 4, null],
         [null, null, null, 3, null, null],
       ],
-      correctGrid: [   // ← 已为您准备的有效解（满足分区规则）
+      correctGrid: [
         [5, 5, 4, 4, 4, 4],
         [5, 5, 3, 2, 2, 1],
         [3, 5, 3, 3, 5, 2],

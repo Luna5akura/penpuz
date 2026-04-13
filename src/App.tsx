@@ -1,10 +1,11 @@
 // src/App.tsx
+
 import { useState, useEffect, useCallback } from 'react';
 import NurikabeBoard from './puzzles/Nurikabe/Nurikabe';
 import FillominoBoard from './puzzles/Fillomino/Fillomino';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
-import { getDailyPuzzle, getHistoryPuzzles } from './puzzles/database';
+import { getDailyPuzzle, getHistoryPuzzles, getBeijingDateStr } from './puzzles/database';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
 import type { DailyPuzzleData, HistoryPuzzleData } from './puzzles/types';
@@ -36,7 +37,7 @@ function App() {
 
   const saveCompletion = useCallback((time: number) => {
     if (!daily) return;
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
     const key = getStorageKey(todayStr);
     localStorage.setItem(key, JSON.stringify({ time }));
     setSavedCompletion({ time });
@@ -47,7 +48,7 @@ function App() {
     if (!data) return;
     setDaily(data);
     setHistory(getHistoryPuzzles(data.daysSinceStart));
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
     const alreadyCompleted = loadSavedCompletion(todayStr);
     if (alreadyCompleted) {
       setStarted(true);
@@ -226,7 +227,7 @@ function App() {
           time={elapsedTime}
           onClose={() => setCompleted(false)}
           puzzleType={daily?.puzzle.type || 'fillomino'}
-          dateStr={new Date().toISOString().slice(0, 10)}
+          dateStr={getBeijingDateStr()} // ← 使用统一北京时间函数
         />
       </div>
     </div>
