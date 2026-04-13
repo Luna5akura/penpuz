@@ -47,6 +47,9 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
 
   const gap = 0;
 
+  // ==================== 新增：防止重复完成 ====================
+  const hasCompleted = useRef(false);
+
   // ==================== 窗口大小变化时实时调整 ====================
   useLayoutEffect(() => {
     const updateSize = () => {
@@ -61,14 +64,22 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     return () => window.removeEventListener('resize', updateSize);
   }, [width]);
 
-  const validate = () => {
+  // ==================== 关键修复：带完成守卫的验证逻辑 ====================
+  const validate = useCallback(() => {
+    if (hasCompleted.current) return;                    // 防止重复触发
+    if (!startTime || startTime <= 0) return;            // 防止 startTime 为 null 或无效
+
     const result = validateFillomino(grid, width, height, deepLines);
     if (result.valid) {
+      hasCompleted.current = true;
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       onComplete(elapsed);
     }
-  };
-  useEffect(() => { validate(); }, [grid, deepLines, width, height, startTime, onComplete]);
+  }, [grid, deepLines, width, height, startTime, onComplete]);
+
+  useEffect(() => {
+    validate();
+  }, [validate]);
 
   // ==================== 键盘输入（带详细调试日志） ====================
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -425,6 +436,28 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
 
   const svgWidth = width * cellSize;
   const svgHeight = height * cellSize;
+
+  // 辅助函数（长按数字面板）
+  const closeNumpad = () => {
+    setShowNumpad(false);
+    setNumpadTarget(null);
+  };
+
+  const handleNumpadInput = (num: number | null) => {
+    if (numpadTarget) {
+      const { row, col } = numpadTarget;
+      if (clues[row][col] !== null) {
+        closeNumpad();
+        return;
+      }
+      setGrid(prev => {
+        const newGrid = prev.map(r => [...r]);
+        newGrid[row][col] = num;
+        return newGrid;
+      });
+    }
+    closeNumpad();
+  };
 
   return (
     <div
