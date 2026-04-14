@@ -1,18 +1,13 @@
 // src/components/RulesSection.tsx
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PuzzleTemplate } from '../puzzles/types';
-import NurikabeExample from './examples/NurikabeExample';
-import FillominoExample from './examples/FillominoExample';
+import { renderPuzzleExample } from '../puzzles/registry';
 
 interface Props {
   template: PuzzleTemplate;
 }
 
 export default function RulesSection({ template }: Props) {
-  const example = template.example;
-  const isNurikabe = example.puzzleType === 'nurikabe';
-
   return (
     <Card className="max-w-4xl mx-auto mt-12 dark:bg-gray-900 dark:border-gray-800">
       <CardHeader>
@@ -36,25 +31,7 @@ export default function RulesSection({ template }: Props) {
           {template.exampleTitle}
         </h3>
 
-        {isNurikabe ? (
-          <NurikabeExample
-            width={example.width}
-            height={example.height}
-            clues={(example as any).clues}
-            correctSolution={(example as any).correctSolution}
-            playableLabel={template.playableLabel}
-            answerLabel={template.answerLabel}
-          />
-        ) : (
-          <FillominoExample
-            width={example.width}
-            height={example.height}
-            cluesGrid={(example as any).cluesGrid}
-            correctGrid={(example as any).correctGrid}
-            playableLabel={template.playableLabel}
-            answerLabel={template.answerLabel}
-          />
-        )}
+        {renderPuzzleExample(template)}
       </CardContent>
     </Card>
   );

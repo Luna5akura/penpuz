@@ -1,6 +1,5 @@
-import { PuzzleData, DailyPuzzleData, HistoryPuzzleData, PuzzleTemplate } from './types';
-import { parsePuzzLink } from './Nurikabe/utils';
-import { parseFillominoLink } from './Fillomino/utils';
+import type { DailyPuzzleData, HistoryPuzzleData, PuzzleEntry } from './types';
+import { getPuzzleTemplate, resolvePuzzleEntry } from './registry';
 
 // ==================== 统一获取北京时间日期字符串 ====================
 /**
@@ -22,7 +21,7 @@ export function getBeijingDateStr(): string {
 }
 
 // ==================== 统一存储所有谜题 ====================
-const allPuzzles = [
+const allPuzzles: PuzzleEntry[] = [
   {
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/2l2u2l2n2m2m.k2g2i2q2l2s',
@@ -52,8 +51,34 @@ const allPuzzles = [
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/g5p5k5p5s5p5zo5k5g5m',
   },
   {
+    type: 'yajilin' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/q30k20d32i1141h3221i42d12k40q',
+  },
+  {
     type: 'fillomino' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/9h9h9h9g34i332h454i13g94g9h9g39j51n14j9g19h94g9g331i23h32i323g9h9h9h9000000000000000000000000000000000008',
+  },
+  {
+    type: 'yajilin' as const,
+    puzzle: {
+      type: 'yajilin' as const,
+      width: 6,
+      height: 6,
+      clues: [
+        { row: 1, col: 1, direction: 'right', value: '?' },
+        { row: 1, col: 2, direction: 'down', value: 2 },
+        { row: 1, col: 3, direction: 'down', value: 0 },
+        { row: 1, col: 4, direction: 'down', value: 2 },
+        { row: 2, col: 1, direction: 'right', value: 2 },
+        { row: 2, col: 3, direction: 'right', value: 1 },
+        { row: 3, col: 1, direction: 'right', value: 0 },
+        { row: 3, col: 2, direction: 'down', value: 1 },
+        { row: 3, col: 3, direction: 'down', value: 0 },
+        { row: 3, col: 4, direction: 'down', value: 1 },
+        { row: 4, col: 1, direction: 'right', value: 2 },
+        { row: 4, col: 3, direction: 'right', value: 1 },
+      ],
+    },
   },
 ];
 
@@ -71,21 +96,12 @@ export function getDailyPuzzle(): DailyPuzzleData | null {
 
   const index = daysSinceStart % allPuzzles.length;
   const entry = allPuzzles[index];
-
-  let puzzle: PuzzleData;
-  if (entry.type === 'nurikabe') {
-    const parsed = parsePuzzLink(entry.puzzLink);
-    if (!parsed) return null;
-    puzzle = parsed;
-  } else if (entry.type === 'fillomino') {
-    puzzle = parseFillominoLink(entry.puzzLink);
-  } else {
-    return null;
-  }
+  const puzzle = resolvePuzzleEntry(entry);
+  if (!puzzle) return null;
 
   return {
     puzzle,
-    template: templates[entry.type],
+    template: getPuzzleTemplate(entry.type),
     index,
     daysSinceStart,
   };
@@ -103,90 +119,14 @@ export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {
     seen.add(idx);
 
     const entry = allPuzzles[idx];
-    let puzzle: PuzzleData;
-
-    if (entry.type === 'nurikabe') {
-      const parsed = parsePuzzLink(entry.puzzLink);
-      if (!parsed) continue;
-      puzzle = parsed;
-    } else {
-      puzzle = parseFillominoLink(entry.puzzLink);
-    }
+    const puzzle = resolvePuzzleEntry(entry);
+    if (!puzzle) continue;
 
     history.push({
       puzzle,
-      template: templates[entry.type],
+      template: getPuzzleTemplate(entry.type),
       index: idx,
     });
   }
   return history;
 }
-
-const templates: Record<'nurikabe' | 'fillomino', PuzzleTemplate> = {
-  nurikabe: {
-    type: 'nurikabe' as const,
-    name: 'Nurikabe',
-    nameCn: '数墙',
-    rulesTitle: '游戏规则',
-    rules: [
-      '涂黑一些空格，使得所有涂黑的格子连通成一个整体，且没有全部涂黑的2×2结构。',
-      '每一组连通的留白格必须恰好包含一个数字。',
-      '数字表示其所在的留白的连通组格数。',
-    ],
-    exampleTitle: '例题（5×5）',
-    playableLabel: '可游玩例题',
-    answerLabel: '正确答案',
-    example: {
-      puzzleType: 'nurikabe',
-      width: 5,
-      height: 5,
-      clues: [
-        { row: 0, col: 0, value: '?' },
-        { row: 2, col: 0, value: 3 },
-        { row: 4, col: 1, value: 1 },
-        { row: 3, col: 4, value: 5 },
-      ],
-      correctSolution: [
-        [0, 0, 0, 1, 1],
-        [1, 1, 1, 1, 0],
-        [0, 0, 0, 1, 0],
-        [1, 1, 1, 1, 0],
-        [1, 0, 1, 0, 0],
-      ],
-    },
-  },
-  fillomino: {
-    type: 'fillomino' as const,
-    name: 'Fillomino',
-    nameCn: '码牌',
-    rulesTitle: '游戏规则',
-    rules: [
-      '沿虚格线把盘面分成若干个区域，使得任意两个相邻的区域面积都不同。',
-      '数字表示其所在区域的面积。',
-    ],
-    exampleTitle: '例题（6×6）',
-    playableLabel: '可游玩例题',
-    answerLabel: '正确答案',
-    example: {
-      puzzleType: 'fillomino',
-      width: 6,
-      height: 6,
-      cluesGrid: [
-        [null, null, 4, null, null, null],
-        [null, 5, 3, null, 2, null],
-        [null, null, null, null, 5, 2],
-        [3, 3, null, null, null, null],
-        [null, 2, null, 1, 4, null],
-        [null, null, null, 3, null, null],
-      ],
-      correctGrid: [
-        [5, 5, 4, 4, 4, 4],
-        [5, 5, 3, 2, 2, 1],
-        [3, 5, 3, 3, 5, 2],
-        [3, 3, 5, 5, 5, 2],
-        [2, 2, 5, 1, 4, 4],
-        [1, 3, 3, 3, 4, 4],
-      ],
-    },
-  },
-} as const;

@@ -5,6 +5,22 @@ export interface NurikabeClue {
   value: number | '?';
 }
 
+export type YajilinDirection = 'up' | 'right' | 'down' | 'left';
+
+export interface YajilinClue {
+  row: number;
+  col: number;
+  direction: YajilinDirection;
+  value: number | '?';
+}
+
+export interface YajilinSolutionEdge {
+  r1: number;
+  c1: number;
+  r2: number;
+  c2: number;
+}
+
 export interface NurikabePuzzleData {
   type: 'nurikabe';
   width: number;
@@ -19,7 +35,33 @@ export interface FillominoPuzzleData {
   clues: (number | null)[][];
 }
 
-export type PuzzleData = NurikabePuzzleData | FillominoPuzzleData;
+export interface YajilinPuzzleData {
+  type: 'yajilin';
+  width: number;
+  height: number;
+  clues: YajilinClue[];
+}
+
+export type PuzzleData = NurikabePuzzleData | FillominoPuzzleData | YajilinPuzzleData;
+export type PuzzleType = PuzzleData['type'];
+
+export type PuzzleEntry =
+  | {
+      type: 'nurikabe';
+      puzzLink: string;
+    }
+  | {
+      type: 'fillomino';
+      puzzLink: string;
+    }
+  | {
+      type: 'yajilin';
+      puzzLink: string;
+    }
+  | {
+      type: 'yajilin';
+      puzzle: YajilinPuzzleData;
+    };
 
 export type PuzzleExample =
   | {
@@ -35,10 +77,19 @@ export type PuzzleExample =
       height: number;
       cluesGrid: (number | null)[][]; // 初始线索
       correctGrid: (number | null)[][]; // 正确答案
+    }
+  | {
+      puzzleType: 'yajilin';
+      width: number;
+      height: number;
+      clues: YajilinClue[];
+      shadedCells: { row: number; col: number }[];
+      loopEdges: YajilinSolutionEdge[];
+      crossedEdges?: YajilinSolutionEdge[];
     };
 
 export interface PuzzleTemplate {
-  type: 'nurikabe' | 'fillomino';
+  type: PuzzleType;
   name: string;
   nameCn: string;
   rulesTitle: string;

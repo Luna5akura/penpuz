@@ -1,126 +1,36 @@
 // src/App.tsx
 
-import { useState, useEffect, useCallback } from 'react';
-import NurikabeBoard from './puzzles/Nurikabe/Nurikabe';
-import FillominoBoard from './puzzles/Fillomino/Fillomino';
+import { useCallback } from 'react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
-import { getDailyPuzzle, getHistoryPuzzles, getBeijingDateStr } from './puzzles/database';
+import { getBeijingDateStr } from './puzzles/database';
+import { useDailyPuzzleSession } from './hooks/useDailyPuzzleSession';
+import { renderPuzzleBoard } from './puzzles/registry';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
-import type { DailyPuzzleData, HistoryPuzzleData } from './puzzles/types';
 
 function App() {
-  const [daily, setDaily] = useState<DailyPuzzleData | null>(null);
-  const [started, setStarted] = useState(false);
-  const [startTime, setStartTime] = useState<number | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [completed, setCompleted] = useState(false);
-  const [history, setHistory] = useState<HistoryPuzzleData[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
-  const [savedCompletion, setSavedCompletion] = useState<{ time: number } | null>(null);
-
-  const getStorageKey = (dateStr: string) => `puzzle-completion-${dateStr}`;
-
-  const loadSavedCompletion = useCallback((dateStr: string) => {
-    const key = getStorageKey(dateStr);
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const data = JSON.parse(saved);
-      setSavedCompletion(data);
-      setCompleted(true);
-      setElapsedTime(data.time);
-      return true;
-    }
-    return false;
-  }, []);
-
-  const saveCompletion = useCallback((time: number) => {
-    if (!daily) return;
-    const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
-    const key = getStorageKey(todayStr);
-    localStorage.setItem(key, JSON.stringify({ time }));
-    setSavedCompletion({ time });
-  }, [daily]);
-
-  useEffect(() => {
-    const data = getDailyPuzzle();
-    if (!data) return;
-    setDaily(data);
-    setHistory(getHistoryPuzzles(data.daysSinceStart));
-    const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
-    const alreadyCompleted = loadSavedCompletion(todayStr);
-    if (alreadyCompleted) {
-      setStarted(true);
-    }
-  }, [loadSavedCompletion]);
-
-  // ==================== 计时逻辑（完成时立即停止） ====================
-  useEffect(() => {
-    if (!started || !startTime || completed) return;
-
-    const interval = setInterval(() => {
-      setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [started, startTime, completed]);
-
-  const handleStart = useCallback(() => {
-    setStarted(true);
-    setStartTime(Date.now());
-    setElapsedTime(0);
-    setCompleted(false);
-    setSavedCompletion(null);
-  }, []);
-
-  // ==================== 关键修改：完成时立即停止计时 ====================
-  const handleComplete = useCallback((finalTime: number) => {
-    setElapsedTime(finalTime);
-    setCompleted(true);
-    setStartTime(null);          // ← 新增：立即让计时器停止
-    saveCompletion(finalTime);
-  }, [saveCompletion]);
-
-  const handleViewResult = useCallback(() => {
-    setCompleted(true);
-  }, []);
-
-  const loadHistoryPuzzle = useCallback((item: HistoryPuzzleData) => {
-    setDaily({
-      puzzle: item.puzzle,
-      template: item.template,
-      index: item.index,
-      daysSinceStart: 0,
-    });
-    setStarted(false);
-    setCompleted(false);
-    setElapsedTime(0);
-    setSavedCompletion(null);
-    setShowHistory(false);
-  }, []);
+  const {
+    daily,
+    history,
+    started,
+    startTime,
+    elapsedTime,
+    completed,
+    savedCompletion,
+    showHistory,
+    handleStart,
+    handleComplete,
+    handleViewResult,
+    closeCompletion,
+    openHistory,
+    closeHistory,
+    loadHistoryPuzzle,
+  } = useDailyPuzzleSession();
 
   const renderBoard = useCallback(() => {
-    if (!daily) return null;
-    const { puzzle } = daily;
-    if (puzzle.type === 'nurikabe') {
-      return (
-        <NurikabeBoard
-          puzzle={puzzle}
-          startTime={startTime!}
-          onComplete={handleComplete}
-        />
-      );
-    } else if (puzzle.type === 'fillomino') {
-      return (
-        <FillominoBoard
-          puzzle={puzzle}
-          startTime={startTime!}
-          onComplete={handleComplete}
-        />
-      );
-    }
-    return null;
+    if (!daily || !startTime) return null;
+    return renderPuzzleBoard(daily.puzzle, startTime, handleComplete, `${daily.puzzle.type}-${daily.index}`);
   }, [daily, startTime, handleComplete]);
 
   if (!daily) return <div className="text-center py-12">加载每日谜题中...</div>;
@@ -141,7 +51,7 @@ function App() {
           </div>
           <Button
             variant="outline"
-            onClick={() => setShowHistory(true)}
+            onClick={openHistory}
             className="px-6"
           >
             查看历史题目
@@ -197,7 +107,7 @@ function App() {
             <Card className="max-w-lg w-full max-h-[80vh] overflow-auto dark:bg-gray-900 dark:border-gray-700">
               <div className="p-6 border-b flex items-center justify-between dark:border-gray-700">
                 <h2 className="text-2xl font-semibold text-[#3f2a1e] dark:text-gray-100">历史题目</h2>
-                <Button variant="ghost" onClick={() => setShowHistory(false)}>
+                <Button variant="ghost" onClick={closeHistory}>
                   关闭
                 </Button>
               </div>
@@ -225,8 +135,8 @@ function App() {
         <CompletionModal
           isOpen={completed}
           time={elapsedTime}
-          onClose={() => setCompleted(false)}
-          puzzleType={daily?.puzzle.type || 'fillomino'}
+          onClose={closeCompletion}
+          puzzleType={daily?.puzzle.type || 'nurikabe'}
           dateStr={getBeijingDateStr()} // ← 使用统一北京时间函数
         />
       </div>

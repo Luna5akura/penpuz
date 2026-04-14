@@ -7,7 +7,7 @@ interface Props {
   isOpen: boolean;
   time: number;
   onClose: () => void;
-  puzzleType: 'nurikabe' | 'fillomino';
+  puzzleType: 'nurikabe' | 'fillomino' | 'yajilin';
   dateStr: string;
 }
 
@@ -20,7 +20,12 @@ export default function CompletionModal({
 }: Props) {
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
-  const puzzleName = puzzleType === 'fillomino' ? 'Fillomino' : 'Nurikabe';
+  const puzzleName =
+    puzzleType === 'fillomino'
+      ? 'Fillomino'
+      : puzzleType === 'yajilin'
+        ? 'Yajilin'
+        : 'Nurikabe';
 
   const shareText = `我在每日纸笔谜题网站完成了 ${dateStr} 的 ${puzzleName} 谜题！用时 ${minutes} 分 ${seconds} 秒\nhttps://penpuz.today`;
 
