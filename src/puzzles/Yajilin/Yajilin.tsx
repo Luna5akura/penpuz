@@ -108,6 +108,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     startCell: { row: number; col: number } | null;
     lastCell: { row: number; col: number } | null;
     drawMode: 'add' | 'remove' | null;
+    cellDragMode: 'shade-to-mark' | null;
     movedToDraw: boolean;
     pendingTap: PendingTap;
   }>({
@@ -116,6 +117,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     startCell: null,
     lastCell: null,
     drawMode: null,
+    cellDragMode: null,
     movedToDraw: false,
     pendingTap: null,
   });
@@ -224,6 +226,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
       startCell: null,
       lastCell: null,
       drawMode: null,
+      cellDragMode: null,
       movedToDraw: false,
       pendingTap: null,
     };
@@ -443,6 +446,30 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     current.lastCell = { row, col };
   }, [applyChange, currentTrialLevel, grid, height, isClueCell, removeIncidentLoopEdges, trialActive, width]);
 
+  const replaceCellState = useCallback((row: number, col: number, nextState: 0 | 2) => {
+    if (isClueCell(row, col)) return;
+    applyChange((currentSnapshot) => {
+      if (currentSnapshot.grid[row][col] === nextState) return currentSnapshot;
+      const nextGrid = currentSnapshot.grid.map((currentRow) => [...currentRow]);
+      const nextCellLevels = currentSnapshot.cellLevels.map((currentRow) => [...currentRow]);
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      nextGrid[row][col] = nextState;
+      nextCellLevels[row][col] = nextState === 0 ? 0 : trialActive ? currentTrialLevel : 0;
+      removeIncidentLoopEdges(nextLoopEdges, row, col);
+      getIncidentYajilinEdgeKeys(row, col, width, height).forEach((key) => {
+        delete nextLoopEdgeLevels[key];
+      });
+      return {
+        ...currentSnapshot,
+        grid: nextGrid,
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        cellLevels: nextCellLevels,
+        loopEdgeLevels: nextLoopEdgeLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, height, isClueCell, removeIncidentLoopEdges, trialActive, width]);
+
   const getRelativePoint = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -478,6 +505,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
       startCell: null,
       lastCell: null,
       drawMode: null,
+      cellDragMode: null,
       movedToDraw: false,
       pendingTap: null,
     };
@@ -509,6 +537,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
         current.startCell = { row: hitTarget.row, col: hitTarget.col };
         current.lastCell = { row: hitTarget.row, col: hitTarget.col };
         current.drawMode = null;
+        current.cellDragMode = null;
         current.movedToDraw = false;
         current.pendingTap = { kind: 'desktop-right-cell', row: hitTarget.row, col: hitTarget.col };
         startBatch();
@@ -522,6 +551,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     current.pointerId = event.pointerId;
     current.isTouch = isTouchPointer;
     current.drawMode = null;
+    current.cellDragMode = null;
     current.movedToDraw = false;
     current.pendingTap = null;
     startBatch();
@@ -541,6 +571,11 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
 
     current.startCell = { row: hitTarget.row, col: hitTarget.col };
     current.lastCell = { row: hitTarget.row, col: hitTarget.col };
+    current.cellDragMode = isTouchPointer
+      ? grid[hitTarget.row][hitTarget.col] === 1
+        ? 'shade-to-mark'
+        : null
+      : null;
     current.pendingTap = isTouchPointer
       ? { kind: 'mobile-cell', row: hitTarget.row, col: hitTarget.col }
       : { kind: 'desktop-left-cell', row: hitTarget.row, col: hitTarget.col };
@@ -559,6 +594,23 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
       const sameCell = current.lastCell?.row === cell.row && current.lastCell?.col === cell.col;
       if (sameCell) return;
       applyCellMarkDrag(cell.row, cell.col);
+      return;
+    }
+
+    if (current.isTouch && current.cellDragMode) {
+      if (!current.lastCell || !current.startCell) return;
+      const sameCell = current.lastCell.row === cell.row && current.lastCell.col === cell.col;
+      if (sameCell) return;
+      if (Math.abs(current.lastCell.row - cell.row) + Math.abs(current.lastCell.col - cell.col) !== 1) return;
+
+      const targetState = 2;
+      if (!current.movedToDraw) {
+        replaceCellState(current.startCell.row, current.startCell.col, targetState);
+      }
+      replaceCellState(cell.row, cell.col, targetState);
+      current.movedToDraw = true;
+      current.pendingTap = null;
+      current.lastCell = cell;
       return;
     }
 
