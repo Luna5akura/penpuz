@@ -13,13 +13,17 @@ function App() {
   const {
     daily,
     history,
+    boardInstance,
     started,
     startTime,
     elapsedTime,
-    completed,
+    attemptCompleted,
+    resultTime,
+    resultOpen,
     savedCompletion,
     showHistory,
     handleStart,
+    handleRestart,
     handleComplete,
     handleViewResult,
     closeCompletion,
@@ -28,15 +32,23 @@ function App() {
     loadHistoryPuzzle,
   } = useDailyPuzzleSession();
 
+  const todayStr = getBeijingDateStr();
+
   const renderBoard = useCallback(() => {
     if (!daily || !startTime) return null;
-    return renderPuzzleBoard(daily.puzzle, startTime, handleComplete, `${daily.puzzle.type}-${daily.index}`);
-  }, [daily, startTime, handleComplete]);
+    return renderPuzzleBoard(
+      daily.puzzle,
+      startTime,
+      boardInstance,
+      handleComplete
+    );
+  }, [boardInstance, daily, startTime, handleComplete]);
 
   if (!daily) return <div className="text-center py-12">加载每日谜题中...</div>;
 
   const { template } = daily;
-  const isTodayCompleted = completed || !!savedCompletion;
+  const isTodayPuzzle = daily.dateStr === todayStr;
+  const hasResult = attemptCompleted || !!savedCompletion;
 
   return (
     <div className="min-h-screen bg-[#f8f1e3] dark:bg-gray-950 py-8 font-serif">
@@ -46,7 +58,7 @@ function App() {
           <div>
             <h1 className="text-3xl font-bold text-[#3f2a1e] dark:text-gray-100">每日纸笔谜题</h1>
             <p className="text-lg text-muted-foreground dark:text-gray-400 mt-2">
-              今日题型：{template.name}（{template.nameCn}）
+              {isTodayPuzzle ? '今日题型' : '题目类型'}：{template.name}（{template.nameCn}）
             </p>
           </div>
           <Button
@@ -82,14 +94,19 @@ function App() {
               <div className="text-lg font-medium text-[#3f2a1e] dark:text-gray-100">
                 用时：{elapsedTime} 秒
               </div>
-              <div className="text-sm text-muted-foreground dark:text-gray-400">
-                {template.name} • 第 {daily.index + 1} 题
+              <div className="flex items-center gap-3">
+                <div className="text-sm text-muted-foreground dark:text-gray-400">
+                  {template.name} • 第 {daily.index + 1} 题
+                </div>
+                <Button onClick={handleRestart} variant="outline" size="sm">
+                  重新开始
+                </Button>
               </div>
             </div>
             <div className="flex justify-center mb-12">
               {renderBoard()}
             </div>
-            {isTodayCompleted && (
+            {hasResult && (
               <div className="flex justify-center mb-8">
                 <Button onClick={handleViewResult} variant="outline" size="lg">
                   📊 查看成绩
@@ -117,13 +134,15 @@ function App() {
                 ) : (
                   history.map((item) => (
                     <Button
-                      key={item.index}
+                      key={item.dateStr}
                       variant="outline"
                       className="w-full justify-start text-left h-auto py-4 dark:bg-gray-800"
                       onClick={() => loadHistoryPuzzle(item)}
                     >
                       <span className="font-medium">{item.template.name}（{item.template.nameCn}）</span>
-                      <span className="ml-auto text-muted-foreground dark:text-gray-400">第 {item.index + 1} 题</span>
+                      <span className="ml-auto text-muted-foreground dark:text-gray-400">
+                        {item.dateStr} · 第 {item.index + 1} 题
+                      </span>
                     </Button>
                   ))
                 )}
@@ -133,11 +152,11 @@ function App() {
         )}
 
         <CompletionModal
-          isOpen={completed}
-          time={elapsedTime}
+          isOpen={resultOpen}
+          time={resultTime}
           onClose={closeCompletion}
           puzzleType={daily?.puzzle.type || 'nurikabe'}
-          dateStr={getBeijingDateStr()} // ← 使用统一北京时间函数
+          dateStr={daily.dateStr}
         />
       </div>
     </div>

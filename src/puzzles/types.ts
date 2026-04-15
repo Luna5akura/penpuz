@@ -106,10 +106,13 @@ export type DailyPuzzleData = {
   template: PuzzleTemplate;
   index: number;
   daysSinceStart: number;
+  dateStr: string;
 };
 
 export type HistoryPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
   index: number;
+  dateStr: string;
+  daysSinceStart: number;
 };

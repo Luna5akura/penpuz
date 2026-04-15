@@ -21,13 +21,14 @@ import type {
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
   startTime: number;
+  resetToken: number;
   onComplete: (time: number) => void;
 }
 
 interface PuzzleRegistryEntry<TPuzzle extends PuzzleData> {
   parsePuzzLink: (link: string) => TPuzzle | null;
   template: PuzzleTemplate;
-  renderBoard: (props: PuzzleBoardProps<TPuzzle> & { key?: string }) => ReactElement;
+  renderBoard: (props: PuzzleBoardProps<TPuzzle>) => ReactElement;
   renderExample: (template: PuzzleTemplate) => ReactElement;
 }
 
@@ -72,8 +73,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, onComplete, key }) => (
-      <NurikabeBoard key={key} puzzle={puzzle} startTime={startTime} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
+      <NurikabeBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
     ),
     renderExample: (template) => {
       const example = template.example;
@@ -129,8 +130,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, onComplete, key }) => (
-      <FillominoBoard key={key} puzzle={puzzle} startTime={startTime} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
+      <FillominoBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
     ),
     renderExample: (template) => {
       const example = template.example;
@@ -203,8 +204,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, onComplete, key }) => (
-      <YajilinBoard key={key} puzzle={puzzle} startTime={startTime} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
+      <YajilinBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
     ),
     renderExample: (template) => {
       const example = template.example;
@@ -243,11 +244,11 @@ export function resolvePuzzleEntry(entry: PuzzleEntry): PuzzleData | null {
 export function renderPuzzleBoard(
   puzzle: PuzzleData,
   startTime: number,
-  onComplete: (time: number) => void,
-  key?: string
+  resetToken: number,
+  onComplete: (time: number) => void
 ): ReactElement {
   const entry = puzzleRegistry[puzzle.type] as PuzzleRegistryEntry<typeof puzzle>;
-  return entry.renderBoard({ puzzle, startTime, onComplete, key });
+  return entry.renderBoard({ puzzle, startTime, resetToken, onComplete });
 }
 
 export function renderPuzzleExample(template: PuzzleTemplate): ReactElement {
