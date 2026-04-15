@@ -352,12 +352,8 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
     if (autoThinLineSet.has(key)) {
       return { stroke: '#6b7280', strokeWidth: 2 };
     }
-    if (thinLineSet.has(key)) {
-      const trialColors = getTrialLevelColors(thinLineLevels[key] ?? 0);
-      return { stroke: trialColors?.line ?? '#6b7280', strokeWidth: 2 };
-    }
     return { stroke: '#e5e7eb', strokeWidth: 1 };
-  }, [autoThinLineSet, deepLineLevels, deepLineSet, thinLineLevels, thinLineSet]);
+  }, [autoThinLineSet, deepLineLevels, deepLineSet]);
 
   const handleDocumentPointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging.current || pointerIdRef.current === null) return;
@@ -483,15 +479,15 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
         mode = 'deepLine';
       } else if (mobileMode === 'mark') {
         mode = 'thinLine';
+      } else if (clues[r][c] !== null) {
+        mode = 'copy';
       } else {
         mode = 'tapNumber';
-        if (clues[r][c] === null) {
-          longPressTimerRef.current = setTimeout(() => {
-            suppressTapRef.current = true;
-            setNumpadTarget({ row: r, col: c });
-            setShowNumpad(true);
-          }, longPressThreshold);
-        }
+        longPressTimerRef.current = setTimeout(() => {
+          suppressTapRef.current = true;
+          setNumpadTarget({ row: r, col: c });
+          setShowNumpad(true);
+        }, longPressThreshold);
       }
     } else if (e.button === 2) {
       mode = 'thinLine';

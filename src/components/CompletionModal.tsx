@@ -32,6 +32,54 @@ export default function CompletionModal({
   const [copied, setCopied] = useState(false);
   const [showManualCopy, setShowManualCopy] = useState(false);
 
+  const fallbackCopyText = useCallback((text: string) => {
+    const activeElement = document.activeElement as HTMLElement | null;
+    const selection = window.getSelection();
+    const previousRange =
+      selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
+
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.setAttribute('readonly', '');
+    textArea.setAttribute('aria-hidden', 'true');
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '1px';
+    textArea.style.height = '1px';
+    textArea.style.padding = '0';
+    textArea.style.border = '0';
+    textArea.style.outline = '0';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    textArea.style.opacity = '0';
+    textArea.style.fontSize = '16px';
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
+
+    let success = false;
+
+    try {
+      success = document.execCommand('copy');
+    } catch (fallbackErr) {
+      console.error('execCommand("copy") 执行失败:', fallbackErr);
+    } finally {
+      document.body.removeChild(textArea);
+
+      if (selection) {
+        selection.removeAllRanges();
+        if (previousRange) selection.addRange(previousRange);
+      }
+
+      activeElement?.focus?.();
+    }
+
+    return success;
+  }, []);
+
   const copyToClipboard = useCallback(async () => {
     let success = false;
 
@@ -45,30 +93,9 @@ export default function CompletionModal({
       console.warn('Clipboard API 失败，尝试 fallback:', err);
     }
 
-    // 如果 Clipboard API 失败或不可用，执行增强版 textarea fallback
+    // 如果 Clipboard API 失败或不可用，回退到 execCommand 方案
     if (!success) {
-      const textArea = document.createElement('textarea');
-      textArea.value = shareText;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-99999px';
-      textArea.style.top = '-99999px';
-      textArea.style.opacity = '0';
-      textArea.style.pointerEvents = 'none';
-      textArea.setAttribute('readonly', 'true');
-      textArea.contentEditable = 'true';
-
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      textArea.setSelectionRange(0, textArea.value.length); // 关键：确保全选
-
-      try {
-        success = document.execCommand('copy');
-      } catch (fallbackErr) {
-        console.error('execCommand("copy") 执行失败:', fallbackErr);
-      } finally {
-        document.body.removeChild(textArea);
-      }
+      success = fallbackCopyText(shareText);
     }
 
     if (success) {
@@ -80,7 +107,7 @@ export default function CompletionModal({
       setShowManualCopy(true);
       console.error('复制操作完全失败，已提供手动复制方案');
     }
-  }, [shareText]);
+  }, [fallbackCopyText, shareText]);
 
   return (
     <Dialog
@@ -115,9 +142,13 @@ export default function CompletionModal({
         {showManualCopy && (
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border text-sm">
             <p className="text-muted-foreground mb-2 text-center">复制失败，请手动长按下方文本复制</p>
-            <pre className="whitespace-pre-wrap break-all select-all text-xs font-mono bg-white dark:bg-gray-900 p-3 rounded border">
-              {shareText}
-            </pre>
+            <textarea
+              readOnly
+              value={shareText}
+              className="min-h-28 w-full resize-none whitespace-pre-wrap break-all text-xs font-mono bg-white dark:bg-gray-900 p-3 rounded border"
+              onFocus={(event) => event.currentTarget.select()}
+              onClick={(event) => event.currentTarget.select()}
+            />
           </div>
         )}
 
