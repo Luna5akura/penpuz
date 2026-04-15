@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { YajilinPuzzleData } from '../types';
+import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
+import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import {
   createEmptyYajilinGrid,
   detectYajilinHitTarget,
@@ -10,10 +12,12 @@ import {
   validateYajilin,
   YAJILIN_ARROWS,
 } from './utils';
+import { getTrialLevelColors } from '../trialStyles';
 
 interface Props {
   puzzle: YajilinPuzzleData;
   startTime: number;
+  resetToken: number;
   onComplete: (time: number) => void;
   fixedCellSize?: number;
 }
@@ -24,7 +28,6 @@ const BOARD_BORDER = 4;
 
 function getArrowPositionStyle(direction: string, cellSize: number) {
   const leftInset = Math.max(2, Math.floor(cellSize * 0.04));
-  const topInset = 0;
   const horizontalTopInset = Math.min(-12, -Math.floor(cellSize * 0.05));
 
   if (direction === 'up') {
@@ -61,13 +64,20 @@ type PendingTap =
   | { kind: 'mobile-edge'; key: string }
   | null;
 
-export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellSize }: Props) {
+type YajilinSnapshot = {
+  grid: YajilinCellState[][];
+  loopEdges: string[];
+  crossedEdges: string[];
+  cellLevels: number[][];
+  loopEdgeLevels: Record<string, number>;
+  crossedEdgeLevels: Record<string, number>;
+};
+
+export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete, fixedCellSize }: Props) {
   const { width, height, clues } = puzzle;
-  const [grid, setGrid] = useState<YajilinCellState[][]>(() => createEmptyYajilinGrid(width, height));
-  const [loopEdges, setLoopEdges] = useState<Set<string>>(new Set());
-  const [crossedEdges, setCrossedEdges] = useState<Set<string>>(new Set());
-  const [cellSize, setCellSize] = useState(48);
-  const [hasEdited, setHasEdited] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1024 : window.innerWidth
+  );
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -87,6 +97,49 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
     pendingTap: null,
   });
   const hasCompleted = useRef(false);
+  const createInitialSnapshot = useCallback<YajilinSnapshot>(() => ({
+    grid: createEmptyYajilinGrid(width, height),
+    loopEdges: [],
+    crossedEdges: [],
+    cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
+    loopEdgeLevels: {},
+    crossedEdgeLevels: {},
+  }), [height, width]);
+  const history = usePuzzleHistory<YajilinSnapshot>(createInitialSnapshot(), {
+    normalizeTrialSnapshot: (trialSnapshot) => ({
+      ...trialSnapshot,
+      cellLevels: trialSnapshot.cellLevels.map((row) => row.map(() => 0)),
+      loopEdgeLevels: {},
+      crossedEdgeLevels: {},
+    }),
+  });
+  const {
+    snapshot,
+    canUndo,
+    canRedo,
+    trialActive,
+    trialCheckpointCount,
+    currentTrialLevel,
+    canUndoTrialCheckpoint,
+    applyChange,
+    reset,
+    undo,
+    redo,
+    addTrialCheckpoint,
+    undoTrialCheckpoint,
+    startTrial,
+    discardTrial,
+    commitTrial,
+    startBatch,
+    finishBatch,
+  } = history;
+  const grid = snapshot.grid;
+  const loopEdges = useMemo(() => new Set(snapshot.loopEdges), [snapshot.loopEdges]);
+  const crossedEdges = useMemo(() => new Set(snapshot.crossedEdges), [snapshot.crossedEdges]);
+  const cellLevels = snapshot.cellLevels;
+  const loopEdgeLevels = snapshot.loopEdgeLevels;
+  const crossedEdgeLevels = snapshot.crossedEdgeLevels;
+  const hasEdited = canUndo || canRedo || trialCheckpointCount > 0 || trialActive;
 
   const clueMap = useMemo(() => {
     const map = new Map<string, (typeof clues)[number]>();
@@ -96,7 +149,15 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
     return map;
   }, [clues]);
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const isMobile = viewportWidth < 640;
+  const cellSize = useMemo(() => {
+    if (fixedCellSize) return fixedCellSize;
+
+    const mobile = viewportWidth < 640;
+    const maxAvailableWidth = viewportWidth - (mobile ? 24 : 80);
+    const nextSize = Math.floor((maxAvailableWidth - BOARD_PADDING * 2 - (width - 1) * BOARD_GAP) / width);
+    return Math.max(mobile ? 36 : 42, Math.min(mobile ? 48 : 58, nextSize));
+  }, [fixedCellSize, viewportWidth, width]);
 
   const validation = useMemo(
     () => (hasEdited ? validateYajilin(grid, loopEdges, clues, width, height) : null),
@@ -104,22 +165,14 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
   );
 
   useEffect(() => {
-    if (fixedCellSize) {
-      setCellSize(fixedCellSize);
-      return;
-    }
-
     const updateSize = () => {
-      const mobile = window.innerWidth < 640;
-      const maxAvailableWidth = window.innerWidth - (mobile ? 24 : 80);
-      const nextSize = Math.floor((maxAvailableWidth - BOARD_PADDING * 2 - (width - 1) * BOARD_GAP) / width);
-      setCellSize(Math.max(mobile ? 36 : 42, Math.min(mobile ? 48 : 58, nextSize)));
+      setViewportWidth(window.innerWidth);
     };
 
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
-  }, [fixedCellSize, width]);
+  }, []);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -128,93 +181,145 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
   }, [onComplete, startTime, validation]);
 
   const resetBoard = useCallback(() => {
-    setGrid(createEmptyYajilinGrid(width, height));
-    setLoopEdges(new Set());
-    setCrossedEdges(new Set());
-    setHasEdited(false);
+    reset(createInitialSnapshot());
+    pointerState.current = {
+      pointerId: null,
+      isTouch: false,
+      startCell: null,
+      lastCell: null,
+      drawMode: null,
+      movedToDraw: false,
+      pendingTap: null,
+    };
     hasCompleted.current = false;
-  }, [height, width]);
+  }, [createInitialSnapshot, reset]);
+
+  useEffect(() => {
+    resetBoard();
+  }, [puzzle, resetBoard, resetToken]);
 
   const isClueCell = useCallback((row: number, col: number) => clueMap.has(`${row},${col}`), [clueMap]);
 
-  const clearIncidentLoopEdges = useCallback((row: number, col: number) => {
+  const removeIncidentLoopEdges = useCallback((loopEdgesSet: Set<string>, row: number, col: number) => {
     const incident = getIncidentYajilinEdgeKeys(row, col, width, height);
-    if (incident.length === 0) return;
-    setLoopEdges((prev) => {
-      const next = new Set(prev);
-      let changed = false;
-      incident.forEach((key) => {
-        if (next.delete(key)) changed = true;
-      });
-      return changed ? next : prev;
+    incident.forEach((key) => {
+      loopEdgesSet.delete(key);
     });
   }, [height, width]);
 
   const toggleCellShade = useCallback((row: number, col: number) => {
     if (isClueCell(row, col)) return;
-    setGrid((prev) => {
-      const next = prev.map((currentRow) => [...currentRow]);
-      next[row][col] = prev[row][col] === 1 ? 0 : 1;
-      return next;
-    });
-    clearIncidentLoopEdges(row, col);
-    setHasEdited(true);
-  }, [clearIncidentLoopEdges, isClueCell]);
+    applyChange((currentSnapshot) => {
+      const nextGrid = currentSnapshot.grid.map((currentRow) => [...currentRow]);
+      const nextCellLevels = currentSnapshot.cellLevels.map((currentRow) => [...currentRow]);
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      nextGrid[row][col] = currentSnapshot.grid[row][col] === 1 ? 0 : 1;
+      nextCellLevels[row][col] = nextGrid[row][col] === 0 ? 0 : trialActive ? currentTrialLevel : 0;
+      removeIncidentLoopEdges(nextLoopEdges, row, col);
+      getIncidentYajilinEdgeKeys(row, col, width, height).forEach((key) => {
+        delete nextLoopEdgeLevels[key];
+      });
+      return {
+        ...currentSnapshot,
+        grid: nextGrid,
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        cellLevels: nextCellLevels,
+        loopEdgeLevels: nextLoopEdgeLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, isClueCell, removeIncidentLoopEdges, trialActive, width, height]);
 
   const cycleMobileCell = useCallback((row: number, col: number) => {
     if (isClueCell(row, col)) return;
-    setGrid((prev) => {
-      const next = prev.map((currentRow) => [...currentRow]);
-      const current = prev[row][col];
-      next[row][col] = current === 0 ? 1 : current === 1 ? 2 : 0;
-      return next;
-    });
-    clearIncidentLoopEdges(row, col);
-    setHasEdited(true);
-  }, [clearIncidentLoopEdges, isClueCell]);
+    applyChange((currentSnapshot) => {
+      const nextGrid = currentSnapshot.grid.map((currentRow) => [...currentRow]);
+      const nextCellLevels = currentSnapshot.cellLevels.map((currentRow) => [...currentRow]);
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      const currentCell = currentSnapshot.grid[row][col];
+      nextGrid[row][col] = currentCell === 0 ? 1 : currentCell === 1 ? 2 : 0;
+      nextCellLevels[row][col] = nextGrid[row][col] === 0 ? 0 : trialActive ? currentTrialLevel : 0;
+      removeIncidentLoopEdges(nextLoopEdges, row, col);
+      getIncidentYajilinEdgeKeys(row, col, width, height).forEach((key) => {
+        delete nextLoopEdgeLevels[key];
+      });
+      return {
+        ...currentSnapshot,
+        grid: nextGrid,
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        cellLevels: nextCellLevels,
+        loopEdgeLevels: nextLoopEdgeLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, isClueCell, removeIncidentLoopEdges, trialActive, width, height]);
 
   const toggleCellMark = useCallback((row: number, col: number) => {
     if (isClueCell(row, col)) return;
-    setGrid((prev) => {
-      const next = prev.map((currentRow) => [...currentRow]);
-      next[row][col] = prev[row][col] === 2 ? 0 : 2;
-      return next;
-    });
-    clearIncidentLoopEdges(row, col);
-    setHasEdited(true);
-  }, [clearIncidentLoopEdges, isClueCell]);
+    applyChange((currentSnapshot) => {
+      const nextGrid = currentSnapshot.grid.map((currentRow) => [...currentRow]);
+      const nextCellLevels = currentSnapshot.cellLevels.map((currentRow) => [...currentRow]);
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      nextGrid[row][col] = currentSnapshot.grid[row][col] === 2 ? 0 : 2;
+      nextCellLevels[row][col] = nextGrid[row][col] === 0 ? 0 : trialActive ? currentTrialLevel : 0;
+      removeIncidentLoopEdges(nextLoopEdges, row, col);
+      getIncidentYajilinEdgeKeys(row, col, width, height).forEach((key) => {
+        delete nextLoopEdgeLevels[key];
+      });
+      return {
+        ...currentSnapshot,
+        grid: nextGrid,
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        cellLevels: nextCellLevels,
+        loopEdgeLevels: nextLoopEdgeLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, isClueCell, removeIncidentLoopEdges, trialActive, width, height]);
 
   const toggleEdgeCross = useCallback((edgeKey: string) => {
-    setCrossedEdges((prev) => {
-      const next = new Set(prev);
-      if (next.has(edgeKey)) next.delete(edgeKey);
-      else next.add(edgeKey);
-      return next;
-    });
-    setLoopEdges((prev) => {
-      if (!prev.has(edgeKey)) return prev;
-      const next = new Set(prev);
-      next.delete(edgeKey);
-      return next;
-    });
-    setHasEdited(true);
-  }, []);
+    applyChange((currentSnapshot) => {
+      const nextCrossedEdges = new Set(currentSnapshot.crossedEdges);
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextCrossedEdgeLevels = { ...currentSnapshot.crossedEdgeLevels };
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      if (nextCrossedEdges.has(edgeKey)) nextCrossedEdges.delete(edgeKey);
+      else nextCrossedEdges.add(edgeKey);
+      nextLoopEdges.delete(edgeKey);
+      if (nextCrossedEdges.has(edgeKey)) nextCrossedEdgeLevels[edgeKey] = trialActive ? currentTrialLevel : 0;
+      else delete nextCrossedEdgeLevels[edgeKey];
+      delete nextLoopEdgeLevels[edgeKey];
+      return {
+        ...currentSnapshot,
+        crossedEdges: Array.from(nextCrossedEdges).sort(),
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        crossedEdgeLevels: nextCrossedEdgeLevels,
+        loopEdgeLevels: nextLoopEdgeLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, trialActive]);
 
   const toggleLoopEdge = useCallback((edgeKey: string) => {
-    setLoopEdges((prev) => {
-      const next = new Set(prev);
-      if (next.has(edgeKey)) next.delete(edgeKey);
-      else next.add(edgeKey);
-      return next;
-    });
-    setCrossedEdges((prev) => {
-      if (!prev.has(edgeKey)) return prev;
-      const next = new Set(prev);
-      next.delete(edgeKey);
-      return next;
-    });
-    setHasEdited(true);
-  }, []);
+    applyChange((currentSnapshot) => {
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextCrossedEdges = new Set(currentSnapshot.crossedEdges);
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      const nextCrossedEdgeLevels = { ...currentSnapshot.crossedEdgeLevels };
+      if (nextLoopEdges.has(edgeKey)) nextLoopEdges.delete(edgeKey);
+      else nextLoopEdges.add(edgeKey);
+      nextCrossedEdges.delete(edgeKey);
+      if (nextLoopEdges.has(edgeKey)) nextLoopEdgeLevels[edgeKey] = trialActive ? currentTrialLevel : 0;
+      else delete nextLoopEdgeLevels[edgeKey];
+      delete nextCrossedEdgeLevels[edgeKey];
+      return {
+        ...currentSnapshot,
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        crossedEdges: Array.from(nextCrossedEdges).sort(),
+        loopEdgeLevels: nextLoopEdgeLevels,
+        crossedEdgeLevels: nextCrossedEdgeLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, trialActive]);
 
   const applyLoopSegment = useCallback((from: { row: number; col: number }, to: { row: number; col: number }) => {
     const edgeKey = getYajilinEdgeKey(from.row, from.col, to.row, to.col);
@@ -224,27 +329,30 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
       current.drawMode = loopEdges.has(edgeKey) ? 'remove' : 'add';
     }
 
-    setLoopEdges((prev) => {
-      const next = new Set(prev);
-      if (current.drawMode === 'add') next.add(edgeKey);
-      else next.delete(edgeKey);
-      return next;
-    });
-
-    if (current.drawMode === 'add') {
-      setCrossedEdges((prev) => {
-        if (!prev.has(edgeKey)) return prev;
-        const next = new Set(prev);
-        next.delete(edgeKey);
-        return next;
-      });
-    }
+    applyChange((currentSnapshot) => {
+      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
+      const nextCrossedEdges = new Set(currentSnapshot.crossedEdges);
+      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
+      const nextCrossedEdgeLevels = { ...currentSnapshot.crossedEdgeLevels };
+      if (current.drawMode === 'add') nextLoopEdges.add(edgeKey);
+      else nextLoopEdges.delete(edgeKey);
+      if (current.drawMode === 'add') nextCrossedEdges.delete(edgeKey);
+      if (current.drawMode === 'add') nextLoopEdgeLevels[edgeKey] = trialActive ? currentTrialLevel : 0;
+      else delete nextLoopEdgeLevels[edgeKey];
+      if (current.drawMode === 'add') delete nextCrossedEdgeLevels[edgeKey];
+      return {
+        ...currentSnapshot,
+        loopEdges: Array.from(nextLoopEdges).sort(),
+        crossedEdges: Array.from(nextCrossedEdges).sort(),
+        loopEdgeLevels: nextLoopEdgeLevels,
+        crossedEdgeLevels: nextCrossedEdgeLevels,
+      };
+    }, { coalesce: true });
 
     current.movedToDraw = true;
     current.pendingTap = null;
     current.lastCell = to;
-    setHasEdited(true);
-  }, [loopEdges]);
+  }, [applyChange, currentTrialLevel, loopEdges, trialActive]);
 
   const getRelativePoint = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
@@ -282,7 +390,8 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
       movedToDraw: false,
       pendingTap: null,
     };
-  }, [cycleMobileCell, toggleCellShade, toggleEdgeCross]);
+    finishBatch();
+  }, [cycleMobileCell, finishBatch, toggleCellShade, toggleEdgeCross]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const point = getRelativePoint(event.clientX, event.clientY);
@@ -314,6 +423,7 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
     current.drawMode = null;
     current.movedToDraw = false;
     current.pendingTap = null;
+    startBatch();
 
     if (hitTarget.kind === 'edge') {
       if (isTouchPointer) {
@@ -362,6 +472,20 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
   const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
   return (
     <div className="flex flex-col items-center gap-3">
+      <PuzzleAssistToolbar
+        canUndo={canUndo}
+        canRedo={canRedo}
+        trialActive={trialActive}
+        trialCheckpointCount={trialCheckpointCount}
+        canUndoTrialCheckpoint={canUndoTrialCheckpoint}
+        onUndo={undo}
+        onRedo={redo}
+        onAddTrialCheckpoint={addTrialCheckpoint}
+        onUndoTrialCheckpoint={undoTrialCheckpoint}
+        onStartTrial={startTrial}
+        onDiscardTrial={discardTrial}
+        onCommitTrial={commitTrial}
+      />
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -391,6 +515,14 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
               const clue = clueMap.get(`${r},${c}`);
               const isShaded = state === 1;
               const isMarked = state === 2;
+              const trialColors = getTrialLevelColors(cellLevels[r][c]);
+              const cellStyle = !clue && trialColors
+                ? isShaded
+                  ? { background: trialColors.fill, color: '#ffffff' }
+                  : isMarked
+                    ? { background: trialColors.softFill, color: trialColors.text }
+                    : undefined
+                : undefined;
               return (
                 <div
                   key={`${r}-${c}`}
@@ -406,6 +538,7 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     paddingTop: clue ? '0px' : '2px',
+                    ...cellStyle,
                   }}
                 >
                   {clue ? (
@@ -453,6 +586,7 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
           {[...loopEdges].map((edgeKey) => {
             const edge = parseYajilinEdgeKey(edgeKey);
             if (!edge) return null;
+            const trialColors = getTrialLevelColors(loopEdgeLevels[edgeKey] ?? 0);
 
             const x1 = BOARD_PADDING + edge.c1 * (cellSize + BOARD_GAP) + cellSize / 2;
             const y1 = BOARD_PADDING + edge.r1 * (cellSize + BOARD_GAP) + cellSize / 2;
@@ -466,7 +600,7 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke="#111111"
+                stroke={trialColors?.line ?? '#111111'}
                 strokeWidth={Math.max(2.5, Math.floor(cellSize * 0.08))}
                 strokeLinecap="round"
               />
@@ -476,13 +610,19 @@ export default function YajilinBoard({ puzzle, startTime, onComplete, fixedCellS
           {[...crossedEdges].map((edgeKey) => {
             const edge = parseYajilinEdgeKey(edgeKey);
             if (!edge) return null;
+            const trialColors = getTrialLevelColors(crossedEdgeLevels[edgeKey] ?? 0);
 
             const centerX = BOARD_PADDING + ((edge.c1 + edge.c2) / 2) * (cellSize + BOARD_GAP) + cellSize / 2;
             const centerY = BOARD_PADDING + ((edge.r1 + edge.r2) / 2) * (cellSize + BOARD_GAP) + cellSize / 2;
             const size = Math.max(3, Math.floor(cellSize * 0.07));
 
             return (
-              <g key={`cross-${edgeKey}`} stroke="#111111" strokeWidth="1.6" strokeLinecap="round">
+              <g
+                key={`cross-${edgeKey}`}
+                stroke={trialColors?.line ?? '#111111'}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              >
                 <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
                 <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
               </g>

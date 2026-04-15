@@ -7,13 +7,17 @@ import { getPuzzleTemplate, resolvePuzzleEntry } from './registry';
  * 严格以北京时间 00:00 为日期分界点
  */
 export function getBeijingDateStr(): string {
+  return formatBeijingDate(new Date());
+}
+
+function formatBeijingDate(date: Date): string {
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Shanghai',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
   });
-  const parts = formatter.formatToParts(new Date());
+  const parts = formatter.formatToParts(date);
   const year = parts.find(p => p.type === 'year')!.value;
   const month = parts.find(p => p.type === 'month')!.value.padStart(2, '0');
   const day = parts.find(p => p.type === 'day')!.value.padStart(2, '0');
@@ -83,6 +87,13 @@ const allPuzzles: PuzzleEntry[] = [
 ];
 
 const START_DATE = '2026-04-09';
+const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+
+export function getPuzzleDateStr(daysSinceStart: number): string {
+  const start = new Date(`${START_DATE}T00:00:00+08:00`);
+  const targetDate = new Date(start.getTime() + daysSinceStart * MILLISECONDS_PER_DAY);
+  return formatBeijingDate(targetDate);
+}
 
 export function getDailyPuzzle(): DailyPuzzleData | null {
   const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
@@ -104,6 +115,7 @@ export function getDailyPuzzle(): DailyPuzzleData | null {
     template: getPuzzleTemplate(entry.type),
     index,
     daysSinceStart,
+    dateStr: todayStr,
   };
 }
 
@@ -126,6 +138,8 @@ export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {
       puzzle,
       template: getPuzzleTemplate(entry.type),
       index: idx,
+      dateStr: getPuzzleDateStr(d),
+      daysSinceStart: d,
     });
   }
   return history;

@@ -95,7 +95,7 @@ export default function CompletionModal({
             🎉 谜题完成！
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground">
-            恭喜您完成今日谜题！
+            恭喜您完成本题！
           </DialogDescription>
         </DialogHeader>
 

@@ -1,15 +1,30 @@
 // src/puzzles/Fillomino/FillominoBoard.tsx
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import type { FillominoPuzzleData } from '../types';
-import { validateFillomino } from './utils';
+import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from './utils';
+import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
+import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
+import { getTrialLevelColors } from '../trialStyles';
 
 interface Props {
   puzzle: FillominoPuzzleData;
   startTime: number;
+  resetToken: number;
   onComplete: (time: number) => void;
 }
 
-export default function FillominoBoard({ puzzle, startTime, onComplete }: Props) {
+type DragType = 'copy' | 'clear' | 'thinLine' | 'deepLine' | 'tapNumber';
+type MobileMode = 'number' | 'boundary' | 'mark';
+type FillominoSnapshot = {
+  grid: (number | null)[][];
+  thinLines: string[];
+  deepLines: string[];
+  gridLevels: number[][];
+  thinLineLevels: Record<string, number>;
+  deepLineLevels: Record<string, number>;
+};
+
+export default function FillominoBoard({ puzzle, startTime, resetToken, onComplete }: Props) {
   const { width, height, clues } = puzzle;
 
   // ==================== 响应式尺寸 ====================
@@ -20,9 +35,11 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     return Math.max(32, Math.min(60, theoreticalCellSize));
   });
 
-  const [grid, setGrid] = useState<(number | null)[][]>(clues.map(row => [...row]));
-  const [thinLines, setThinLines] = useState<Set<string>>(new Set());
-  const [deepLines, setDeepLines] = useState<Set<string>>(new Set());
+  const [isTouchDevice, setIsTouchDevice] = useState(() =>
+    typeof window !== 'undefined' &&
+    (window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 640)
+  );
+  const [mobileMode, setMobileMode] = useState<MobileMode>('number');
 
   // ==================== 长按数字面板相关状态 ====================
   const [showNumpad, setShowNumpad] = useState(false);
@@ -36,11 +53,12 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   const lastColRef = useRef(-1);
   const lastVertexRef = useRef<{ rowLine: number; colLine: number }>({ rowLine: -1, colLine: -1 });
   const dragIsLeft = useRef(true);
-  const dragType = useRef<'copy' | 'clear' | 'thinLine' | 'deepLine'>('copy');
+  const dragType = useRef<DragType>('copy');
   const pointerIdRef = useRef<number | null>(null);
   const hasEditedBoundary = useRef(false);
   const boundaryOperationRef = useRef<'add' | 'delete' | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  const suppressTapRef = useRef(false);
 
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressThreshold = 500;
@@ -49,6 +67,50 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
 
   // ==================== 新增：防止重复完成 ====================
   const hasCompleted = useRef(false);
+  const createInitialSnapshot = useCallback<FillominoSnapshot>(() => ({
+    grid: clues.map((row) => [...row]),
+    thinLines: [],
+    deepLines: [],
+    gridLevels: clues.map((row) => row.map(() => 0)),
+    thinLineLevels: {},
+    deepLineLevels: {},
+  }), [clues]);
+  const history = usePuzzleHistory<FillominoSnapshot>(createInitialSnapshot(), {
+    normalizeTrialSnapshot: (trialSnapshot) => ({
+      ...trialSnapshot,
+      gridLevels: trialSnapshot.gridLevels.map((row) => row.map(() => 0)),
+      thinLineLevels: {},
+      deepLineLevels: {},
+    }),
+  });
+  const {
+    snapshot,
+    canUndo,
+    canRedo,
+    trialActive,
+    trialCheckpointCount,
+    currentTrialLevel,
+    canUndoTrialCheckpoint,
+    applyChange,
+    reset,
+    undo,
+    redo,
+    addTrialCheckpoint,
+    undoTrialCheckpoint,
+    startTrial,
+    discardTrial,
+    commitTrial,
+    startBatch,
+    finishBatch,
+  } = history;
+  const grid = snapshot.grid;
+  const thinLines = snapshot.thinLines;
+  const deepLines = snapshot.deepLines;
+  const gridLevels = snapshot.gridLevels;
+  const thinLineLevels = snapshot.thinLineLevels;
+  const deepLineLevels = snapshot.deepLineLevels;
+  const thinLineSet = useMemo(() => new Set(thinLines), [thinLines]);
+  const deepLineSet = useMemo(() => new Set(deepLines), [deepLines]);
 
   // ==================== 窗口大小变化时实时调整 ====================
   useLayoutEffect(() => {
@@ -58,24 +120,49 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       const theoreticalCellSize = Math.floor((maxAvailableWidth - 6) / width);
       const newCellSize = Math.max(32, Math.min(60, theoreticalCellSize));
       setCellSize(newCellSize);
+      setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 640);
     };
 
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, [width]);
 
+  useEffect(() => {
+    reset(createInitialSnapshot());
+    setShowNumpad(false);
+    setNumpadTarget(null);
+    setMobileMode('number');
+    hoveredCellRef.current = null;
+    isDragging.current = false;
+    startRow.current = -1;
+    startCol.current = -1;
+    lastRowRef.current = -1;
+    lastColRef.current = -1;
+    lastVertexRef.current = { rowLine: -1, colLine: -1 };
+    dragType.current = 'copy';
+    pointerIdRef.current = null;
+    hasEditedBoundary.current = false;
+    boundaryOperationRef.current = null;
+    suppressTapRef.current = false;
+    hasCompleted.current = false;
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }, [createInitialSnapshot, puzzle, reset, resetToken]);
+
   // ==================== 关键修复：带完成守卫的验证逻辑 ====================
   const validate = useCallback(() => {
     if (hasCompleted.current) return;                    // 防止重复触发
     if (!startTime || startTime <= 0) return;            // 防止 startTime 为 null 或无效
 
-    const result = validateFillomino(grid, width, height, deepLines);
+    const result = validateFillomino(grid, width, height, deepLineSet);
     if (result.valid) {
       hasCompleted.current = true;
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       onComplete(elapsed);
     }
-  }, [grid, deepLines, width, height, startTime, onComplete]);
+  }, [deepLineSet, grid, width, height, startTime, onComplete]);
 
   useEffect(() => {
     validate();
@@ -84,13 +171,26 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   // ==================== 键盘输入（带详细调试日志） ====================
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     const hovered = hoveredCellRef.current;
-    console.log('[DEBUG] KeyDown event fired, hovered cell:', hovered ? `${hovered.row},${hovered.col}` : 'null', '| pressed key:', e.key);
-
     if (!hovered) return;
 
     const { row, col } = hovered;
     if (clues[row][col] !== null) {
-      console.log('[DEBUG] Pre-filled cell, ignore keyboard');
+      return;
+    }
+
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      e.preventDefault();
+      applyChange((currentSnapshot) => {
+        const newGrid = currentSnapshot.grid.map(r => [...r]);
+        const newGridLevels = currentSnapshot.gridLevels.map(r => [...r]);
+        newGrid[row][col] = null;
+        newGridLevels[row][col] = 0;
+        return {
+          ...currentSnapshot,
+          grid: newGrid,
+          gridLevels: newGridLevels,
+        };
+      });
       return;
     }
 
@@ -105,22 +205,23 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
 
     if (num !== null) {
       e.preventDefault();
-      console.log(`[DEBUG] Setting number ${num} at row=${row}, col=${col} (key: ${e.key})`);
-      setGrid(prev => {
-        const newGrid = prev.map(r => [...r]);
+      applyChange((currentSnapshot) => {
+        const newGrid = currentSnapshot.grid.map(r => [...r]);
+        const newGridLevels = currentSnapshot.gridLevels.map(r => [...r]);
         newGrid[row][col] = num;
-        return newGrid;
+        newGridLevels[row][col] = trialActive ? currentTrialLevel : 0;
+        return {
+          ...currentSnapshot,
+          grid: newGrid,
+          gridLevels: newGridLevels,
+        };
       });
-    } else {
-      console.log(`[DEBUG] Ignored key: ${e.key} (not a digit 1-9)`);
     }
-  }, [clues]);
+  }, [applyChange, clues, currentTrialLevel, trialActive]);
 
   useEffect(() => {
-    console.log('[DEBUG] Keyboard listener attached to document');
     document.addEventListener('keydown', handleKeyDown);
     return () => {
-      console.log('[DEBUG] Keyboard listener removed');
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
@@ -135,98 +236,68 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
   }, [cellSize, gap]);
 
   // ==================== getEdgeKey ====================
-  const getEdgeKey = useCallback((r1: number, c1: number, r2: number, c2: number): string | null => {
-    if (r1 === r2 && Math.abs(c1 - c2) === 1) return `h-${r1}-${Math.min(c1, c2)}`;
-    if (c1 === c2 && Math.abs(r1 - r2) === 1) return `v-${Math.min(r1, r2)}-${c1}`;
-    return null;
-  }, []);
-
   // ==================== 自动灰色边界线 ====================
-  const autoThinLines = useMemo(() => {
-    const keys = new Set<string>();
-    const visited = Array.from({ length: height }, () => Array(width).fill(false));
-    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-    for (let r = 0; r < height; r++) {
-      for (let c = 0; c < width; c++) {
-        const val = grid[r][c];
-        if (val === null || visited[r][c] || val === 0) continue;
+  const autoThinLines = useMemo(
+    () => getFillominoAutoBoundaryLines(grid, width, height),
+    [grid, height, width]
+  );
+  const autoThinLineSet = useMemo(() => new Set(autoThinLines), [autoThinLines]);
 
-        const component: { r: number; c: number }[] = [];
-        const stack = [{ r, c }];
-        visited[r][c] = true;
-
-        while (stack.length > 0) {
-          const cell = stack.pop()!;
-          component.push(cell);
-
-          for (const [dr, dc] of directions) {
-            const nr = cell.r + dr;
-            const nc = cell.c + dc;
-            if (
-              nr >= 0 && nr < height &&
-              nc >= 0 && nc < width &&
-              !visited[nr][nc] &&
-              grid[nr][nc] === val
-            ) {
-              visited[nr][nc] = true;
-              stack.push({ r: nr, c: nc });
-            }
-          }
-        }
-        if (component.length === val) {
-          for (const cell of component) {
-            for (const [dr, dc] of directions) {
-              const nr = cell.r + dr;
-              const nc = cell.c + dc;
-              if (
-                nr >= 0 && nr < height &&
-                nc >= 0 && nc < width &&
-                grid[nr][nc] !== val
-              ) {
-                const edgeKey = getEdgeKey(cell.r, cell.c, nr, nc);
-                if (edgeKey) keys.add(edgeKey);
-              }
-            }
-          }
-        }
-      }
-    }
-    return keys;
-  }, [grid, height, width, getEdgeKey]);
+  const setCellValue = useCallback((r: number, c: number, value: number | null) => {
+    if (clues[r][c] !== null) return;
+    applyChange((currentSnapshot) => {
+      const newGrid = currentSnapshot.grid.map(row => [...row]);
+      const newGridLevels = currentSnapshot.gridLevels.map(row => [...row]);
+      newGrid[r][c] = value;
+      newGridLevels[r][c] = value === null ? 0 : trialActive ? currentTrialLevel : 0;
+      return {
+        ...currentSnapshot,
+        grid: newGrid,
+        gridLevels: newGridLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, clues, currentTrialLevel, trialActive]);
 
   const changeNumber = useCallback((r: number, c: number, increment: number) => {
     if (clues[r][c] !== null) return;
-    setGrid(prev => {
-      const newGrid = prev.map(row => [...row]);
+    applyChange((currentSnapshot) => {
+      const newGrid = currentSnapshot.grid.map(row => [...row]);
+      const newGridLevels = currentSnapshot.gridLevels.map(row => [...row]);
       let val = newGrid[r][c];
       if (val === null) val = increment > 0 ? 1 : 9;
       else val += increment;
       if (val < 1) val = null;
       if (val > 99) val = 99;
       newGrid[r][c] = val;
-      return newGrid;
-    });
-  }, [clues]);
+      newGridLevels[r][c] = val === null ? 0 : trialActive ? currentTrialLevel : 0;
+      return {
+        ...currentSnapshot,
+        grid: newGrid,
+        gridLevels: newGridLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, clues, currentTrialLevel, trialActive]);
 
   const copyValueDrag = useCallback((r: number, c: number) => {
     if (clues[r][c] !== null) return;
     const startValue = grid[startRow.current][startCol.current];
     if (startValue === null) return;
-    setGrid(prev => {
-      const newGrid = prev.map(row => [...row]);
+    applyChange((currentSnapshot) => {
+      const newGrid = currentSnapshot.grid.map(row => [...row]);
+      const newGridLevels = currentSnapshot.gridLevels.map(row => [...row]);
       newGrid[r][c] = startValue;
-      return newGrid;
-    });
-  }, [grid, clues]);
+      newGridLevels[r][c] = trialActive ? currentTrialLevel : 0;
+      return {
+        ...currentSnapshot,
+        grid: newGrid,
+        gridLevels: newGridLevels,
+      };
+    }, { coalesce: true });
+  }, [applyChange, clues, currentTrialLevel, grid, trialActive]);
 
   const clearCellDrag = useCallback((r: number, c: number) => {
-    if (clues[r][c] !== null) return;
-    setGrid(prev => {
-      const newGrid = prev.map(row => [...row]);
-      newGrid[r][c] = null;
-      return newGrid;
-    });
-  }, [clues]);
+    setCellValue(r, c, null);
+  }, [setCellValue]);
 
   const getCellFromPos = useCallback((effectiveX: number, effectiveY: number) => {
     const step = cellSize + gap;
@@ -246,52 +317,47 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
 
   const handleBoundaryEdit = useCallback((type: 'thin' | 'deep', key: string) => {
     if (boundaryOperationRef.current === null) {
-      const currentSet = type === 'thin' ? thinLines : deepLines;
+      const currentSet = type === 'thin' ? thinLineSet : deepLineSet;
       boundaryOperationRef.current = currentSet.has(key) ? 'delete' : 'add';
     }
     const op = boundaryOperationRef.current!;
-    if (type === 'thin') {
-      setThinLines(prev => {
-        const next = new Set(prev);
-        op === 'add' ? next.add(key) : next.delete(key);
-        return next;
-      });
-    } else {
-      setDeepLines(prev => {
-        const next = new Set(prev);
-        op === 'add' ? next.add(key) : next.delete(key);
-        return next;
-      });
-    }
+    applyChange((currentSnapshot) => {
+      const nextThinLines = new Set(currentSnapshot.thinLines);
+      const nextDeepLines = new Set(currentSnapshot.deepLines);
+      const nextThinLineLevels = { ...currentSnapshot.thinLineLevels };
+      const nextDeepLineLevels = { ...currentSnapshot.deepLineLevels };
+      const targetSet = type === 'thin' ? nextThinLines : nextDeepLines;
+      const targetLevels = type === 'thin' ? nextThinLineLevels : nextDeepLineLevels;
+      if (op === 'add') targetSet.add(key);
+      else targetSet.delete(key);
+      if (op === 'add') targetLevels[key] = trialActive ? currentTrialLevel : 0;
+      else delete targetLevels[key];
+
+      return {
+        ...currentSnapshot,
+        thinLines: Array.from(nextThinLines).sort(),
+        deepLines: Array.from(nextDeepLines).sort(),
+        thinLineLevels: nextThinLineLevels,
+        deepLineLevels: nextDeepLineLevels,
+      };
+    }, { coalesce: true });
     hasEditedBoundary.current = true;
-  }, [thinLines, deepLines]);
+  }, [applyChange, currentTrialLevel, deepLineSet, thinLineSet, trialActive]);
 
   const getLineStyle = useCallback((key: string): { stroke: string; strokeWidth: number } => {
-    if (deepLines.has(key)) {
-      return { stroke: '#374151', strokeWidth: 4 };
+    if (deepLineSet.has(key)) {
+      const trialColors = getTrialLevelColors(deepLineLevels[key] ?? 0);
+      return { stroke: trialColors?.line ?? '#374151', strokeWidth: 4 };
     }
-    if (autoThinLines.has(key)) {
+    if (autoThinLineSet.has(key)) {
       return { stroke: '#6b7280', strokeWidth: 2 };
     }
-
-    const [type, rStr, cStr] = key.split('-');
-    const r = parseInt(rStr);
-    const c = parseInt(cStr);
-    let hasDiff = false;
-    if (type === 'h' && c + 1 < width) {
-      const v1 = grid[r][c];
-      const v2 = grid[r][c + 1];
-      hasDiff = v1 !== v2 && v1 !== null && v2 !== null;
-    } else if (type === 'v' && r + 1 < height) {
-      const v1 = grid[r][c];
-      const v2 = grid[r + 1][c];
-      hasDiff = v1 !== v2 && v1 !== null && v2 !== null;
-    }
-    if (hasDiff) {
-      return { stroke: '#6b7280', strokeWidth: 2 };
+    if (thinLineSet.has(key)) {
+      const trialColors = getTrialLevelColors(thinLineLevels[key] ?? 0);
+      return { stroke: trialColors?.line ?? '#6b7280', strokeWidth: 2 };
     }
     return { stroke: '#e5e7eb', strokeWidth: 1 };
-  }, [deepLines, autoThinLines, grid, width, height]);
+  }, [autoThinLineSet, deepLineLevels, deepLineSet, thinLineLevels, thinLineSet]);
 
   const handleDocumentPointerMove = useCallback((e: PointerEvent) => {
     if (!isDragging.current || pointerIdRef.current === null) return;
@@ -334,7 +400,7 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       const dr = Math.abs(lastR - currentCell.row);
       const dc = Math.abs(lastC - currentCell.col);
       if (lastR !== -1 && lastC !== -1 && dr + dc === 1) {
-        const edgeKey = getEdgeKey(lastR, lastC, currentCell.row, currentCell.col);
+        const edgeKey = getFillominoEdgeKey(lastR, lastC, currentCell.row, currentCell.col);
         if (edgeKey) handleBoundaryEdit('thin', edgeKey);
       }
     } else if (dragType.current === 'clear') {
@@ -346,9 +412,9 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
         (currentCell.row !== startRow.current || currentCell.col !== startCol.current)) {
       copyValueDrag(currentCell.row, currentCell.col);
     }
-  }, [getCellFromPos, getNearestVertex, getEdgeKey, handleBoundaryEdit, copyValueDrag, clearCellDrag, height, width]);
+  }, [getCellFromPos, getNearestVertex, handleBoundaryEdit, copyValueDrag, clearCellDrag, height, width]);
 
-  const handleDocumentPointerUp = useCallback((e: PointerEvent) => {
+  const handleDocumentPointerUp = useCallback(function onDocumentPointerUp() {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -358,8 +424,10 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
                        lastColRef.current === startCol.current &&
                        startRow.current >= 0 && startCol.current >= 0;
 
-    if (isSameCell && !hasEditedBoundary.current) {
-      if (dragIsLeft.current) {
+    if (isSameCell && !hasEditedBoundary.current && !suppressTapRef.current) {
+      if (dragType.current === 'tapNumber') {
+        changeNumber(startRow.current, startCol.current, 1);
+      } else if (dragIsLeft.current) {
         changeNumber(startRow.current, startCol.current, 1);
       } else if (grid[startRow.current][startCol.current] !== null) {
         changeNumber(startRow.current, startCol.current, -1);
@@ -375,9 +443,11 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     pointerIdRef.current = null;
     hasEditedBoundary.current = false;
     boundaryOperationRef.current = null;
+    suppressTapRef.current = false;
+    finishBatch();
     document.removeEventListener('pointermove', handleDocumentPointerMove);
-    document.removeEventListener('pointerup', handleDocumentPointerUp);
-  }, [handleDocumentPointerMove, changeNumber, grid]);
+    document.removeEventListener('pointerup', onDocumentPointerUp);
+  }, [changeNumber, finishBatch, grid, handleDocumentPointerMove]);
 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current) {           // ← 新增
@@ -392,6 +462,7 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
       pointerIdRef.current = e.pointerId;
     }
     isDragging.current = true;
+    startBatch();
     startRow.current = r;
     startCol.current = c;
     lastRowRef.current = r;
@@ -400,8 +471,29 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
     dragIsLeft.current = e.button === 0;
     hasEditedBoundary.current = false;
     boundaryOperationRef.current = null;
-    let mode: 'copy' | 'clear' | 'thinLine' | 'deepLine' = 'copy';
-    if (e.button === 2) {
+    suppressTapRef.current = false;
+
+    const isTouchPointer = e.pointerType === 'touch';
+    let mode: DragType = 'copy';
+
+    if (isTouchPointer) {
+      dragIsLeft.current = true;
+
+      if (mobileMode === 'boundary') {
+        mode = 'deepLine';
+      } else if (mobileMode === 'mark') {
+        mode = 'thinLine';
+      } else {
+        mode = 'tapNumber';
+        if (clues[r][c] === null) {
+          longPressTimerRef.current = setTimeout(() => {
+            suppressTapRef.current = true;
+            setNumpadTarget({ row: r, col: c });
+            setShowNumpad(true);
+          }, longPressThreshold);
+        }
+      }
+    } else if (e.button === 2) {
       mode = 'thinLine';
     } else if (e.button === 0) {
       const target = e.currentTarget as HTMLElement;
@@ -450,235 +542,294 @@ export default function FillominoBoard({ puzzle, startTime, onComplete }: Props)
         closeNumpad();
         return;
       }
-      setGrid(prev => {
-        const newGrid = prev.map(r => [...r]);
-        newGrid[row][col] = num;
-        return newGrid;
-      });
+      setCellValue(row, col, num);
     }
     closeNumpad();
   };
 
+  const mobileModeHint =
+    mobileMode === 'number'
+      ? '数字模式：点按加 1，长按打开数字面板或删除。'
+      : mobileMode === 'boundary'
+        ? '边界模式：沿格点拖动绘制粗边界线。'
+        : '标记模式：沿相邻单元格拖动绘制中心辅助线。';
+
   return (
-    <div
-      ref={boardRef}
-      className="mx-auto select-none"
-      style={{
-        position: 'relative',
-        display: 'inline-block',
-        background: '#d2b48c',
-        padding: '3px',
-        border: '4px solid #3f2a1e',
-        touchAction: 'none',
-      }}
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      {/* 单元格网格 */}
-      <div
-        style={{
-          display: 'inline-grid',
-          gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          gap: `${gap}px`,
-        }}
-      >
-        {grid.flatMap((row, r) =>
-          row.map((value, c) => {
-            const isPreFilled = clues[r][c] !== null;
-            return (
-              <div
-                key={`${r}-${c}`}
-                onPointerDown={(e) => handlePointerDown(r, c, e)}
-                onMouseEnter={() => {
-                  if (!isPreFilled) {
-                    hoveredCellRef.current = { row: r, col: c };
-                    console.log(`[DEBUG] Hover enter editable cell: row=${r}, col=${c}`);
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (!isDragging.current) {           // ← 新增这行判断
-                      hoveredCellRef.current = null;
-                      console.log(`[DEBUG] Hover leave cell: row=${r}, col=${c}`);
-                    }
-                }}
-                className={`flex items-center justify-center font-mono font-bold text-3xl cursor-pointer border-0 relative
-                  ${isPreFilled ? 'bg-[#f0e6d2] text-[#3f2a1e]' : 'bg-white hover:bg-gray-100 active:bg-gray-200'}`}
-                style={{
-                  width: `${cellSize}px`,
-                  height: `${cellSize}px`,
-                  fontSize: `${Math.floor(cellSize * 0.7)}px`,
-                  lineHeight: `${cellSize}px`,
-                }}
+    <div className="flex flex-col items-center gap-3">
+      <PuzzleAssistToolbar
+        canUndo={canUndo}
+        canRedo={canRedo}
+        trialActive={trialActive}
+        trialCheckpointCount={trialCheckpointCount}
+        canUndoTrialCheckpoint={canUndoTrialCheckpoint}
+        onUndo={undo}
+        onRedo={redo}
+        onAddTrialCheckpoint={addTrialCheckpoint}
+        onUndoTrialCheckpoint={undoTrialCheckpoint}
+        onStartTrial={startTrial}
+        onDiscardTrial={discardTrial}
+        onCommitTrial={commitTrial}
+      />
+      {isTouchDevice && (
+        <>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {([
+              ['number', '数字'],
+              ['boundary', '边界'],
+              ['mark', '标记'],
+            ] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setMobileMode(mode)}
+                className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  mobileMode === mode
+                    ? 'border-[#3f2a1e] bg-[#3f2a1e] text-white'
+                    : 'border-[#3f2a1e] bg-[#f8f1e3] text-[#3f2a1e]'
+                }`}
               >
-                {value ?? ''}
-              </div>
-            );
-          })
-        )}
-      </div>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-center text-xs text-[#3f2a1e] dark:text-gray-300">
+            {mobileModeHint}
+          </p>
+        </>
+      )}
 
-      {/* SVG 边界线层 */}
-      <svg
-        width={svgWidth}
-        height={svgHeight}
+      <div
+        ref={boardRef}
+        className="mx-auto select-none"
         style={{
-          position: 'absolute',
-          top: '3px',
-          left: '3px',
-          pointerEvents: 'none',
-          overflow: 'visible',
-          zIndex: 10,
+          position: 'relative',
+          display: 'inline-block',
+          background: '#d2b48c',
+          padding: '3px',
+          border: '4px solid #3f2a1e',
+          touchAction: 'none',
         }}
+        onContextMenu={(e) => e.preventDefault()}
       >
-        {/* 1. 边界线体系（deep + 自动灰线 + 数字不同） */}
-        {Array.from({ length: height }, (_, r) =>
-          Array.from({ length: width - 1 }, (_, c) => {
-            const key = `h-${r}-${c}`;
-            const { stroke, strokeWidth } = getLineStyle(key);
-            const x = (c + 1) * cellSize;
-            const y1 = r * cellSize;
-            const y2 = (r + 1) * cellSize;
-            return (
-              <line
-                key={`edge-v-${r}-${c}`}
-                x1={x} y1={y1} x2={x} y2={y2}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                strokeLinecap="butt"
-              />
-            );
-          })
-        )}
-        {Array.from({ length: height - 1 }, (_, r) =>
-          Array.from({ length: width }, (_, c) => {
-            const key = `v-${r}-${c}`;
-            const { stroke, strokeWidth } = getLineStyle(key);
-            const y = (r + 1) * cellSize;
-            const x1 = c * cellSize;
-            const x2 = (c + 1) * cellSize;
-            return (
-              <line
-                key={`edge-h-${r}-${c}`}
-                x1={x1} y1={y} x2={x2} y2={y}
-                stroke={stroke}
-                strokeWidth={strokeWidth}
-                strokeLinecap="butt"
-              />
-            );
-          })
-        )}
-
-        {/* 2. 中心连线体系（thinLines，右键专用） */}
-        {Array.from(thinLines).map((key) => {
-          const [type, rStr, cStr] = key.split('-');
-          const r = parseInt(rStr);
-          const c = parseInt(cStr);
-          let x1 = 0, y1 = 0, x2 = 0, y2 = 0;
-          if (type === 'h') {
-            const { x: cx1, y: cy } = getCenter(r, c);
-            const { x: cx2 } = getCenter(r, c + 1);
-            x1 = cx1; y1 = cy; x2 = cx2; y2 = cy;
-          } else if (type === 'v') {
-            const { x: cx, y: cy1 } = getCenter(r, c);
-            const { y: cy2 } = getCenter(r + 1, c);
-            x1 = cx; y1 = cy1; x2 = cx; y2 = cy2;
-          }
-          return (
-            <line
-              key={`thin-${key}`}
-              x1={x1} y1={y1} x2={x2} y2={y2}
-              stroke="#6b7280"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          );
-        })}
-      </svg>
-
-      {/* 长按数字输入面板 */}
-      {showNumpad && numpadTarget && (
+      {/* 单元格网格 */}
         <div
           style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            background: '#fff',
-            border: '3px solid #3f2a1e',
-            borderRadius: '12px',
-            padding: '12px',
-            boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.2)',
-            zIndex: 9999,
-            touchAction: 'none',
-            userSelect: 'none',
-            maxWidth: '340px',
+            display: 'inline-grid',
+            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
+            gap: `${gap}px`,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-            <button
-              onClick={closeNumpad}
-              style={{
-                width: '32px',
-                height: '32px',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                color: '#3f2a1e',
-                background: 'transparent',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                borderRadius: '50%',
-              }}
-            >
-              ✕
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: '8px' }}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+          {grid.flatMap((row, r) =>
+            row.map((value, c) => {
+              const isPreFilled = clues[r][c] !== null;
+              const trialColors = getTrialLevelColors(gridLevels[r][c]);
+              return (
+                <div
+                  key={`${r}-${c}`}
+                  onPointerDown={(e) => handlePointerDown(r, c, e)}
+                  onMouseEnter={() => {
+                    if (!isPreFilled) {
+                      hoveredCellRef.current = { row: r, col: c };
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (!isDragging.current) {
+                      hoveredCellRef.current = null;
+                    }
+                  }}
+                  className={`flex items-center justify-center font-mono font-bold text-3xl cursor-pointer border-0 relative
+                    ${isPreFilled ? 'bg-[#f0e6d2] text-[#3f2a1e]' : 'bg-white hover:bg-gray-100 active:bg-gray-200'}`}
+                  style={{
+                    width: `${cellSize}px`,
+                    height: `${cellSize}px`,
+                    fontSize: `${Math.floor(cellSize * 0.7)}px`,
+                    lineHeight: `${cellSize}px`,
+                    ...(trialColors && !isPreFilled
+                      ? {
+                          background: trialColors.softFill,
+                          color: trialColors.text,
+                        }
+                      : {}),
+                  }}
+                >
+                  {value ?? ''}
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* SVG 边界线层 */}
+        <svg
+          width={svgWidth}
+          height={svgHeight}
+          style={{
+            position: 'absolute',
+            top: '3px',
+            left: '3px',
+            pointerEvents: 'none',
+            overflow: 'visible',
+            zIndex: 10,
+          }}
+        >
+          {Array.from({ length: height }, (_, r) =>
+            Array.from({ length: width - 1 }, (_, c) => {
+              const key = `h-${r}-${c}`;
+              const { stroke, strokeWidth } = getLineStyle(key);
+              const x = (c + 1) * cellSize;
+              const y1 = r * cellSize;
+              const y2 = (r + 1) * cellSize;
+              return (
+                <line
+                  key={`edge-v-${r}-${c}`}
+                  x1={x} y1={y1} x2={x} y2={y2}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="butt"
+                />
+              );
+            })
+          )}
+          {Array.from({ length: height - 1 }, (_, r) =>
+            Array.from({ length: width }, (_, c) => {
+              const key = `v-${r}-${c}`;
+              const { stroke, strokeWidth } = getLineStyle(key);
+              const y = (r + 1) * cellSize;
+              const x1 = c * cellSize;
+              const x2 = (c + 1) * cellSize;
+              return (
+                <line
+                  key={`edge-h-${r}-${c}`}
+                  x1={x1} y1={y} x2={x2} y2={y}
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap="butt"
+                />
+              );
+            })
+          )}
+
+          {Array.from(thinLines).map((key) => {
+            const [type, rStr, cStr] = key.split('-');
+            const r = parseInt(rStr);
+            const c = parseInt(cStr);
+            let x1 = 0;
+            let y1 = 0;
+            let x2 = 0;
+            let y2 = 0;
+            if (type === 'h') {
+              const { x: cx1, y: cy } = getCenter(r, c);
+              const { x: cx2 } = getCenter(r, c + 1);
+              x1 = cx1;
+              y1 = cy;
+              x2 = cx2;
+              y2 = cy;
+            } else if (type === 'v') {
+              const { x: cx, y: cy1 } = getCenter(r, c);
+              const { y: cy2 } = getCenter(r + 1, c);
+              x1 = cx;
+              y1 = cy1;
+              x2 = cx;
+              y2 = cy2;
+            }
+            return (
+              <line
+                key={`thin-${key}`}
+                x1={x1} y1={y1} x2={x2} y2={y2}
+                stroke={getTrialLevelColors(thinLineLevels[key] ?? 0)?.line ?? '#6b7280'}
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            );
+          })}
+        </svg>
+
+        {/* 长按数字输入面板 */}
+        {showNumpad && numpadTarget && (
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              background: '#fff',
+              border: '3px solid #3f2a1e',
+              borderRadius: '12px',
+              padding: '12px',
+              boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.2)',
+              zIndex: 9999,
+              touchAction: 'none',
+              userSelect: 'none',
+              maxWidth: '340px',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
               <button
-                key={num}
-                onClick={() => handleNumpadInput(num)}
+                onClick={closeNumpad}
                 style={{
-                  width: '52px',
-                  height: '52px',
+                  width: '32px',
+                  height: '32px',
                   fontSize: '24px',
                   fontWeight: 'bold',
-                  background: '#f0e6d2',
+                  color: '#3f2a1e',
+                  background: 'transparent',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  borderRadius: '50%',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: '8px' }}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleNumpadInput(num)}
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    fontSize: '24px',
+                    fontWeight: 'bold',
+                    background: '#f0e6d2',
+                    border: '2px solid #3f2a1e',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={() => handleNumpadInput(null)}
+                style={{
+                  gridColumn: 'span 3',
+                  height: '52px',
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  background: '#fee2e2',
                   border: '2px solid #3f2a1e',
                   borderRadius: '8px',
+                  color: '#b91c1c',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
                 }}
               >
-                {num}
+                删除
               </button>
-            ))}
-            <button
-              onClick={() => handleNumpadInput(null)}
-              style={{
-                gridColumn: 'span 3',
-                height: '52px',
-                fontSize: '20px',
-                fontWeight: 'bold',
-                background: '#fee2e2',
-                border: '2px solid #3f2a1e',
-                borderRadius: '8px',
-                color: '#b91c1c',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              删除
-            </button>
+            </div>
+            <div onClick={closeNumpad} style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: -1 }} />
           </div>
-          <div onClick={closeNumpad} style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: -1 }} />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
