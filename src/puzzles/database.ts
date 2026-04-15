@@ -66,6 +66,10 @@ const allPuzzles: PuzzleEntry[] = [
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
   },
+  {
+    type: 'yajilin' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/b21a23a23v3243r3343r3141v11a12a12b',
+  },
 ];
 
 const START_DATE = '2026-04-09';
