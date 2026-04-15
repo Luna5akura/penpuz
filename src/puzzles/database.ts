@@ -63,26 +63,8 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/9h9h9h9g34i332h454i13g94g9h9g39j51n14j9g19h94g9g331i23h32i323g9h9h9h9000000000000000000000000000000000008',
   },
   {
-    type: 'yajilin' as const,
-    puzzle: {
-      type: 'yajilin' as const,
-      width: 6,
-      height: 6,
-      clues: [
-        { row: 1, col: 1, direction: 'right', value: '?' },
-        { row: 1, col: 2, direction: 'down', value: 2 },
-        { row: 1, col: 3, direction: 'down', value: 0 },
-        { row: 1, col: 4, direction: 'down', value: 2 },
-        { row: 2, col: 1, direction: 'right', value: 2 },
-        { row: 2, col: 3, direction: 'right', value: 1 },
-        { row: 3, col: 1, direction: 'right', value: 0 },
-        { row: 3, col: 2, direction: 'down', value: 1 },
-        { row: 3, col: 3, direction: 'down', value: 0 },
-        { row: 3, col: 4, direction: 'down', value: 1 },
-        { row: 4, col: 1, direction: 'right', value: 2 },
-        { row: 4, col: 3, direction: 'right', value: 1 },
-      ],
-    },
+    type: 'nurikabe' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
   },
 ];
 
