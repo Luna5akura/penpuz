@@ -156,7 +156,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'yajilin',
       name: 'Yajilin',
-      nameCn: '箭头回路',
+      nameCn: '仙人指路',
       rulesTitle: '游戏规则',
       rules: [
         '涂黑一些空格，并画出一条经过所有其余非线索格子的单一回路。',

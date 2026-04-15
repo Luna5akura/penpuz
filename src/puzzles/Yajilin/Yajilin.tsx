@@ -25,10 +25,32 @@ interface Props {
 const BOARD_PADDING = 3;
 const BOARD_GAP = 1;
 const BOARD_BORDER = 4;
+const DESKTOP_CLUE_SIZE = 58;
+const MOBILE_CLUE_REFERENCE_SIZE = 44;
+
+function getClueArrowFontSize(cellSize: number) {
+  if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) {
+    return Math.max(30, Math.floor(cellSize * 0.6));
+  }
+  return Math.max(20, Math.floor(cellSize * 0.68));
+}
+
+function getClueNumberFontSize(cellSize: number) {
+  if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) {
+    return Math.max(32, Math.floor(cellSize * 0.7));
+  }
+  return Math.max(22, Math.floor(cellSize * 0.74));
+}
 
 function getArrowPositionStyle(direction: string, cellSize: number) {
-  const leftInset = Math.max(2, Math.floor(cellSize * 0.04));
-  const horizontalTopInset = Math.min(-12, -Math.floor(cellSize * 0.05));
+  const leftInset =
+    cellSize >= MOBILE_CLUE_REFERENCE_SIZE
+      ? 2
+      : Math.max(1, Math.round((2 * cellSize) / MOBILE_CLUE_REFERENCE_SIZE));
+  const horizontalTopInset =
+    cellSize >= MOBILE_CLUE_REFERENCE_SIZE
+      ? -12
+      : -Math.max(8, Math.round((12 * cellSize) / MOBILE_CLUE_REFERENCE_SIZE));
 
   if (direction === 'up') {
     return {
@@ -155,10 +177,23 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     if (fixedCellSize) return fixedCellSize;
 
     const mobile = viewportWidth < 640;
-    const maxAvailableWidth = viewportWidth - (mobile ? 24 : 80);
-    const nextSize = Math.floor((maxAvailableWidth - BOARD_PADDING * 2 - (width - 1) * BOARD_GAP) / width);
-    return Math.max(mobile ? 36 : 42, Math.min(mobile ? 48 : 58, nextSize));
+    const horizontalViewportPadding = mobile ? 48 : 96;
+    const boardChromeWidth = (BOARD_PADDING + BOARD_BORDER) * 2;
+    const maxAvailableWidth = Math.max(0, viewportWidth - horizontalViewportPadding - boardChromeWidth);
+    const nextSize = Math.floor((maxAvailableWidth - (width - 1) * BOARD_GAP) / width);
+    return Math.max(mobile ? 28 : 42, Math.min(mobile ? 48 : DESKTOP_CLUE_SIZE, nextSize));
   }, [fixedCellSize, viewportWidth, width]);
+
+  const clueArrowFontSize = useMemo(() => getClueArrowFontSize(cellSize), [cellSize]);
+  const clueNumberFontSize = useMemo(() => getClueNumberFontSize(cellSize), [cellSize]);
+  const verticalClueNumberTop = useMemo(() => {
+    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.53);
+    return Math.max(16, Math.floor(cellSize * 0.53));
+  }, [cellSize]);
+  const horizontalClueNumberTop = useMemo(() => {
+    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.55);
+    return Math.max(17, Math.floor(cellSize * 0.55));
+  }, [cellSize]);
 
   const validation = useMemo(
     () => (hasEdited ? validateYajilin(grid, loopEdges, clues, width, height) : null),
@@ -570,6 +605,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
           background: '#d2b48c',
           border: `${BOARD_BORDER}px solid #3f2a1e`,
           boxSizing: 'border-box',
+          maxWidth: '100%',
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -621,7 +657,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
                         className="absolute leading-none"
                         style={{
                           ...getArrowPositionStyle(clue.direction, cellSize),
-                          fontSize: `${Math.max(30, Math.floor(cellSize * 0.6))}px`,
+                          fontSize: `${clueArrowFontSize}px`,
                           lineHeight: 1,
                         }}
                       >
@@ -633,10 +669,10 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
                           left: clue.direction === 'up' || clue.direction === 'down' ? `${Math.floor(cellSize * 0.5)}px` : '50%',
                           top:
                             clue.direction === 'left' || clue.direction === 'right'
-                              ? `${Math.floor(cellSize * 0.55)}px`
-                              : `${Math.floor(cellSize * 0.53)}px`,
+                              ? `${horizontalClueNumberTop}px`
+                              : `${verticalClueNumberTop}px`,
                           transform: 'translate(-50%, -50%)',
-                          fontSize: `${Math.max(32, Math.floor(cellSize * 0.7))}px`,
+                          fontSize: `${clueNumberFontSize}px`,
                           lineHeight: 1,
                         }}
                       >
