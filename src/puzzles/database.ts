@@ -70,7 +70,16 @@ const allPuzzles: PuzzleEntry[] = [
     type: 'yajilin' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/b21a23a23v3243r3343r3141v11a12a12b',
   },
+  {
+    type: 'fillomino' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/2h2h2h2j34n56j2h2h2h2g46g64g53h53g35g46g2h2h2h2j35n64j2h2h2h2',
+  },
+  {
+    type: 'nurikabe' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/j1i1g1j.g.i.m.n1h.p1h1h.k.j11p.h.i.l1i1',
+  },
 ];
+
 
 const START_DATE = '2026-04-09';
 const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
