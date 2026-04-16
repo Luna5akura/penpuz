@@ -1,5 +1,5 @@
 // src/components/CompletionModal.tsx
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { getPuzzleTemplate } from '@/puzzles/registry';
 import { Button } from './ui/button';
@@ -21,6 +21,8 @@ export default function CompletionModal({
   dateStr,
 }: Props) {
   const { locale, copy } = useI18n();
+  const hiddenCopyRef = useRef<HTMLTextAreaElement | null>(null);
+  const manualCopyRef = useRef<HTMLTextAreaElement | null>(null);
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
   const puzzleName = getPuzzleTemplate(puzzleType).name[locale];
@@ -29,33 +31,34 @@ export default function CompletionModal({
   const [copied, setCopied] = useState(false);
   const [showManualCopy, setShowManualCopy] = useState(false);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setCopied(false);
+      setShowManualCopy(false);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (showManualCopy) {
+      manualCopyRef.current?.focus({ preventScroll: true });
+      manualCopyRef.current?.select();
+    }
+  }, [showManualCopy]);
+
   const fallbackCopyText = useCallback((text: string) => {
+    const textArea = hiddenCopyRef.current;
+    if (!textArea) return false;
+
     const activeElement = document.activeElement as HTMLElement | null;
     const selection = window.getSelection();
     const previousRange =
       selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
 
-    const textArea = document.createElement('textarea');
     textArea.value = text;
-    textArea.setAttribute('readonly', '');
-    textArea.setAttribute('aria-hidden', 'true');
-    textArea.style.position = 'fixed';
-    textArea.style.top = '0';
-    textArea.style.left = '0';
-    textArea.style.width = '1px';
-    textArea.style.height = '1px';
-    textArea.style.padding = '0';
-    textArea.style.border = '0';
-    textArea.style.outline = '0';
-    textArea.style.boxShadow = 'none';
-    textArea.style.background = 'transparent';
-    textArea.style.opacity = '0';
-    textArea.style.fontSize = '16px';
-
-    document.body.appendChild(textArea);
-    textArea.focus();
+    textArea.removeAttribute('readonly');
+    textArea.focus({ preventScroll: true });
     textArea.select();
-    textArea.setSelectionRange(0, text.length);
+    textArea.setSelectionRange(0, textArea.value.length);
 
     let success = false;
 
@@ -64,7 +67,9 @@ export default function CompletionModal({
     } catch (fallbackErr) {
       console.error('execCommand("copy") 执行失败:', fallbackErr);
     } finally {
-      document.body.removeChild(textArea);
+      textArea.blur();
+      textArea.value = '';
+      textArea.setAttribute('readonly', '');
 
       if (selection) {
         selection.removeAllRanges();
@@ -114,6 +119,15 @@ export default function CompletionModal({
       }}
     >
       <DialogContent className="max-w-md dark:bg-gray-900 dark:border-gray-700">
+        {/* Keep the fallback textarea inside the dialog so Radix focus trapping doesn't block selection/copy. */}
+        <textarea
+          ref={hiddenCopyRef}
+          readOnly
+          aria-hidden="true"
+          tabIndex={-1}
+          className="pointer-events-none absolute left-4 top-4 h-px w-px opacity-0"
+        />
+
         <DialogHeader>
           <DialogTitle className="text-2xl text-center text-[#3f2a1e] dark:text-gray-100">
             {copy.completionModal.title}
@@ -140,6 +154,7 @@ export default function CompletionModal({
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border text-sm">
             <p className="text-muted-foreground mb-2 text-center">{copy.completionModal.manualCopyHint}</p>
             <textarea
+              ref={manualCopyRef}
               readOnly
               value={shareText}
               className="min-h-28 w-full resize-none whitespace-pre-wrap break-all text-xs font-mono bg-white dark:bg-gray-900 p-3 rounded border"
