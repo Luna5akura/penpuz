@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react';
-import type { YajilinClue, YajilinSolutionEdge } from '../../puzzles/types';
+import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
-import { createYajilinEdgeSet, YAJILIN_ARROWS, parseYajilinEdgeKey } from '../../puzzles/Yajilin/utils';
+import { ClueArrow } from '../../puzzles/Yajilin/ClueArrow';
+import { getClueNumberFontSize } from '../../puzzles/Yajilin/clueSizing';
+import { createYajilinEdgeSet, parseYajilinEdgeKey } from '../../puzzles/Yajilin/utils';
 
 interface Props {
   width: number;
@@ -19,19 +22,6 @@ const GAP = 1;
 const PADDING = 3;
 const BORDER = 4;
 
-function getArrowPositionStyle(direction: string) {
-  if (direction === 'up') {
-    return { left: '2px', top: '50%', transform: 'translateY(-50%)' };
-  }
-  if (direction === 'down') {
-    return { left: '2px', top: '50%', transform: 'translateY(-50%)' };
-  }
-  if (direction === 'left') {
-    return { left: '50%', top: '-20px', transform: 'translateX(-50%)' };
-  }
-  return { left: '50%', top: '-20px', transform: 'translateX(-50%)' };
-}
-
 export default function YajilinExample({
   width,
   height,
@@ -46,6 +36,10 @@ export default function YajilinExample({
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
+  const examplePuzzle = useMemo<YajilinPuzzleData>(
+    () => ({ type: 'yajilin', width, height, clues }),
+    [clues, height, width]
+  );
   const clueMap = useMemo(() => {
     const map = new Map<string, YajilinClue>();
     clues.forEach((clue) => map.set(`${clue.row},${clue.col}`, clue));
@@ -57,6 +51,9 @@ export default function YajilinExample({
   const crossedSet = useMemo(() => createYajilinEdgeSet(crossedEdges), [crossedEdges]);
   const boardWidthPx = width * CELL_SIZE + (width - 1) * GAP + PADDING * 2;
   const boardHeightPx = height * CELL_SIZE + (height - 1) * GAP + PADDING * 2;
+  const clueNumberFontSize = useMemo(() => getClueNumberFontSize(CELL_SIZE), []);
+  const verticalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.53), []);
+  const horizontalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.55), []);
 
   return (
     <>
@@ -67,7 +64,7 @@ export default function YajilinExample({
           </p>
           <YajilinBoard
             key={`yajilin-example-${width}-${height}`}
-            puzzle={{ type: 'yajilin', width, height, clues }}
+            puzzle={examplePuzzle}
             startTime={exampleStartTime}
             onComplete={() => setShowAnswer(true)}
             fixedCellSize={CELL_SIZE}
@@ -132,23 +129,17 @@ export default function YajilinExample({
                       >
                         {clue ? (
                           <div className="relative w-full h-full">
-                            <span
-                              className="absolute leading-none"
-                              style={{
-                                ...getArrowPositionStyle(clue.direction),
-                                fontSize: '26px',
-                                lineHeight: 1,
-                              }}
-                            >
-                              {YAJILIN_ARROWS[clue.direction]}
-                            </span>
+                            <ClueArrow direction={clue.direction} cellSize={CELL_SIZE} />
                             <span
                               className="absolute leading-none font-bold"
                               style={{
-                                left: clue.direction === 'up' || clue.direction === 'down' ? '50%' : '50%',
-                                top: clue.direction === 'left' || clue.direction === 'right' ? '55%' : '53%',
+                                left: clue.direction === 'up' || clue.direction === 'down' ? `${Math.floor(CELL_SIZE * 0.5)}px` : '50%',
+                                top:
+                                  clue.direction === 'left' || clue.direction === 'right'
+                                    ? `${horizontalClueNumberTop}px`
+                                    : `${verticalClueNumberTop}px`,
                                 transform: 'translate(-50%, -50%)',
-                                fontSize: '31px',
+                                fontSize: `${clueNumberFontSize}px`,
                                 lineHeight: 1,
                               }}
                             >
@@ -202,17 +193,14 @@ export default function YajilinExample({
         </div>
       </div>
 
-      {confirmSpoiler && !showAnswer && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="max-w-sm w-full mx-4 bg-white dark:bg-gray-900 rounded-lg p-6 text-center shadow-xl">
-            <p className="text-lg mb-6 dark:text-gray-200">你确定要查看答案吗？<br />(完成左边的题目可以自动解锁)</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmSpoiler(false)} className="flex-1 py-3 border rounded-lg">取消</button>
-              <button onClick={() => { setShowAnswer(true); setConfirmSpoiler(false); }} className="flex-1 py-3 bg-[#3f2a1e] text-white rounded-lg">确定查看</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExampleAnswerRevealDialog
+        open={confirmSpoiler && !showAnswer}
+        onCancel={() => setConfirmSpoiler(false)}
+        onConfirm={() => {
+          setShowAnswer(true);
+          setConfirmSpoiler(false);
+        }}
+      />
     </>
   );
 }

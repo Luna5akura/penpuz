@@ -1,3 +1,5 @@
+import type { LocalizedText, LocalizedTextList } from '@/i18n/types';
+
 // src/puzzles/types.ts
 export interface NurikabeClue {
   row: number;
@@ -106,14 +108,13 @@ export type PuzzleExample =
 
 export interface PuzzleTemplate {
   type: PuzzleType;
-  name: string;
-  nameCn: string;
-  rulesTitle: string;
-  rules: string[];
-  exampleTitle: string;
-  playableLabel: string;
-  answerLabel: string;
-  example: PuzzleExample; // ← 核心新增
+  name: LocalizedText;
+  rulesTitle: LocalizedText;
+  rules: LocalizedTextList;
+  exampleTitle: LocalizedText;
+  playableLabel: LocalizedText;
+  answerLabel: LocalizedText;
+  example: PuzzleExample;
 }
 
 // 每日/历史谜题类型

@@ -1,5 +1,6 @@
 // src/puzzles/Fillomino/FillominoBoard.tsx
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import type { FillominoPuzzleData } from '../types';
 import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from './utils';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
@@ -25,6 +26,7 @@ type FillominoSnapshot = {
 };
 
 export default function FillominoBoard({ puzzle, startTime, resetToken, onComplete }: Props) {
+  const { copy } = useI18n();
   const { width, height, clues } = puzzle;
 
   // ==================== 响应式尺寸 ====================
@@ -545,10 +547,10 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
 
   const mobileModeHint =
     mobileMode === 'number'
-      ? '数字模式：点按加 1，长按打开数字面板或删除。'
+      ? copy.shared.touchModeHints.number
       : mobileMode === 'boundary'
-        ? '边界模式：沿格点拖动绘制粗边界线。'
-        : '标记模式：沿相邻单元格拖动绘制中心辅助线。';
+        ? copy.shared.touchModeHints.boundary
+        : copy.shared.touchModeHints.mark;
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -556,9 +558,9 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
         <>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {([
-              ['number', '数字'],
-              ['boundary', '边界'],
-              ['mark', '标记'],
+              ['number', copy.shared.touchModes.number],
+              ['boundary', copy.shared.touchModes.boundary],
+              ['mark', copy.shared.touchModes.mark],
             ] as const).map(([mode, label]) => (
               <button
                 key={mode}
@@ -805,7 +807,7 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
                   cursor: 'pointer',
                 }}
               >
-                删除
+                {copy.shared.delete}
               </button>
             </div>
             <div onClick={closeNumpad} style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: -1 }} />

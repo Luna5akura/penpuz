@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
@@ -53,6 +54,7 @@ export default function StarbattleBoard({
   fixedCellSize,
   showValidationMessage = false,
 }: Props) {
+  const { copy } = useI18n();
   const { width, height, starsPerUnit } = puzzle;
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? 1024 : window.innerWidth
@@ -430,7 +432,7 @@ export default function StarbattleBoard({
     <div className="flex flex-col items-center gap-3">
       <div className="w-full flex justify-end">
         <div className="rounded-full border border-[#6d5134] bg-[#f6ead6] px-3 py-1 text-sm font-semibold text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
-          每行 / 每列 / 每区 = {starsPerUnit} ★
+          {copy.shared.starbattleQuota(starsPerUnit)}
         </div>
       </div>
 
@@ -596,14 +598,14 @@ export default function StarbattleBoard({
         onClick={resetBoard}
         className="px-4 py-2 rounded-md border bg-white/80 hover:bg-white text-sm dark:bg-gray-800 dark:hover:bg-gray-700"
       >
-        重置本题
+        {copy.shared.resetPuzzle}
       </button>
 
-      {showValidationMessage && validation?.message && (
+      {/* {showValidationMessage && validation?.message && (
         <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
           {validation.message}
         </div>
-      )}
+      )} */}
     </div>
   );
 }

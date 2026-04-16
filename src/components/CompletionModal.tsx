@@ -1,5 +1,7 @@
 // src/components/CompletionModal.tsx
 import { useState, useCallback } from 'react';
+import { useI18n } from '@/i18n/useI18n';
+import { getPuzzleTemplate } from '@/puzzles/registry';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 
@@ -18,18 +20,11 @@ export default function CompletionModal({
   puzzleType,
   dateStr,
 }: Props) {
+  const { locale, copy } = useI18n();
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
-  const puzzleName =
-    puzzleType === 'fillomino'
-      ? 'Fillomino'
-      : puzzleType === 'yajilin'
-        ? 'Yajilin'
-        : puzzleType === 'starbattle'
-          ? 'Star Battle'
-          : 'Nurikabe';
-
-  const shareText = `我在每日纸笔谜题网站完成了 ${dateStr} 的 ${puzzleName} 谜题！用时 ${minutes} 分 ${seconds} 秒\nhttps://penpuz.today`;
+  const puzzleName = getPuzzleTemplate(puzzleType).name[locale];
+  const shareText = copy.completionModal.shareText(dateStr, puzzleName, minutes, seconds);
 
   const [copied, setCopied] = useState(false);
   const [showManualCopy, setShowManualCopy] = useState(false);
@@ -121,10 +116,10 @@ export default function CompletionModal({
       <DialogContent className="max-w-md dark:bg-gray-900 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-2xl text-center text-[#3f2a1e] dark:text-gray-100">
-            🎉 谜题完成！
+            {copy.completionModal.title}
           </DialogTitle>
           <DialogDescription className="text-center text-muted-foreground">
-            恭喜您完成本题！
+            {copy.completionModal.subtitle}
           </DialogDescription>
         </DialogHeader>
 
@@ -132,18 +127,18 @@ export default function CompletionModal({
           <p className="text-6xl font-mono font-bold tracking-tighter text-[#3f2a1e] dark:text-gray-100 mb-2">
             {minutes}:{seconds < 10 ? '0' : ''}{seconds}
           </p>
-          <p className="text-muted-foreground dark:text-gray-400">您的用时</p>
+          <p className="text-muted-foreground dark:text-gray-400">{copy.completionModal.elapsedLabel}</p>
         </div>
 
         {/* 复制按钮 */}
         <Button onClick={copyToClipboard} className="w-full" disabled={copied}>
-          {copied ? '✅ 已复制！' : '一键复制分享'}
+          {copied ? copy.completionModal.copied : copy.completionModal.copyShare}
         </Button>
 
         {/* 手动复制备用方案 */}
         {showManualCopy && (
           <div className="mt-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border text-sm">
-            <p className="text-muted-foreground mb-2 text-center">复制失败，请手动长按下方文本复制</p>
+            <p className="text-muted-foreground mb-2 text-center">{copy.completionModal.manualCopyHint}</p>
             <textarea
               readOnly
               value={shareText}
@@ -155,7 +150,7 @@ export default function CompletionModal({
         )}
 
         <Button variant="outline" onClick={onClose} className="w-full">
-          返回首页
+          {copy.completionModal.backHome}
         </Button>
       </DialogContent>
     </Dialog>

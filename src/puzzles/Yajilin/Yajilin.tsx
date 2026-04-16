@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import type { YajilinPuzzleData } from '../types';
-import type { YajilinDirection } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
+import { ClueArrow } from './ClueArrow';
+import { getClueNumberFontSize, MOBILE_CLUE_REFERENCE_SIZE } from './clueSizing';
 import {
   createEmptyYajilinGrid,
   detectYajilinHitTarget,
@@ -26,102 +28,6 @@ const BOARD_PADDING = 3;
 const BOARD_GAP = 1;
 const BOARD_BORDER = 4;
 const DESKTOP_CLUE_SIZE = 58;
-const MOBILE_CLUE_REFERENCE_SIZE = 44;
-
-function getClueNumberFontSize(cellSize: number) {
-  if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) {
-    return Math.max(32, Math.floor(cellSize * 0.7));
-  }
-  return Math.max(22, Math.floor(cellSize * 0.74));
-}
-
-function getArrowFrameStyle(direction: YajilinDirection, cellSize: number) {
-  const sideInset = cellSize >= MOBILE_CLUE_REFERENCE_SIZE ? 1 : 0;
-  const horizontalTopInset = cellSize >= MOBILE_CLUE_REFERENCE_SIZE ? 1 : 0;
-  const verticalWidth = Math.max(12, Math.round(cellSize * 0.26));
-  const verticalHeight = Math.max(26, cellSize - 2);
-  const horizontalWidth = Math.max(26, cellSize - 2);
-  const horizontalHeight = Math.max(12, Math.round(cellSize * 0.26));
-
-  if (direction === 'up') {
-    return {
-      left: `${sideInset}px`,
-      top: '50%',
-      transform: 'translateY(-50%)',
-      width: `${verticalWidth}px`,
-      height: `${verticalHeight}px`,
-    };
-  }
-  if (direction === 'down') {
-    return {
-      left: `${sideInset}px`,
-      top: '50%',
-      transform: 'translateY(-50%)',
-      width: `${verticalWidth}px`,
-      height: `${verticalHeight}px`,
-    };
-  }
-  if (direction === 'left') {
-    return {
-      left: '50%',
-      top: `${horizontalTopInset}px`,
-      transform: 'translateX(-50%)',
-      width: `${horizontalWidth}px`,
-      height: `${horizontalHeight}px`,
-    };
-  }
-  return {
-    left: '50%',
-    top: `${horizontalTopInset}px`,
-    transform: 'translateX(-50%)',
-    width: `${horizontalWidth}px`,
-    height: `${horizontalHeight}px`,
-  };
-}
-
-function ClueArrow({ direction, cellSize }: { direction: YajilinDirection; cellSize: number }) {
-  const isVertical = direction === 'up' || direction === 'down';
-  const strokeWidth = cellSize >= MOBILE_CLUE_REFERENCE_SIZE ? 2.8 : 2.4;
-  const headSize = isVertical ? 7 : 6.5;
-
-  const viewBox = isVertical ? '0 0 24 48' : '0 0 48 24';
-  const line = isVertical
-    ? direction === 'up'
-      ? { x1: 12, y1: 46, x2: 12, y2: 4 }
-      : { x1: 12, y1: 2, x2: 12, y2: 44 }
-    : direction === 'left'
-      ? { x1: 46, y1: 12, x2: 4, y2: 12 }
-      : { x1: 2, y1: 12, x2: 44, y2: 12 };
-
-  const arrowHead = isVertical
-    ? direction === 'up'
-      ? `12,2 ${12 - headSize},${2 + headSize} ${12 + headSize},${2 + headSize}`
-      : `12,46 ${12 - headSize},${46 - headSize} ${12 + headSize},${46 - headSize}`
-    : direction === 'left'
-      ? `2,12 ${2 + headSize},${12 - headSize} ${2 + headSize},${12 + headSize}`
-      : `46,12 ${46 - headSize},${12 - headSize} ${46 - headSize},${12 + headSize}`;
-
-  return (
-    <svg
-      className="absolute overflow-visible"
-      viewBox={viewBox}
-      aria-hidden="true"
-      focusable="false"
-      style={getArrowFrameStyle(direction, cellSize)}
-    >
-      <line
-        x1={line.x1}
-        y1={line.y1}
-        x2={line.x2}
-        y2={line.y2}
-        stroke="currentColor"
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-      />
-      <polygon points={arrowHead} fill="currentColor" />
-    </svg>
-  );
-}
 
 type PendingTap =
   | { kind: 'desktop-left-cell'; row: number; col: number }
@@ -140,6 +46,7 @@ type YajilinSnapshot = {
 };
 
 export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete, fixedCellSize }: Props) {
+  const { copy } = useI18n();
   const { width, height, clues } = puzzle;
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? 1024 : window.innerWidth
@@ -831,14 +738,14 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
         onClick={resetBoard}
         className="px-4 py-2 rounded-md border bg-white/80 hover:bg-white text-sm dark:bg-gray-800 dark:hover:bg-gray-700"
       >
-        重置本题
+        {copy.shared.resetPuzzle}
       </button>
 
-      {validation?.message && (
+      {/* {validation?.message && (
         <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
           {validation.message}
         </div>
-      )}
+      )} */}
     </div>
   );
 }

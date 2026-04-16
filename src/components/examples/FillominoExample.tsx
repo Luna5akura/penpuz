@@ -1,7 +1,7 @@
 // src/components/examples/FillominoExample.tsx
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import { useI18n } from '@/i18n/useI18n';
 import { validateFillomino } from '../../puzzles/Fillomino/utils';
 
 interface Props {
@@ -21,12 +21,12 @@ export default function FillominoExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const { copy } = useI18n();
   const [grid, setGrid] = useState<(number | null)[][]>(cluesGrid.map(row => [...row]));
   const [thinLines, setThinLines] = useState<Set<string>>(new Set());
   const [deepLines, setDeepLines] = useState<Set<string>>(new Set());
   const [showAnswer, setShowAnswer] = useState(false);
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
-  const [invalidCells, setInvalidCells] = useState<{ r: number; c: number }[]>([]);
 
   const [cellSize, setCellSize] = useState(() => {
     const safeMargin = 150;
@@ -69,13 +69,12 @@ export default function FillominoExample({
     return () => window.removeEventListener('resize', updateSize);
   }, [width]);
 
-  // 实时验证
-  useEffect(() => {
-    if (grid.length === 0) return;
-    const result = validateFillomino(grid, width, height, deepLines);
-    setInvalidCells(result.invalidCells || []);
-    if (result.valid) setShowAnswer(true);
-  }, [grid, deepLines, width, height]);
+  const validationResult = useMemo(
+    () => (grid.length === 0 ? null : validateFillomino(grid, width, height, deepLines)),
+    [deepLines, grid, height, width]
+  );
+  const invalidCells = validationResult?.invalidCells || [];
+  const isAnswerVisible = showAnswer || !!validationResult?.valid;
 
   // 键盘输入
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -268,13 +267,15 @@ export default function FillominoExample({
     if (type === 'thin') {
       setThinLines(prev => {
         const next = new Set(prev);
-        op === 'add' ? next.add(key) : next.delete(key);
+        if (op === 'add') next.add(key);
+        else next.delete(key);
         return next;
       });
     } else {
       setDeepLines(prev => {
         const next = new Set(prev);
-        op === 'add' ? next.add(key) : next.delete(key);
+        if (op === 'add') next.add(key);
+        else next.delete(key);
         return next;
       });
     }
@@ -336,7 +337,7 @@ export default function FillominoExample({
     }
   }, [getCellFromPos, getNearestVertex, getEdgeKey, handleBoundaryEdit, copyValueDrag, clearCellDrag, height, width]);
 
-  const handleDocumentPointerUp = useCallback((e: PointerEvent) => {
+  const handleDocumentPointerUp = useCallback(() => {
     if (longPressTimerRef.current) {
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
@@ -360,7 +361,6 @@ export default function FillominoExample({
     boundaryOperationRef.current = null;
 
     document.removeEventListener('pointermove', handleDocumentPointerMove);
-    document.removeEventListener('pointerup', handleDocumentPointerUp);
   }, [handleDocumentPointerMove, changeNumber, grid]);
 
   const handleNumpadInput = useCallback((num: number | null) => {
@@ -451,7 +451,7 @@ export default function FillominoExample({
     }
 
     document.addEventListener('pointermove', handleDocumentPointerMove, { passive: true });
-    document.addEventListener('pointerup', handleDocumentPointerUp, { passive: true });
+    document.addEventListener('pointerup', handleDocumentPointerUp, { passive: true, once: true });
   };
 
   const svgWidth = width * cellSize;
@@ -625,7 +625,7 @@ export default function FillominoExample({
                       cursor: 'pointer',
                     }}
                   >
-                    删除
+                    {copy.shared.delete}
                   </button>
                 </div>
                 <div onClick={closeNumpad} style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: -1 }} />
@@ -639,7 +639,7 @@ export default function FillominoExample({
           <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
             {answerLabel}
           </p>
-          {!showAnswer ? (
+          {!isAnswerVisible ? (
             <div
               onClick={() => setConfirmSpoiler(true)}
               className="mx-auto select-none cursor-pointer hover:opacity-90"
@@ -749,19 +749,14 @@ export default function FillominoExample({
         </div>
       </div>
 
-      {confirmSpoiler && !showAnswer && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <Card className="max-w-sm w-full mx-4 dark:bg-gray-900">
-            <CardContent className="p-6 text-center">
-              <p className="text-lg mb-6 dark:text-gray-200">你确定要查看答案吗？<br />(完成左边的题目可以自动解锁)</p>
-              <div className="flex gap-3">
-                <Button variant="outline" className="flex-1" onClick={() => setConfirmSpoiler(false)}>取消</Button>
-                <Button className="flex-1" onClick={() => { setShowAnswer(true); setConfirmSpoiler(false); }}>确定查看</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <ExampleAnswerRevealDialog
+        open={confirmSpoiler && !isAnswerVisible}
+        onCancel={() => setConfirmSpoiler(false)}
+        onConfirm={() => {
+          setShowAnswer(true);
+          setConfirmSpoiler(false);
+        }}
+      />
     </>
   );
 }

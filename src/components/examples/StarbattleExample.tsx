@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react';
+import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../../puzzles/types';
 import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
 import { getStarbattleBoundarySegments } from '../../puzzles/Starbattle/utils';
@@ -22,6 +24,7 @@ export default function StarbattleExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const { copy } = useI18n();
   const [showAnswer, setShowAnswer] = useState(false);
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
@@ -95,7 +98,7 @@ export default function StarbattleExample({
           ) : (
             <div className="flex flex-col items-end gap-3">
               <div className="rounded-full border border-[#6d5134] bg-[#f6ead6] px-3 py-1 text-sm font-semibold text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
-                每行 / 每列 / 每区 = {starsPerUnit} ★
+                {copy.shared.starbattleQuota(starsPerUnit)}
               </div>
               <div
                 className="relative"
@@ -181,17 +184,14 @@ export default function StarbattleExample({
         </div>
       </div>
 
-      {confirmSpoiler && !showAnswer && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="max-w-sm w-full mx-4 bg-white dark:bg-gray-900 rounded-lg p-6 text-center shadow-xl">
-            <p className="text-lg mb-6 dark:text-gray-200">你确定要查看答案吗？<br />(完成左边的题目可以自动解锁)</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmSpoiler(false)} className="flex-1 py-3 border rounded-lg">取消</button>
-              <button onClick={() => { setShowAnswer(true); setConfirmSpoiler(false); }} className="flex-1 py-3 bg-[#3f2a1e] text-white rounded-lg">确定查看</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExampleAnswerRevealDialog
+        open={confirmSpoiler && !showAnswer}
+        onCancel={() => setConfirmSpoiler(false)}
+        onConfirm={() => {
+          setShowAnswer(true);
+          setConfirmSpoiler(false);
+        }}
+      />
     </>
   );
 }

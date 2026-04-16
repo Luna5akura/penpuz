@@ -1,6 +1,6 @@
 // src/components/examples/NurikabeExample.tsx
-
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import { validateNurikabe, getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
 import type { NurikabeClue } from '../../puzzles/types';
 
@@ -14,10 +14,11 @@ interface Props {
 }
 
 export default function NurikabeExample({ width, height, clues, correctSolution, playableLabel, answerLabel }: Props) {
-  const [exampleGrid, setExampleGrid] = useState<(0 | 1 | 2)[][]>([]);
+  const [exampleGrid, setExampleGrid] = useState<(0 | 1 | 2)[][]>(() =>
+    Array.from({ length: height }, () => Array(width).fill(0))
+  );
   const [showAnswer, setShowAnswer] = useState(false);
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
-  const [violations, setViolations] = useState<NurikabeViolations>({ violatedRules: [], bad2x2Cells: [], badClueIndices: [] });
   const isMobile = useRef(false);
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
@@ -26,24 +27,21 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
   const startCol = useRef(-1);
 
   useEffect(() => {
-    setExampleGrid(Array.from({ length: height }, () => Array(width).fill(0)));
-  }, [height, width]);
-
-  useEffect(() => {
     const update = () => { isMobile.current = window.innerWidth < 640; };
     update();
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
 
-  useEffect(() => {
-    if (exampleGrid.length === 0) return;
-    const boolGrid = exampleGrid.map(row => row.map(s => s === 1));
-    const v = getNurikabeViolations(boolGrid, clues, width, height);
-    setViolations(v);
-    const result = validateNurikabe(boolGrid, clues, width, height);
-    if (result.valid) setShowAnswer(true);
-  }, [exampleGrid, clues, width, height]);
+  const boolGrid = useMemo(
+    () => exampleGrid.map(row => row.map(s => s === 1)),
+    [exampleGrid]
+  );
+  const violations = useMemo<NurikabeViolations>(
+    () => getNurikabeViolations(boolGrid, clues, width, height),
+    [boolGrid, clues, width, height]
+  );
+  const isAnswerVisible = showAnswer || validateNurikabe(boolGrid, clues, width, height).valid;
 
   const isClue = (r: number, c: number) => clues.some(cl => cl.row === r && cl.col === c);
 
@@ -186,7 +184,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
           <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
             {answerLabel}
           </p>
-          {!showAnswer ? (
+          {!isAnswerVisible ? (
             <div
               onClick={() => setConfirmSpoiler(true)}
               className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700 cursor-pointer hover:opacity-90 relative"
@@ -221,18 +219,14 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
         </div>
       </div>
 
-      {/* 确认弹窗 */}
-      {confirmSpoiler && !showAnswer && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="max-w-sm w-full mx-4 bg-white dark:bg-gray-900 rounded-lg p-6 text-center shadow-xl">
-            <p className="text-lg mb-6 dark:text-gray-200">你确定要查看答案吗？<br />(完成左边的题目可以自动解锁)</p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmSpoiler(false)} className="flex-1 py-3 border rounded-lg">取消</button>
-              <button onClick={() => { setShowAnswer(true); setConfirmSpoiler(false); }} className="flex-1 py-3 bg-[#3f2a1e] text-white rounded-lg">确定查看</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExampleAnswerRevealDialog
+        open={confirmSpoiler && !isAnswerVisible}
+        onCancel={() => setConfirmSpoiler(false)}
+        onConfirm={() => {
+          setShowAnswer(true);
+          setConfirmSpoiler(false);
+        }}
+      />
     </>
   );
 }

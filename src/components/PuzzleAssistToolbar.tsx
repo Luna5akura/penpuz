@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import { Button } from './ui/button';
 
 interface Props {
@@ -30,6 +31,8 @@ export default function PuzzleAssistToolbar({
   onDiscardTrial,
   onCommitTrial,
 }: Props) {
+  const { copy } = useI18n();
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -72,7 +75,7 @@ export default function PuzzleAssistToolbar({
     >
       <div className={`flex flex-wrap items-center justify-center gap-2 ${trialActive ? 'w-full' : 'mx-auto'}`}>
         <Button variant="outline" size="sm" onClick={onUndo} disabled={!canUndo} title="Ctrl/Cmd + Z">
-          撤销
+          {copy.assistToolbar.undo}
         </Button>
         <Button
           variant="outline"
@@ -81,16 +84,16 @@ export default function PuzzleAssistToolbar({
           disabled={!canRedo}
           title="Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y"
         >
-          重做
+          {copy.assistToolbar.redo}
         </Button>
         {!trialActive ? (
           <Button variant="outline" size="sm" onClick={onStartTrial}>
-            开始试错
+            {copy.assistToolbar.startTrial}
           </Button>
         ) : (
           <>
             <Button variant="outline" size="sm" onClick={onAddTrialCheckpoint}>
-              新增检查点
+              {copy.assistToolbar.addCheckpoint}
             </Button>
             <Button
               variant="outline"
@@ -98,13 +101,13 @@ export default function PuzzleAssistToolbar({
               onClick={onUndoTrialCheckpoint}
               disabled={!canUndoTrialCheckpoint}
             >
-              撤销检查点
+              {copy.assistToolbar.undoCheckpoint}
             </Button>
             <Button variant="outline" size="sm" onClick={onDiscardTrial}>
-              放弃试错
+              {copy.assistToolbar.discardTrial}
             </Button>
             <Button size="sm" onClick={onCommitTrial}>
-              确认试错
+              {copy.assistToolbar.commitTrial}
             </Button>
           </>
         )}
@@ -112,10 +115,10 @@ export default function PuzzleAssistToolbar({
       {trialActive && (
         <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
           <span className="rounded-full bg-amber-200 px-2 py-1 font-medium text-amber-900 dark:bg-amber-900/60 dark:text-amber-100">
-            试错模式进行中
+            {copy.assistToolbar.trialModeActive}
           </span>
           <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-800 dark:bg-sky-950/60 dark:text-sky-200">
-            检查点： {trialCheckpointCount}
+            {copy.assistToolbar.checkpointCount(trialCheckpointCount)}
           </span>
         </div>
       )}
