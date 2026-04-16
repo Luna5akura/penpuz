@@ -60,7 +60,7 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     type: 'starbattle' as const,
-    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/815lksmulkvd75hm0cm9dkakb84k2a5alk20',
+    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/00lhksmullfd75hm00u85lakb8442q5alk2f',
   },
   {
     type: 'fillomino' as const,
