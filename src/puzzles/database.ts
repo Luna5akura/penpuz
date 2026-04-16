@@ -71,6 +71,10 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
   },
   {
+    type: 'starbattle' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/95u69hu893vvm8pui8i25qcjdef4aa4kek16',
+  },
+  {
     type: 'fillomino' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/g1j1m124h1h1h651h146h1k25125h1h1h46124k1h651h146h1h1h251m1j1g',
   },
