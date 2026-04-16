@@ -675,20 +675,6 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
   const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
   return (
     <div className="flex flex-col items-center gap-3">
-      <PuzzleAssistToolbar
-        canUndo={canUndo}
-        canRedo={canRedo}
-        trialActive={trialActive}
-        trialCheckpointCount={trialCheckpointCount}
-        canUndoTrialCheckpoint={canUndoTrialCheckpoint}
-        onUndo={undo}
-        onRedo={redo}
-        onAddTrialCheckpoint={addTrialCheckpoint}
-        onUndoTrialCheckpoint={undoTrialCheckpoint}
-        onStartTrial={startTrial}
-        onDiscardTrial={discardTrial}
-        onCommitTrial={commitTrial}
-      />
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -825,6 +811,20 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
           })}
         </svg>
       </div>
+      <PuzzleAssistToolbar
+        canUndo={canUndo}
+        canRedo={canRedo}
+        trialActive={trialActive}
+        trialCheckpointCount={trialCheckpointCount}
+        canUndoTrialCheckpoint={canUndoTrialCheckpoint}
+        onUndo={undo}
+        onRedo={redo}
+        onAddTrialCheckpoint={addTrialCheckpoint}
+        onUndoTrialCheckpoint={undoTrialCheckpoint}
+        onStartTrial={startTrial}
+        onDiscardTrial={discardTrial}
+        onCommitTrial={commitTrial}
+      />
 
       <button
         type="button"

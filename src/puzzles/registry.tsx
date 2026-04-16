@@ -2,12 +2,15 @@ import type { ReactElement } from 'react';
 import NurikabeBoard from './Nurikabe/Nurikabe';
 import FillominoBoard from './Fillomino/Fillomino';
 import YajilinBoard from './Yajilin/Yajilin';
+import StarbattleBoard from './Starbattle/Starbattle';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
+import StarbattleExample from '../components/examples/StarbattleExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
+import { parseStarbattleLink } from './Starbattle/utils';
 import type {
   FillominoPuzzleData,
   NurikabePuzzleData,
@@ -15,6 +18,7 @@ import type {
   PuzzleEntry,
   PuzzleTemplate,
   PuzzleType,
+  StarbattlePuzzleData,
   YajilinPuzzleData,
 } from './types';
 
@@ -36,6 +40,7 @@ type PuzzleRegistry = {
   nurikabe: PuzzleRegistryEntry<NurikabePuzzleData>;
   fillomino: PuzzleRegistryEntry<FillominoPuzzleData>;
   yajilin: PuzzleRegistryEntry<YajilinPuzzleData>;
+  starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -227,6 +232,64 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  starbattle: {
+    parsePuzzLink: parseStarbattleLink,
+    template: {
+      type: 'starbattle',
+      name: 'Star Battle',
+      nameCn: '星战',
+      rulesTitle: '游戏规则',
+      rules: [
+        '在一些空格中放入星星，且任意两个星星不能横向、纵向或对角相邻。',
+        '右上角的数字表示每一行、每一列和每一个粗边框区域中都必须恰好放入相同数量的星星。',
+      ],
+      exampleTitle: '例题（5×5）',
+      playableLabel: '可游玩例题',
+      answerLabel: '正确答案',
+      example: {
+        puzzleType: 'starbattle',
+        width: 5,
+        height: 5,
+        starsPerUnit: 1,
+        regionIds: [
+          [0, 0, 0, 0, 1],
+          [0, 0, 2, 2, 2],
+          [3, 2, 2, 2, 2],
+          [3, 2, 2, 4, 4],
+          [3, 3, 4, 4, 4],
+        ],
+        starCells: [
+          { row: 0, col: 4 },
+          { row: 1, col: 1 },
+          { row: 2, col: 3 },
+          { row: 3, col: 0 },
+          { row: 4, col: 2 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
+      <StarbattleBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    ),
+    renderExample: (template) => {
+      const example = template.example;
+      if (example.puzzleType !== 'starbattle') {
+        throw new Error('Starbattle template example type mismatch.');
+      }
+
+      return (
+        <StarbattleExample
+          type="starbattle"
+          width={example.width}
+          height={example.height}
+          starsPerUnit={example.starsPerUnit}
+          regionIds={example.regionIds}
+          starCells={example.starCells}
+          playableLabel={template.playableLabel}
+          answerLabel={template.answerLabel}
+        />
+      );
+    },
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
@@ -234,10 +297,6 @@ export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
 }
 
 export function resolvePuzzleEntry(entry: PuzzleEntry): PuzzleData | null {
-  if ('puzzle' in entry) {
-    return entry.puzzle;
-  }
-
   return puzzleRegistry[entry.type].parsePuzzLink(entry.puzzLink);
 }
 

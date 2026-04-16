@@ -552,20 +552,6 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <PuzzleAssistToolbar
-        canUndo={canUndo}
-        canRedo={canRedo}
-        trialActive={trialActive}
-        trialCheckpointCount={trialCheckpointCount}
-        canUndoTrialCheckpoint={canUndoTrialCheckpoint}
-        onUndo={undo}
-        onRedo={redo}
-        onAddTrialCheckpoint={addTrialCheckpoint}
-        onUndoTrialCheckpoint={undoTrialCheckpoint}
-        onStartTrial={startTrial}
-        onDiscardTrial={discardTrial}
-        onCommitTrial={commitTrial}
-      />
       {isTouchDevice && (
         <>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -826,6 +812,20 @@ export default function FillominoBoard({ puzzle, startTime, resetToken, onComple
           </div>
         )}
       </div>
+      <PuzzleAssistToolbar
+        canUndo={canUndo}
+        canRedo={canRedo}
+        trialActive={trialActive}
+        trialCheckpointCount={trialCheckpointCount}
+        canUndoTrialCheckpoint={canUndoTrialCheckpoint}
+        onUndo={undo}
+        onRedo={redo}
+        onAddTrialCheckpoint={addTrialCheckpoint}
+        onUndoTrialCheckpoint={undoTrialCheckpoint}
+        onStartTrial={startTrial}
+        onDiscardTrial={discardTrial}
+        onCommitTrial={commitTrial}
+      />
     </div>
   );
 }

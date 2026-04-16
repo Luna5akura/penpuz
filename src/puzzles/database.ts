@@ -59,12 +59,20 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/q30k20d32i1141h3221i42d12k40q',
   },
   {
+    type: 'starbattle' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/815lksmulkvd75hm0cm9dkakb84k2a5alk20',
+  },
+  {
     type: 'fillomino' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/9h9h9h9g34i332h454i13g94g9h9g39j51n14j9g19h94g9g331i23h32i323g9h9h9h9000000000000000000000000000000000008',
   },
   {
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
+  },
+  {
+    type: 'fillomino' as const,
+    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/g1j1m124h1h1h651h146h1k25125h1h1h46124k1h651h146h1h1h251m1j1g',
   },
   {
     type: 'yajilin' as const,
@@ -78,6 +86,7 @@ const allPuzzles: PuzzleEntry[] = [
     type: 'nurikabe' as const,
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/j1i1g1j.g.i.m.n1h.p1h1h.k.j11p.h.i.l1i1',
   },
+
 ];
 
 

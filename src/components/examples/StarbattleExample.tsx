@@ -1,0 +1,197 @@
+import { useMemo, useState } from 'react';
+import type { StarbattlePuzzleData } from '../../puzzles/types';
+import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
+import { getStarbattleBoundarySegments } from '../../puzzles/Starbattle/utils';
+
+interface Props extends StarbattlePuzzleData {
+  starCells: { row: number; col: number }[];
+  playableLabel: string;
+  answerLabel: string;
+}
+
+const CELL_SIZE = 42;
+const BOARD_PADDING = 10;
+const BOARD_BORDER = 4;
+
+export default function StarbattleExample({
+  width,
+  height,
+  starsPerUnit,
+  regionIds,
+  starCells,
+  playableLabel,
+  answerLabel,
+}: Props) {
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
+  const [exampleStartTime] = useState(() => Date.now());
+
+  const examplePuzzle = useMemo<StarbattlePuzzleData>(
+    () => ({ type: 'starbattle', width, height, starsPerUnit, regionIds }),
+    [height, regionIds, starsPerUnit, width]
+  );
+  const starSet = useMemo(() => new Set(starCells.map((cell) => `${cell.row},${cell.col}`)), [starCells]);
+  const boundaries = useMemo(
+    () => getStarbattleBoundarySegments(regionIds, width, height),
+    [height, regionIds, width]
+  );
+  const boardWidth = width * CELL_SIZE;
+  const boardHeight = height * CELL_SIZE;
+  const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+
+  return (
+    <>
+      <div className="flex flex-col xl:flex-row gap-10 justify-center">
+        <div className="flex flex-col items-center">
+          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+            {playableLabel}
+          </p>
+          <StarbattleBoard
+            key={`starbattle-example-${width}-${height}`}
+            puzzle={examplePuzzle}
+            startTime={exampleStartTime}
+            resetToken={0}
+            onComplete={() => setShowAnswer(true)}
+            fixedCellSize={CELL_SIZE}
+            showValidationMessage
+          />
+        </div>
+
+        <div className="flex flex-col items-center">
+          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+            {answerLabel}
+          </p>
+          {!showAnswer ? (
+            <div
+              onClick={() => setConfirmSpoiler(true)}
+              className="relative cursor-pointer hover:opacity-90"
+            >
+              <div
+                className="border-4 border-[#3f2a1e] bg-[#d2b48c] p-[10px] dark:border-gray-700 dark:bg-gray-800"
+                style={{ width: `${outerWidth}px`, height: `${outerHeight}px` }}
+              >
+                <div
+                  className="grid"
+                  style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)` }}
+                >
+                  {Array.from({ length: width * height }, (_, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#f8f1e3] dark:bg-gray-800"
+                      style={{
+                        width: `${CELL_SIZE}px`,
+                        height: `${CELL_SIZE}px`,
+                        boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80">
+                <div className="text-white text-6xl">👁️‍🗨️</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-end gap-3">
+              <div className="rounded-full border border-[#6d5134] bg-[#f6ead6] px-3 py-1 text-sm font-semibold text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+                每行 / 每列 / 每区 = {starsPerUnit} ★
+              </div>
+              <div
+                className="relative"
+                style={{
+                  width: `${outerWidth}px`,
+                  height: `${outerHeight}px`,
+                  background: '#d2b48c',
+                  border: `${BOARD_BORDER}px solid #3f2a1e`,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <div
+                  className="absolute grid"
+                  style={{
+                    left: `${BOARD_PADDING}px`,
+                    top: `${BOARD_PADDING}px`,
+                    gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
+                  }}
+                >
+                  {Array.from({ length: height }).flatMap((_, row) =>
+                    Array.from({ length: width }).map((__, col) => (
+                      <div
+                        key={`${row}-${col}`}
+                        className="flex items-center justify-center bg-[#f8f1e3] text-[#3f2a1e] dark:bg-gray-800 dark:text-gray-100"
+                        style={{
+                          width: `${CELL_SIZE}px`,
+                          height: `${CELL_SIZE}px`,
+                          boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
+                        }}
+                      >
+                        {starSet.has(`${row},${col}`) ? (
+                          <span style={{ fontSize: `${Math.floor(CELL_SIZE * 0.55)}px`, lineHeight: 1 }}>★</span>
+                        ) : null}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <svg
+                  className="absolute top-0 left-0 pointer-events-none"
+                  width={outerWidth - BOARD_BORDER * 2}
+                  height={outerHeight - BOARD_BORDER * 2}
+                >
+                  {boundaries.horizontal.map((segment) => {
+                    const x1 = BOARD_PADDING + segment.col * CELL_SIZE;
+                    const y = BOARD_PADDING + segment.row * CELL_SIZE;
+                    const x2 = x1 + CELL_SIZE;
+                    return (
+                      <line
+                        key={`h-${segment.row}-${segment.col}`}
+                        x1={x1}
+                        y1={y}
+                        x2={x2}
+                        y2={y}
+                        stroke="#3f2a1e"
+                        strokeWidth="3"
+                        strokeLinecap="square"
+                      />
+                    );
+                  })}
+
+                  {boundaries.vertical.map((segment) => {
+                    const x = BOARD_PADDING + segment.col * CELL_SIZE;
+                    const y1 = BOARD_PADDING + segment.row * CELL_SIZE;
+                    const y2 = y1 + CELL_SIZE;
+                    return (
+                      <line
+                        key={`v-${segment.row}-${segment.col}`}
+                        x1={x}
+                        y1={y1}
+                        x2={x}
+                        y2={y2}
+                        stroke="#3f2a1e"
+                        strokeWidth="3"
+                        strokeLinecap="square"
+                      />
+                    );
+                  })}
+                </svg>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {confirmSpoiler && !showAnswer && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="max-w-sm w-full mx-4 bg-white dark:bg-gray-900 rounded-lg p-6 text-center shadow-xl">
+            <p className="text-lg mb-6 dark:text-gray-200">你确定要查看答案吗？<br />(完成左边的题目可以自动解锁)</p>
+            <div className="flex gap-3">
+              <button onClick={() => setConfirmSpoiler(false)} className="flex-1 py-3 border rounded-lg">取消</button>
+              <button onClick={() => { setShowAnswer(true); setConfirmSpoiler(false); }} className="flex-1 py-3 bg-[#3f2a1e] text-white rounded-lg">确定查看</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

@@ -42,7 +42,15 @@ export interface YajilinPuzzleData {
   clues: YajilinClue[];
 }
 
-export type PuzzleData = NurikabePuzzleData | FillominoPuzzleData | YajilinPuzzleData;
+export interface StarbattlePuzzleData {
+  type: 'starbattle';
+  width: number;
+  height: number;
+  starsPerUnit: number;
+  regionIds: number[][];
+}
+
+export type PuzzleData = NurikabePuzzleData | FillominoPuzzleData | YajilinPuzzleData | StarbattlePuzzleData;
 export type PuzzleType = PuzzleData['type'];
 
 export type PuzzleEntry =
@@ -59,8 +67,8 @@ export type PuzzleEntry =
       puzzLink: string;
     }
   | {
-      type: 'yajilin';
-      puzzle: YajilinPuzzleData;
+      type: 'starbattle';
+      puzzLink: string;
     };
 
 export type PuzzleExample =
@@ -86,6 +94,14 @@ export type PuzzleExample =
       shadedCells: { row: number; col: number }[];
       loopEdges: YajilinSolutionEdge[];
       crossedEdges?: YajilinSolutionEdge[];
+    }
+  | {
+      puzzleType: 'starbattle';
+      width: number;
+      height: number;
+      starsPerUnit: number;
+      regionIds: number[][];
+      starCells: { row: number; col: number }[];
     };
 
 export interface PuzzleTemplate {
