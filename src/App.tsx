@@ -8,7 +8,9 @@ import { useDailyPuzzleSession } from './hooks/useDailyPuzzleSession';
 import { renderPuzzleBoard } from './puzzles/registry';
 import { Button } from './components/ui/button';
 import { Card } from './components/ui/card';
+import { Badge } from './components/ui/badge';
 import { useI18n } from './i18n/useI18n';
+import { puzzleDifficultyLabels } from './puzzles/types';
 
 function App() {
   const { locale, copy, toggleLocale } = useI18n();
@@ -52,6 +54,7 @@ function App() {
   const isTodayPuzzle = daily.dateStr === todayStr;
   const hasResult = attemptCompleted || !!savedCompletion;
   const puzzleName = template.name[locale];
+  const difficultyText = puzzleDifficultyLabels[daily.difficulty][locale];
 
   return (
     <div className="min-h-screen bg-[#f8f1e3] dark:bg-gray-950 py-8 font-serif">
@@ -63,6 +66,14 @@ function App() {
             <p className="text-lg text-muted-foreground dark:text-gray-400 mt-2">
               {isTodayPuzzle ? copy.app.todayPuzzleTypeLabel : copy.app.puzzleTypeLabel}：{puzzleName}
             </p>
+            <div className="mt-3">
+              <Badge
+                variant="outline"
+                className="border-[#8c6a45] bg-[#f6ead6] text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+              >
+                {copy.shared.difficultyLabel}：{difficultyText}
+              </Badge>
+            </div>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
@@ -91,6 +102,14 @@ function App() {
               <p className="text-lg text-muted-foreground dark:text-gray-400">
                 {copy.app.currentPuzzle}：<span className="font-medium">{puzzleName}</span>
               </p>
+              <div className="mt-3">
+                <Badge
+                  variant="outline"
+                  className="border-[#8c6a45] bg-[#f6ead6] text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                >
+                  {copy.shared.difficultyLabel}：{difficultyText}
+                </Badge>
+              </div>
               <p className="text-4xl font-bold text-[#3f2a1e] dark:text-gray-100 mt-6">
                 {copy.app.puzzleNumber(daily.index + 1)}
               </p>
@@ -154,6 +173,12 @@ function App() {
                       onClick={() => loadHistoryPuzzle(item)}
                     >
                       <span className="font-medium">{item.template.name[locale]}</span>
+                      <Badge
+                        variant="outline"
+                        className="ml-3 border-[#8c6a45] bg-[#f6ead6] text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                      >
+                        {puzzleDifficultyLabels[item.difficulty][locale]}
+                      </Badge>
                       <span className="ml-auto text-muted-foreground dark:text-gray-400">
                         {copy.app.historyEntry(item.dateStr, item.index + 1)}
                       </span>

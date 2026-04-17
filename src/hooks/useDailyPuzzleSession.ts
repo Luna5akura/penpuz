@@ -144,6 +144,7 @@ export function useDailyPuzzleSession() {
     setDaily({
       puzzle: item.puzzle,
       template: item.template,
+      difficulty: item.difficulty,
       index: item.index,
       daysSinceStart: item.daysSinceStart,
       dateStr: item.dateStr,

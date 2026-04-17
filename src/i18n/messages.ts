@@ -29,6 +29,7 @@ export const messages = {
     },
     shared: {
       resetPuzzle: '重置本题',
+      difficultyLabel: '难度',
       cancel: '取消',
       confirmView: '确定查看',
       revealAnswerPrompt: '你确定要查看答案吗？',
@@ -94,6 +95,7 @@ export const messages = {
     },
     shared: {
       resetPuzzle: 'Reset puzzle',
+      difficultyLabel: 'Difficulty',
       cancel: 'Cancel',
       confirmView: 'Show answer',
       revealAnswerPrompt: 'Do you want to reveal the answer?',

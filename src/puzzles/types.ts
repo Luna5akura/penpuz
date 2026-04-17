@@ -52,26 +52,48 @@ export interface StarbattlePuzzleData {
   regionIds: number[][];
 }
 
-export type PuzzleData = NurikabePuzzleData | FillominoPuzzleData | YajilinPuzzleData | StarbattlePuzzleData;
-export type PuzzleType = PuzzleData['type'];
+export interface HeyawakeClue {
+  row: number;
+  col: number;
+  value: number;
+}
 
-export type PuzzleEntry =
-  | {
-      type: 'nurikabe';
-      puzzLink: string;
-    }
-  | {
-      type: 'fillomino';
-      puzzLink: string;
-    }
-  | {
-      type: 'yajilin';
-      puzzLink: string;
-    }
-  | {
-      type: 'starbattle';
-      puzzLink: string;
-    };
+export interface HeyawakePuzzleData {
+  type: 'heyawake';
+  width: number;
+  height: number;
+  regionIds: number[][];
+  clues: HeyawakeClue[];
+}
+
+export type PuzzleData =
+  | NurikabePuzzleData
+  | FillominoPuzzleData
+  | YajilinPuzzleData
+  | StarbattlePuzzleData
+  | HeyawakePuzzleData;
+export type PuzzleType = PuzzleData['type'];
+export type PuzzleDifficulty = '简单' | '困难' | '极难';
+
+export const puzzleDifficultyLabels: Record<PuzzleDifficulty, LocalizedText> = {
+  简单: {
+    'zh-CN': '简单',
+    en: 'Easy',
+  },
+  困难: {
+    'zh-CN': '困难',
+    en: 'Hard',
+  },
+  极难: {
+    'zh-CN': '极难',
+    en: 'Extreme',
+  },
+};
+
+export interface PuzzleEntry {
+  puzzLink: string;
+  difficulty: PuzzleDifficulty;
+}
 
 export type PuzzleExample =
   | {
@@ -104,6 +126,14 @@ export type PuzzleExample =
       starsPerUnit: number;
       regionIds: number[][];
       starCells: { row: number; col: number }[];
+    }
+  | {
+      puzzleType: 'heyawake';
+      width: number;
+      height: number;
+      regionIds: number[][];
+      clues: HeyawakeClue[];
+      correctSolution: (0 | 1)[][];
     };
 
 export interface PuzzleTemplate {
@@ -121,6 +151,7 @@ export interface PuzzleTemplate {
 export type DailyPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
+  difficulty: PuzzleDifficulty;
   index: number;
   daysSinceStart: number;
   dateStr: string;
@@ -129,6 +160,7 @@ export type DailyPuzzleData = {
 export type HistoryPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
+  difficulty: PuzzleDifficulty;
   index: number;
   dateStr: string;
   daysSinceStart: number;

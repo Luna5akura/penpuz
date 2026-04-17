@@ -3,16 +3,20 @@ import NurikabeBoard from './Nurikabe/Nurikabe';
 import FillominoBoard from './Fillomino/Fillomino';
 import YajilinBoard from './Yajilin/Yajilin';
 import StarbattleBoard from './Starbattle/Starbattle';
+import HeyawakeBoard from './Heyawake/Heyawake';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
 import StarbattleExample from '../components/examples/StarbattleExample';
+import HeyawakeExample from '../components/examples/HeyawakeExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
 import { parseStarbattleLink } from './Starbattle/utils';
+import { parseHeyawakeLink } from './Heyawake/utils';
 import type {
   FillominoPuzzleData,
+  HeyawakePuzzleData,
   NurikabePuzzleData,
   PuzzleData,
   PuzzleEntry,
@@ -42,6 +46,7 @@ type PuzzleRegistry = {
   fillomino: PuzzleRegistryEntry<FillominoPuzzleData>;
   yajilin: PuzzleRegistryEntry<YajilinPuzzleData>;
   starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
+  heyawake: PuzzleRegistryEntry<HeyawakePuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -374,14 +379,113 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  heyawake: {
+    parsePuzzLink: parseHeyawakeLink,
+    template: {
+      type: 'heyawake',
+      name: {
+        'zh-CN': '数间',
+        en: 'Heyawake',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '盘面被粗边框分成若干区域。涂黑一些格子，且任意两个黑格不能横向或纵向相邻。',
+          '带数字的区域中，数字表示该区域内恰好要涂黑多少格。',
+          '任意一段连续的横向或纵向留白线段，都不能穿过两个或以上的区域边界。',
+          '所有留白格必须正交连成一个整体。',
+        ],
+        en: [
+          'The board is divided into rooms. Shade some cells, and shaded cells cannot touch horizontally or vertically.',
+          'In a numbered room, the number gives the total count of shaded cells in that room.',
+          'No horizontal or vertical run of unshaded cells may pass through two or more room borders.',
+          'All unshaded cells on the board must form one orthogonally connected area.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩例题',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'heyawake',
+        width: 5,
+        height: 5,
+        regionIds: [
+          [0, 0, 0, 1, 1],
+          [2, 2, 3, 1, 1],
+          [2, 2, 3, 1, 1],
+          [2, 2, 3, 4, 4],
+          [5, 5, 5, 4, 4],
+        ],
+        clues: [
+          { row: 0, col: 0, value: 2 },
+          { row: 1, col: 0, value: 0 },
+          { row: 4, col: 0, value: 1 },
+        ],
+        correctSolution: [
+          [1, 0, 1, 0, 0],
+          [0, 0, 0, 1, 0],
+          [0, 0, 1, 0, 0],
+          [0, 0, 0, 1, 0],
+          [0, 1, 0, 0, 0],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
+      <HeyawakeBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'heyawake') {
+        throw new Error('Heyawake template example type mismatch.');
+      }
+
+      return (
+        <HeyawakeExample
+          width={example.width}
+          height={example.height}
+          regionIds={example.regionIds}
+          clues={example.clues}
+          correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
   return puzzleRegistry[type].template;
 }
 
+function getPuzzleTypeFromLink(link: string): PuzzleType | null {
+  let dataPart = link.includes('?') ? link.split('?')[1] : link;
+  if (dataPart.startsWith('p?')) dataPart = dataPart.slice(2);
+
+  const type = dataPart.split('/')[0];
+  if (type in puzzleRegistry) {
+    return type as PuzzleType;
+  }
+
+  return null;
+}
+
 export function resolvePuzzleEntry(entry: PuzzleEntry): PuzzleData | null {
-  return puzzleRegistry[entry.type].parsePuzzLink(entry.puzzLink);
+  const type = getPuzzleTypeFromLink(entry.puzzLink);
+  if (!type) return null;
+  return puzzleRegistry[type].parsePuzzLink(entry.puzzLink);
 }
 
 export function renderPuzzleBoard(
