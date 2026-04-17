@@ -28,6 +28,7 @@ type DragMode =
   | 'add-shade'
   | 'remove-shade'
   | 'add-mark'
+  | 'add-mark-desktop'
   | 'remove-mark'
   | 'clear-all'
   | null;
@@ -179,6 +180,9 @@ export default function HeyawakeBoard({
 
       if (mode === 'add-shade') {
         nextState = 1;
+      } else if (mode === 'add-mark-desktop') {
+        if (currentState === 1) return currentSnapshot;
+        nextState = 2;
       } else if (mode === 'remove-shade') {
         if (currentState !== 1) return currentSnapshot;
         nextState = 0;
@@ -287,7 +291,7 @@ export default function HeyawakeBoard({
     } else if (event.button === 0) {
       nextDragMode = currentState === 1 ? 'remove-shade' : 'add-shade';
     } else if (event.button === 2) {
-      nextDragMode = currentState === 2 ? 'remove-mark' : 'add-mark';
+      nextDragMode = currentState === 2 ? 'remove-mark' : 'add-mark-desktop';
     }
 
     if (!nextDragMode) return;
