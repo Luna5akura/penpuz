@@ -128,7 +128,7 @@ export default function HeyawakeExample({
                           background: isBlack ? '#3f2a1e' : '#f8f1e3',
                           color: isBlack ? '#ffffff' : '#3f2a1e',
                           boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
-                          fontSize: `${Math.max(14, Math.floor(CELL_SIZE * 0.42))}px`,
+                          fontSize: `${Math.max(18, Math.floor(CELL_SIZE * 0.56))}px`,
                           lineHeight: 1,
                         }}
                       >

@@ -55,6 +55,7 @@ export default function HeyawakeBoard({
     pointerId: number | null;
     pendingTap: { row: number; col: number } | null;
     dragMode: DragMode;
+    activeMouseButton: 0 | 2 | null;
     startRow: number;
     startCol: number;
     lastCell: { row: number; col: number } | null;
@@ -63,6 +64,7 @@ export default function HeyawakeBoard({
     pointerId: null,
     pendingTap: null,
     dragMode: null,
+    activeMouseButton: null,
     startRow: -1,
     startCol: -1,
     lastCell: null,
@@ -151,6 +153,7 @@ export default function HeyawakeBoard({
       pointerId: null,
       pendingTap: null,
       dragMode: null,
+      activeMouseButton: null,
       startRow: -1,
       startCol: -1,
       lastCell: null,
@@ -261,6 +264,7 @@ export default function HeyawakeBoard({
       pointerId: null,
       pendingTap: null,
       dragMode: null,
+      activeMouseButton: null,
       startRow: -1,
       startCol: -1,
       lastCell: null,
@@ -270,6 +274,8 @@ export default function HeyawakeBoard({
   }, [applyCellState, finishBatch]);
 
   const handleCellPointerDown = (row: number, col: number, event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerState.current.pointerId !== null) return;
+
     const currentState = grid[row][col];
     const isTouchPointer = event.pointerType === 'touch' || (event.button === 0 && isMobile);
 
@@ -293,6 +299,7 @@ export default function HeyawakeBoard({
       pointerId: event.pointerId,
       pendingTap: { row, col },
       dragMode: nextDragMode,
+      activeMouseButton: isTouchPointer ? null : (event.button === 2 ? 2 : 0),
       startRow: row,
       startCol: col,
       lastCell: { row, col },
@@ -305,6 +312,16 @@ export default function HeyawakeBoard({
     const current = pointerState.current;
     if (current.pointerId !== event.pointerId || !current.dragMode) return;
 
+    if (current.activeMouseButton === 0 && (event.buttons & 1) === 0) {
+      finishPointer(event.pointerId);
+      return;
+    }
+
+    if (current.activeMouseButton === 2 && (event.buttons & 2) === 0) {
+      finishPointer(event.pointerId);
+      return;
+    }
+
     const hitCell = getBoardCell(event.clientX, event.clientY);
     if (!hitCell) return;
 
@@ -315,7 +332,7 @@ export default function HeyawakeBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const clueFontSize = Math.max(14, Math.floor(cellSize * 0.42));
+  const clueFontSize = Math.max(18, Math.floor(cellSize * 0.56));
   const crossFontSize = Math.max(18, Math.floor(cellSize * 0.52));
   const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
 
@@ -335,6 +352,7 @@ export default function HeyawakeBoard({
         onPointerMove={handlePointerMove}
         onPointerUp={(event) => finishPointer(event.pointerId)}
         onPointerLeave={(event) => finishPointer(event.pointerId)}
+        onPointerCancel={(event) => finishPointer(event.pointerId)}
         onContextMenu={(event) => event.preventDefault()}
       >
         <div
@@ -354,6 +372,13 @@ export default function HeyawakeBoard({
               const isMarked = state === 2;
               const baseBackground = isShaded ? '#3f2a1e' : isMarked ? '#efe2ca' : '#f8f1e3';
               const baseColor = isShaded ? '#ffffff' : isMarked ? '#7a6a5b' : '#3f2a1e';
+              const invalidStyle = isInvalid
+                ? isShaded
+                  ? { background: '#7c2d2d', color: '#ffffff' }
+                  : isMarked
+                    ? { background: '#f2c9bf', color: '#7a3b2e' }
+                    : { background: '#f5d0c5', color: '#7a3b2e' }
+                : undefined;
               const trialStyle = trialColors
                 ? isShaded
                   ? { background: trialColors.fill, color: '#ffffff' }
@@ -370,9 +395,10 @@ export default function HeyawakeBoard({
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    background: isInvalid ? '#f5d0c5' : baseBackground,
+                    background: baseBackground,
                     color: baseColor,
                     boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
+                    ...invalidStyle,
                     ...trialStyle,
                   }}
                 >
