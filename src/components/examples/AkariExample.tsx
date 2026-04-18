@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import type { HeyawakePuzzleData } from '../../puzzles/types';
-import HeyawakeBoard from '../../puzzles/Heyawake/Heyawake';
+import type { AkariPuzzleData } from '../../puzzles/types';
+import AkariBoard from '../../puzzles/Akari/Akari';
 import {
   commonBoardChrome,
   getBoardCellColors,
@@ -9,10 +9,14 @@ import {
   getCellDividerStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
-import { getHeyawakeBoundarySegments } from '../../puzzles/Heyawake/utils';
+import {
+  createEmptyAkariGrid,
+  getAkariIllumination,
+  isAkariBlackCell,
+} from '../../puzzles/Akari/utils';
 
-interface Props extends HeyawakePuzzleData {
-  correctSolution: (0 | 1)[][];
+interface Props extends AkariPuzzleData {
+  bulbCells: { row: number; col: number }[];
   playableLabel: string;
   answerLabel: string;
 }
@@ -21,12 +25,11 @@ const CELL_SIZE = 42;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
-export default function HeyawakeExample({
+export default function AkariExample({
   width,
   height,
-  regionIds,
-  clues,
-  correctSolution,
+  cells,
+  bulbCells,
   playableLabel,
   answerLabel,
 }: Props) {
@@ -34,22 +37,28 @@ export default function HeyawakeExample({
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
-  const examplePuzzle = useMemo<HeyawakePuzzleData>(
-    () => ({ type: 'heyawake', width, height, regionIds, clues }),
-    [clues, height, regionIds, width]
+  const examplePuzzle = useMemo<AkariPuzzleData>(
+    () => ({ type: 'akari', width, height, cells }),
+    [cells, height, width]
   );
-  const clueMap = useMemo(
-    () => new Map(clues.map((clue) => [`${clue.row},${clue.col}`, clue.value])),
-    [clues]
+  const solvedGrid = useMemo(() => {
+    const nextGrid = createEmptyAkariGrid(width, height);
+    for (const bulb of bulbCells) {
+      nextGrid[bulb.row][bulb.col] = 1;
+    }
+    return nextGrid;
+  }, [bulbCells, height, width]);
+  const illumination = useMemo(
+    () => getAkariIllumination(solvedGrid, examplePuzzle),
+    [examplePuzzle, solvedGrid]
   );
-  const boundaries = useMemo(
-    () => getHeyawakeBoundarySegments(regionIds, width, height),
-    [height, regionIds, width]
-  );
+  const bulbSet = useMemo(() => new Set(bulbCells.map((cell) => `${cell.row},${cell.col}`)), [bulbCells]);
   const boardWidth = width * CELL_SIZE;
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const bulbDiameter = Math.max(20, Math.floor(CELL_SIZE * 0.8));
+  const clueFontSize = getBoardNumberFontSize(CELL_SIZE);
 
   return (
     <>
@@ -58,8 +67,8 @@ export default function HeyawakeExample({
           <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
             {playableLabel}
           </p>
-          <HeyawakeBoard
-            key={`heyawake-example-${width}-${height}`}
+          <AkariBoard
+            key={`akari-example-${width}-${height}`}
             puzzle={examplePuzzle}
             startTime={exampleStartTime}
             resetToken={0}
@@ -130,70 +139,49 @@ export default function HeyawakeExample({
                   gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
                 }}
               >
-                {correctSolution.flatMap((row, rowIndex) =>
-                  row.map((isBlack, colIndex) => {
-                    const clueValue = clueMap.get(`${rowIndex},${colIndex}`);
+                {Array.from({ length: height }).flatMap((_, row) =>
+                  Array.from({ length: width }).map((__, col) => {
+                    const puzzleCell = cells[row][col];
+                    const isBlack = isAkariBlackCell(puzzleCell);
+                    const isBulb = bulbSet.has(`${row},${col}`);
+                    const isLit = illumination.illuminated[row][col];
+
                     return (
                       <div
-                        key={`${rowIndex}-${colIndex}`}
+                        key={`${row}-${col}`}
                         className="flex items-center justify-center font-semibold tabular-nums"
                         style={{
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
-                          ...getBoardCellColors(isBlack ? 'shaded' : 'cell'),
+                          ...getBoardCellColors(
+                            isBlack ? 'shaded' : isBulb ? 'brightLit' : isLit ? 'lit' : 'cell'
+                          ),
                           ...getCellDividerStyle(),
-                          fontSize: `${getBoardNumberFontSize(CELL_SIZE)}px`,
+                          fontSize: `${clueFontSize}px`,
                           lineHeight: 1,
                         }}
                       >
-                        {clueValue ?? ''}
+                        {typeof puzzleCell === 'number'
+                          ? puzzleCell
+                          : !isBlack && isBulb
+                            ? (
+                              <span
+                                aria-hidden="true"
+                                style={{
+                                width: `${bulbDiameter}px`,
+                                height: `${bulbDiameter}px`,
+                                borderRadius: '9999px',
+                                  background: woodBoardTheme.shaded,
+                                  display: 'block',
+                                }}
+                              />
+                            )
+                            : null}
                       </div>
                     );
                   })
                 )}
               </div>
-
-              <svg
-                className="absolute top-0 left-0 pointer-events-none"
-                width={outerWidth - BOARD_BORDER * 2}
-                height={outerHeight - BOARD_BORDER * 2}
-              >
-                {boundaries.horizontal.map((segment) => {
-                  const x1 = BOARD_PADDING + segment.col * CELL_SIZE;
-                  const y = BOARD_PADDING + segment.row * CELL_SIZE;
-                  const x2 = x1 + CELL_SIZE;
-                  return (
-                    <line
-                      key={`h-${segment.row}-${segment.col}`}
-                      x1={x1}
-                      y1={y}
-                      x2={x2}
-                      y2={y}
-                      stroke={woodBoardTheme.border}
-                      strokeWidth="3"
-                      strokeLinecap="square"
-                    />
-                  );
-                })}
-
-                {boundaries.vertical.map((segment) => {
-                  const x = BOARD_PADDING + segment.col * CELL_SIZE;
-                  const y1 = BOARD_PADDING + segment.row * CELL_SIZE;
-                  const y2 = y1 + CELL_SIZE;
-                  return (
-                    <line
-                      key={`v-${segment.row}-${segment.col}`}
-                      x1={x}
-                      y1={y1}
-                      x2={x}
-                      y2={y2}
-                      stroke={woodBoardTheme.border}
-                      strokeWidth="3"
-                      strokeLinecap="square"
-                    />
-                  );
-                })}
-              </svg>
             </div>
           )}
         </div>

@@ -4,17 +4,21 @@ import FillominoBoard from './Fillomino/Fillomino';
 import YajilinBoard from './Yajilin/Yajilin';
 import StarbattleBoard from './Starbattle/Starbattle';
 import HeyawakeBoard from './Heyawake/Heyawake';
+import AkariBoard from './Akari/Akari';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
 import StarbattleExample from '../components/examples/StarbattleExample';
 import HeyawakeExample from '../components/examples/HeyawakeExample';
+import AkariExample from '../components/examples/AkariExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
 import { parseStarbattleLink } from './Starbattle/utils';
 import { parseHeyawakeLink } from './Heyawake/utils';
+import { parseAkariLink } from './Akari/utils';
 import type {
+  AkariPuzzleData,
   FillominoPuzzleData,
   HeyawakePuzzleData,
   NurikabePuzzleData,
@@ -32,6 +36,8 @@ interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
+  initialSnapshot?: unknown;
+  onSnapshotChange?: (snapshot: unknown) => void;
 }
 
 interface PuzzleRegistryEntry<TPuzzle extends PuzzleData> {
@@ -47,6 +53,7 @@ type PuzzleRegistry = {
   yajilin: PuzzleRegistryEntry<YajilinPuzzleData>;
   starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
   heyawake: PuzzleRegistryEntry<HeyawakePuzzleData>;
+  akari: PuzzleRegistryEntry<AkariPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -105,8 +112,15 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
-      <NurikabeBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <NurikabeBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
     ),
     renderExample: (template, locale) => {
       const example = template.example;
@@ -182,8 +196,15 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
-      <FillominoBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <FillominoBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
     ),
     renderExample: (template, locale) => {
       const example = template.example;
@@ -278,8 +299,15 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
-      <YajilinBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <YajilinBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
     ),
     renderExample: (template, locale) => {
       const example = template.example;
@@ -356,8 +384,15 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
-      <StarbattleBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <StarbattleBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
     ),
     renderExample: (template, locale) => {
       const example = template.example;
@@ -442,8 +477,15 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
     },
-    renderBoard: ({ puzzle, startTime, resetToken, onComplete }) => (
-      <HeyawakeBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} />
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <HeyawakeBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
     ),
     renderExample: (template, locale) => {
       const example = template.example;
@@ -458,6 +500,92 @@ export const puzzleRegistry: PuzzleRegistry = {
           regionIds={example.regionIds}
           clues={example.clues}
           correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  akari: {
+    parsePuzzLink: parseAkariLink,
+    template: {
+      type: 'akari',
+      name: {
+        'zh-CN': '美术馆',
+        en: 'Akari',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在一些空白格中放置灯泡，使所有非黑格都被照亮。灯泡会照亮自己所在的格子，以及在横向或纵向上直到被黑格阻挡前的所有格子。',
+          '任意两个灯泡不能互相照亮。',
+          '黑格中的数字表示其上下左右四个相邻格中恰好要放入多少个灯泡。',
+        ],
+        en: [
+          'Place lights in some empty cells so that every non-black cell is illuminated. A light illuminates its own cell and all cells seen horizontally or vertically until blocked by a black cell.',
+          'Lights may not illuminate each other.',
+          'A number in a black cell gives the exact number of lights in the up to four orthogonally adjacent cells.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩例题',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'akari',
+        width: 5,
+        height: 5,
+        cells: [
+          [0, null, null, null, 2],
+          [null, null, null, null, null],
+          [null, 'black', null, null, 'black'],
+          [3, null, 'black', null, null],
+          [null, null, null, 1, null],
+        ],
+        bulbCells: [
+          { row: 0, col: 3 },
+          { row: 1, col: 4 },
+          { row: 2, col: 0 },
+          { row: 2, col: 2 },
+          { row: 3, col: 1 },
+          { row: 4, col: 0 },
+          { row: 4, col: 4 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <AkariBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'akari') {
+        throw new Error('Akari template example type mismatch.');
+      }
+
+      return (
+        <AkariExample
+          width={example.width}
+          height={example.height}
+          cells={example.cells}
+          bulbCells={example.bulbCells}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
         />
@@ -492,10 +620,12 @@ export function renderPuzzleBoard(
   puzzle: PuzzleData,
   startTime: number,
   resetToken: number,
-  onComplete: (time: number) => void
+  onComplete: (time: number) => void,
+  initialSnapshot?: unknown,
+  onSnapshotChange?: (snapshot: unknown) => void
 ): ReactElement {
   const entry = puzzleRegistry[puzzle.type] as PuzzleRegistryEntry<typeof puzzle>;
-  return entry.renderBoard({ puzzle, startTime, resetToken, onComplete });
+  return entry.renderBoard({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange });
 }
 
 export function renderPuzzleExample(template: PuzzleTemplate, locale: Locale): ReactElement {

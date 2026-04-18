@@ -5,6 +5,16 @@ import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
 import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardCrossFontSize,
+  getCellDividerStyle,
+  getCrossMarkStyle,
+  getInvalidBoardCellColors,
+  getResponsiveCellSize,
+  woodBoardTheme,
+} from '../boardTheme';
+import {
   createEmptyStarbattleGrid,
   detectStarbattleHitTarget,
   getStarbattleBoundarySegments,
@@ -19,6 +29,8 @@ interface Props {
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
+  initialSnapshot?: unknown;
+  onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
   showValidationMessage?: boolean;
 }
@@ -40,17 +52,16 @@ type StarbattleSnapshot = {
   vertexDotLevels: Record<string, number>;
 };
 
-const BOARD_PADDING = 10;
-const BOARD_BORDER = 4;
-const MIN_CELL_SIZE = 34;
-const MAX_DESKTOP_CELL_SIZE = 58;
-const MAX_MOBILE_CELL_SIZE = 46;
+const BOARD_PADDING = commonBoardChrome.padding;
+const BOARD_BORDER = commonBoardChrome.border;
 
 export default function StarbattleBoard({
   puzzle,
   startTime,
   resetToken,
   onComplete,
+  initialSnapshot,
+  onSnapshotChange,
   fixedCellSize,
   showValidationMessage = false,
 }: Props) {
@@ -85,6 +96,9 @@ export default function StarbattleBoard({
     edgeDotLevels: {},
     vertexDotLevels: {},
   }), [height, width]);
+  const getResetSnapshot = useCallback(() => {
+    return (initialSnapshot as StarbattleSnapshot | null) ?? createInitialSnapshot();
+  }, [createInitialSnapshot, initialSnapshot]);
 
   const history = usePuzzleHistory<StarbattleSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
@@ -93,6 +107,7 @@ export default function StarbattleBoard({
       edgeDotLevels: {},
       vertexDotLevels: {},
     }),
+    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
   });
 
   const {
@@ -125,17 +140,11 @@ export default function StarbattleBoard({
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
 
   const cellSize = useMemo(() => {
-    if (fixedCellSize) return fixedCellSize;
-
-    const mobile = viewportWidth < 640;
-    const horizontalViewportPadding = mobile ? 48 : 96;
-    const boardChromeWidth = (BOARD_PADDING + BOARD_BORDER) * 2;
-    const maxAvailableWidth = Math.max(0, viewportWidth - horizontalViewportPadding - boardChromeWidth);
-    const nextSize = Math.floor(maxAvailableWidth / width);
-    return Math.max(
-      MIN_CELL_SIZE,
-      Math.min(mobile ? MAX_MOBILE_CELL_SIZE : MAX_DESKTOP_CELL_SIZE, nextSize)
-    );
+    return getResponsiveCellSize({
+      fixedCellSize,
+      viewportWidth,
+      width,
+    });
   }, [fixedCellSize, viewportWidth, width]);
 
   const isMobile = viewportWidth < 640;
@@ -150,6 +159,36 @@ export default function StarbattleBoard({
   const boundaries = useMemo(
     () => getStarbattleBoundarySegments(puzzle.regionIds, width, height),
     [height, puzzle.regionIds, width]
+  );
+  const hasStarAt = useCallback((row: number, col: number) => {
+    if (row < 0 || row >= height || col < 0 || col >= width) return false;
+    return grid[row][col] === 1;
+  }, [grid, height, width]);
+  const isEdgeCoveredByStar = useCallback((key: string) => {
+    const edge = parseStarbattleEdgeKey(key);
+    if (!edge) return false;
+    if (edge.orientation === 'h') {
+      return hasStarAt(edge.row - 1, edge.col) || hasStarAt(edge.row, edge.col);
+    }
+    return hasStarAt(edge.row, edge.col - 1) || hasStarAt(edge.row, edge.col);
+  }, [hasStarAt]);
+  const isVertexCoveredByStar = useCallback((key: string) => {
+    const vertex = parseStarbattleVertexKey(key);
+    if (!vertex) return false;
+    return (
+      hasStarAt(vertex.row - 1, vertex.col - 1) ||
+      hasStarAt(vertex.row - 1, vertex.col) ||
+      hasStarAt(vertex.row, vertex.col - 1) ||
+      hasStarAt(vertex.row, vertex.col)
+    );
+  }, [hasStarAt]);
+  const visibleEdgeDots = useMemo(
+    () => [...edgeDots].filter((key) => !isEdgeCoveredByStar(key)),
+    [edgeDots, isEdgeCoveredByStar]
+  );
+  const visibleVertexDots = useMemo(
+    () => [...vertexDots].filter((key) => !isVertexCoveredByStar(key)),
+    [isVertexCoveredByStar, vertexDots]
   );
 
   useEffect(() => {
@@ -166,7 +205,7 @@ export default function StarbattleBoard({
   }, [onComplete, startTime, validation]);
 
   const resetBoard = useCallback(() => {
-    reset(createInitialSnapshot());
+    reset(getResetSnapshot());
     pointerState.current = {
       pointerId: null,
       isTouch: false,
@@ -176,7 +215,7 @@ export default function StarbattleBoard({
       moved: false,
     };
     hasCompleted.current = false;
-  }, [createInitialSnapshot, reset]);
+  }, [getResetSnapshot, reset]);
 
   useEffect(() => {
     resetBoard();
@@ -335,10 +374,12 @@ export default function StarbattleBoard({
 
     if (!isTouchPointer && button === 2) {
       if (hitTarget.kind === 'edge') {
+        if (isEdgeCoveredByStar(hitTarget.key)) return;
         toggleEdgeDot(hitTarget.key);
         return;
       }
       if (hitTarget.kind === 'vertex') {
+        if (isVertexCoveredByStar(hitTarget.key)) return;
         toggleVertexDot(hitTarget.key);
         return;
       }
@@ -358,6 +399,7 @@ export default function StarbattleBoard({
     if (!isTouchPointer && button !== 0) return;
 
     if (hitTarget.kind === 'edge') {
+      if (isEdgeCoveredByStar(hitTarget.key)) return;
       if (isTouchPointer) {
         pointerState.current = {
           pointerId: event.pointerId,
@@ -373,6 +415,7 @@ export default function StarbattleBoard({
     }
 
     if (hitTarget.kind === 'vertex') {
+      if (isVertexCoveredByStar(hitTarget.key)) return;
       if (isTouchPointer) {
         pointerState.current = {
           pointerId: event.pointerId,
@@ -387,12 +430,17 @@ export default function StarbattleBoard({
       return;
     }
 
+    if (!isTouchPointer) {
+      toggleStar(hitTarget.row, hitTarget.col);
+      return;
+    }
+
     pointerState.current = {
       pointerId: event.pointerId,
       isTouch: isTouchPointer,
       pendingTap: isTouchPointer
         ? { kind: 'mobile-cell', row: hitTarget.row, col: hitTarget.col }
-        : { kind: 'desktop-left-cell', row: hitTarget.row, col: hitTarget.col },
+        : null,
       cellDragMode: isTouchPointer
         ? grid[hitTarget.row][hitTarget.col] === 1
           ? 'mark'
@@ -424,14 +472,21 @@ export default function StarbattleBoard({
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const starFontSize = Math.max(18, Math.floor(cellSize * 0.54));
-  const crossFontSize = Math.max(18, Math.floor(cellSize * 0.52));
+  const crossFontSize = getBoardCrossFontSize(cellSize);
   const dotRadius = Math.max(6, Math.floor(cellSize * 0.16));
   const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
 
   return (
     <div className="flex flex-col items-center gap-3">
       <div className="w-full flex justify-end">
-        <div className="rounded-full border border-[#6d5134] bg-[#f6ead6] px-3 py-1 text-sm font-semibold text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+        <div
+          className="rounded-full px-3 py-1 text-sm font-semibold dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          style={{
+            border: `1px solid ${woodBoardTheme.accentBorder}`,
+            background: woodBoardTheme.accentFill,
+            color: woodBoardTheme.accentText,
+          }}
+        >
           {copy.shared.starbattleQuota(starsPerUnit)}
         </div>
       </div>
@@ -442,8 +497,8 @@ export default function StarbattleBoard({
         style={{
           width: `${outerWidth}px`,
           height: `${outerHeight}px`,
-          background: '#d2b48c',
-          border: `${BOARD_BORDER}px solid #3f2a1e`,
+          background: woodBoardTheme.frame,
+          border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
           boxSizing: 'border-box',
           maxWidth: '100%',
         }}
@@ -465,13 +520,10 @@ export default function StarbattleBoard({
             row.map((state, c) => {
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const isInvalid = showValidationMessage && invalidCellSet.has(`${r},${c}`);
-              const baseBackground =
-                state === 2
-                  ? '#efe2ca'
-                  : '#f8f1e3';
+              const baseStyle = getBoardCellColors(state === 2 ? 'marked' : 'cell');
               const trialStyle = trialColors
                 ? state === 1
-                  ? { background: trialColors.fill, color: '#ffffff' }
+                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
                   : state === 2
                     ? { background: trialColors.softFill, color: trialColors.text }
                     : { background: trialColors.softFill }
@@ -480,19 +532,19 @@ export default function StarbattleBoard({
               return (
                 <div
                   key={`${r}-${c}`}
-                  className="relative flex items-center justify-center text-[#3f2a1e] dark:text-gray-100"
+                  className="relative flex items-center justify-center dark:text-gray-100"
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    background: isInvalid ? '#f5d0c5' : baseBackground,
-                    boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
+                    ...(isInvalid ? getInvalidBoardCellColors('soft') : baseStyle),
+                    ...getCellDividerStyle(),
                     ...trialStyle,
                   }}
                 >
                   {state === 1 ? (
                     <span style={{ fontSize: `${starFontSize}px`, lineHeight: 1 }}>★</span>
                   ) : state === 2 ? (
-                    <span style={{ fontSize: `${crossFontSize}px`, lineHeight: 1 }}>×</span>
+                    <span style={getCrossMarkStyle(crossFontSize)}>×</span>
                   ) : null}
                 </div>
               );
@@ -516,7 +568,7 @@ export default function StarbattleBoard({
                 y1={y}
                 x2={x2}
                 y2={y}
-                stroke="#3f2a1e"
+                stroke={woodBoardTheme.border}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />
@@ -534,14 +586,14 @@ export default function StarbattleBoard({
                 y1={y1}
                 x2={x}
                 y2={y2}
-                stroke="#3f2a1e"
+                stroke={woodBoardTheme.border}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />
             );
           })}
 
-          {[...edgeDots].map((key) => {
+          {visibleEdgeDots.map((key) => {
             const edge = parseStarbattleEdgeKey(key);
             if (!edge) return null;
             const trialColors = getTrialLevelColors(edgeDotLevels[key] ?? 0);
@@ -557,12 +609,12 @@ export default function StarbattleBoard({
                 cx={centerX}
                 cy={centerY}
                 r={dotRadius}
-                fill={trialColors?.line ?? '#3f2a1e'}
+                fill={trialColors?.line ?? woodBoardTheme.border}
               />
             );
           })}
 
-          {[...vertexDots].map((key) => {
+          {visibleVertexDots.map((key) => {
             const vertex = parseStarbattleVertexKey(key);
             if (!vertex) return null;
             const trialColors = getTrialLevelColors(vertexDotLevels[key] ?? 0);
@@ -572,7 +624,7 @@ export default function StarbattleBoard({
                 cx={BOARD_PADDING + vertex.col * cellSize}
                 cy={BOARD_PADDING + vertex.row * cellSize}
                 r={dotRadius}
-                fill={trialColors?.line ?? '#3f2a1e'}
+                fill={trialColors?.line ?? woodBoardTheme.border}
               />
             );
           })}

@@ -1,16 +1,28 @@
 // src/puzzles/Nurikabe/NurikabeBoard.tsx
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { validateNurikabe } from './utils';
 import { PuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardCrossFontSize,
+  getBoardNumberFontSize,
+  getCellDividerStyle,
+  getCrossMarkStyle,
+  getResponsiveCellSize,
+  woodBoardTheme,
+} from '../boardTheme';
 
 interface Props {
   puzzle: PuzzleData;
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
+  initialSnapshot?: unknown;
+  onSnapshotChange?: (snapshot: unknown) => void;
 }
 
 type CellState = 0 | 1 | 2;
@@ -19,10 +31,18 @@ type NurikabeSnapshot = {
   levels: number[][];
 };
 
-export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplete }: Props) {
+export default function NurikabeBoard({
+  puzzle,
+  startTime,
+  resetToken,
+  onComplete,
+  initialSnapshot,
+  onSnapshotChange,
+}: Props) {
   const { width, height, clues } = puzzle;
-  const [cellSize, setCellSize] = useState(52);
-  const [isMobile, setIsMobile] = useState(false);
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    typeof window === 'undefined' ? 1024 : window.innerWidth
+  );
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
   const dragMode = useRef<'none' | 'add-shade' | 'remove-shade' | 'add-mark' | 'remove-mark'>('none');
@@ -35,12 +55,16 @@ export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplet
     grid: Array.from({ length: height }, () => Array(width).fill(0)),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
+  const getResetSnapshot = useCallback(() => {
+    return (initialSnapshot as NurikabeSnapshot | null) ?? createInitialSnapshot();
+  }, [createInitialSnapshot, initialSnapshot]);
 
   const history = usePuzzleHistory<NurikabeSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...trialSnapshot,
       levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
     }),
+    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
   });
   const {
     snapshot,
@@ -66,26 +90,28 @@ export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplet
   const levels = snapshot.levels;
 
   // 响应式尺寸 + 手机端检测
+  const isMobile = viewportWidth < commonBoardChrome.mobileBreakpoint;
+  const cellSize = useMemo(() => getResponsiveCellSize({
+    viewportWidth,
+    width,
+  }), [viewportWidth, width]);
+
   useEffect(() => {
-    const updateSize = () => {
-      const mobile = window.innerWidth < 640;
-      setIsMobile(mobile);
-      setCellSize(mobile ? 25 : 52);
-    };
+    const updateSize = () => setViewportWidth(window.innerWidth);
     updateSize();
     window.addEventListener('resize', updateSize);
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
   useEffect(() => {
-    reset(createInitialSnapshot());
+    reset(getResetSnapshot());
     hasCompleted.current = false;
     isDragging.current = false;
     hasDragged.current = false;
     dragMode.current = 'none';
     startRow.current = -1;
     startCol.current = -1;
-  }, [createInitialSnapshot, puzzle, reset, resetToken]);
+  }, [getResetSnapshot, puzzle, reset, resetToken]);
 
   const isClue = useCallback((r: number, c: number) =>
     clues.some((clue) => clue.row === r && clue.col === c), [clues]);
@@ -137,13 +163,12 @@ export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplet
 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     const isClueCell = isClue(r, c);
-    const isLeftClick = e.button === 0;
-
-    if (isLeftClick && isClueCell) {
+    if (isClueCell) {
       e.preventDefault();
       e.stopImmediatePropagation();
       return;
     }
+    const isLeftClick = e.button === 0;
 
     e.preventDefault();
     e.nativeEvent.stopImmediatePropagation();
@@ -187,9 +212,10 @@ export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplet
     if (!isDragging.current || dragMode.current === 'none') return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const gap = 1;
-    const col = Math.floor((e.clientX - rect.left) / (cellSize + gap));
-    const row = Math.floor((e.clientY - rect.top) / (cellSize + gap));
+    const relativeX = e.clientX - rect.left - commonBoardChrome.padding;
+    const relativeY = e.clientY - rect.top - commonBoardChrome.padding;
+    const col = Math.floor(relativeX / cellSize);
+    const row = Math.floor(relativeY / cellSize);
 
     if (row >= 0 && row < height && col >= 0 && col < width) {
       if (isClue(row, col) && dragMode.current.includes('shade')) return;
@@ -225,11 +251,12 @@ export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplet
         style={{
           display: 'inline-grid',
           gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          gap: '1px',
-          background: '#d2b48c',
-          padding: '3px',
-          border: '4px solid #3f2a1e',
+          background: woodBoardTheme.frame,
+          padding: `${commonBoardChrome.padding}px`,
+          border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
           touchAction: 'none',
+          maxWidth: '100%',
+          boxSizing: 'border-box',
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -257,28 +284,22 @@ export default function NurikabeBoard({ puzzle, startTime, resetToken, onComplet
                 onPointerDown={(e) => handlePointerDown(r, c, e)}
                 onContextMenu={handleContextMenu}
                 style={{
-                  paddingTop: '4px',
                   width: `${cellSize}px`,
                   height: `${cellSize}px`,
-                  fontSize: `${Math.floor(cellSize * 0.8)}px`,
-                  lineHeight: `${cellSize}px`,
+                  fontSize: `${getBoardNumberFontSize(cellSize)}px`,
+                  lineHeight: 1,
+                  ...(clue
+                    ? getBoardCellColors(isMarked ? 'marked' : 'clue')
+                    : getBoardCellColors(isShaded ? 'shaded' : isMarked ? 'marked' : 'cell')),
+                  ...getCellDividerStyle(),
                   ...style,
                 }}
-                className={`flex items-center justify-center font-mono font-bold tracking-tight border-0 cursor-pointer touch-none
-                  ${clue
-                    ? isMarked
-                      ? 'bg-[#f0e6d2] dark:bg-gray-700 text-[#3f2a1e] dark:text-gray-200'
-                      : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'
-                    : isShaded
-                      ? 'bg-[#3f2a1e] text-white'
-                      : isMarked
-                        ? 'bg-[#f0e6d2] dark:bg-gray-700 text-gray-400'
-                        : 'bg-[#f8f1e3] dark:bg-gray-800'}`}
+                className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0 cursor-pointer touch-none"
               >
-                {clue ? clue.value : isMarked ? '×' : ''}
+                {clue ? clue.value : isMarked ? <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span> : ''}
               </div>
             );
-          })
+            })
         )}
       </div>
       <PuzzleAssistToolbar

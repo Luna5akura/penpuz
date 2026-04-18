@@ -66,12 +66,22 @@ export interface HeyawakePuzzleData {
   clues: HeyawakeClue[];
 }
 
+export type AkariCell = number | 'black' | null;
+
+export interface AkariPuzzleData {
+  type: 'akari';
+  width: number;
+  height: number;
+  cells: AkariCell[][];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
   | YajilinPuzzleData
   | StarbattlePuzzleData
-  | HeyawakePuzzleData;
+  | HeyawakePuzzleData
+  | AkariPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -134,6 +144,13 @@ export type PuzzleExample =
       regionIds: number[][];
       clues: HeyawakeClue[];
       correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'akari';
+      width: number;
+      height: number;
+      cells: AkariCell[][];
+      bulbCells: { row: number; col: number }[];
     };
 
 export interface PuzzleTemplate {

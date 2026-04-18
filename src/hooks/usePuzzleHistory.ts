@@ -1,4 +1,4 @@
-import { useCallback, useReducer } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 
 function cloneSnapshot<T>(snapshot: T): T {
   if (typeof structuredClone === 'function') {
@@ -238,10 +238,13 @@ function historyReducer<T>(state: HistoryState<T>, action: HistoryAction<T>): Hi
 
 interface UsePuzzleHistoryOptions<T> {
   normalizeTrialSnapshot?: (snapshot: T) => T;
+  onSnapshotChange?: (snapshot: T) => void;
 }
 
 export function usePuzzleHistory<T>(initialSnapshot: T, options?: UsePuzzleHistoryOptions<T>) {
   const [state, dispatch] = useReducer(historyReducer<T>, initialSnapshot, createInitialHistoryState);
+  const normalizeTrialSnapshot = options?.normalizeTrialSnapshot;
+  const onSnapshotChange = options?.onSnapshotChange;
 
   const applyChange = useCallback((updater: (current: T) => T, settings?: { coalesce?: boolean }) => {
     dispatch({
@@ -280,8 +283,8 @@ export function usePuzzleHistory<T>(initialSnapshot: T, options?: UsePuzzleHisto
   }, []);
 
   const commitTrial = useCallback(() => {
-    dispatch({ type: 'commit-trial', normalizer: options?.normalizeTrialSnapshot });
-  }, [options?.normalizeTrialSnapshot]);
+    dispatch({ type: 'commit-trial', normalizer: normalizeTrialSnapshot });
+  }, [normalizeTrialSnapshot]);
 
   const startBatch = useCallback(() => {
     dispatch({ type: 'start-batch' });
@@ -290,6 +293,10 @@ export function usePuzzleHistory<T>(initialSnapshot: T, options?: UsePuzzleHisto
   const finishBatch = useCallback(() => {
     dispatch({ type: 'finish-batch' });
   }, []);
+
+  useEffect(() => {
+    onSnapshotChange?.(state.present);
+  }, [onSnapshotChange, state.present]);
 
   return {
     snapshot: state.present,

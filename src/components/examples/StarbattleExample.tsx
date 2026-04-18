@@ -3,6 +3,12 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../../puzzles/types';
 import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getCellDividerStyle,
+  woodBoardTheme,
+} from '../../puzzles/boardTheme';
 import { getStarbattleBoundarySegments } from '../../puzzles/Starbattle/utils';
 
 interface Props extends StarbattlePuzzleData {
@@ -12,8 +18,8 @@ interface Props extends StarbattlePuzzleData {
 }
 
 const CELL_SIZE = 42;
-const BOARD_PADDING = 10;
-const BOARD_BORDER = 4;
+const BOARD_PADDING = commonBoardChrome.padding;
+const BOARD_BORDER = commonBoardChrome.border;
 
 export default function StarbattleExample({
   width,
@@ -71,8 +77,15 @@ export default function StarbattleExample({
               className="relative cursor-pointer hover:opacity-90"
             >
               <div
-                className="border-4 border-[#3f2a1e] bg-[#d2b48c] p-[10px] dark:border-gray-700 dark:bg-gray-800"
-                style={{ width: `${outerWidth}px`, height: `${outerHeight}px` }}
+                className="dark:border-gray-700 dark:bg-gray-800"
+                style={{
+                  width: `${outerWidth}px`,
+                  height: `${outerHeight}px`,
+                  border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
+                  background: woodBoardTheme.frame,
+                  padding: `${BOARD_PADDING}px`,
+                  boxSizing: 'border-box',
+                }}
               >
                 <div
                   className="grid"
@@ -81,11 +94,12 @@ export default function StarbattleExample({
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
                       key={index}
-                      className="bg-[#f8f1e3] dark:bg-gray-800"
+                      className="dark:bg-gray-800"
                       style={{
                         width: `${CELL_SIZE}px`,
                         height: `${CELL_SIZE}px`,
-                        boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
+                        ...getBoardCellColors('cell'),
+                        ...getCellDividerStyle(),
                       }}
                     />
                   ))}
@@ -97,7 +111,14 @@ export default function StarbattleExample({
             </div>
           ) : (
             <div className="flex flex-col items-end gap-3">
-              <div className="rounded-full border border-[#6d5134] bg-[#f6ead6] px-3 py-1 text-sm font-semibold text-[#5a3d27] dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+              <div
+                className="rounded-full px-3 py-1 text-sm font-semibold dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                style={{
+                  border: `1px solid ${woodBoardTheme.accentBorder}`,
+                  background: woodBoardTheme.accentFill,
+                  color: woodBoardTheme.accentText,
+                }}
+              >
                 {copy.shared.starbattleQuota(starsPerUnit)}
               </div>
               <div
@@ -105,8 +126,8 @@ export default function StarbattleExample({
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
-                  background: '#d2b48c',
-                  border: `${BOARD_BORDER}px solid #3f2a1e`,
+                  background: woodBoardTheme.frame,
+                  border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
                   boxSizing: 'border-box',
                 }}
               >
@@ -122,11 +143,12 @@ export default function StarbattleExample({
                     Array.from({ length: width }).map((__, col) => (
                       <div
                         key={`${row}-${col}`}
-                        className="flex items-center justify-center bg-[#f8f1e3] text-[#3f2a1e] dark:bg-gray-800 dark:text-gray-100"
+                        className="flex items-center justify-center dark:bg-gray-800 dark:text-gray-100"
                         style={{
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
-                          boxShadow: 'inset 0 0 0 1px rgba(93, 64, 39, 0.28)',
+                          ...getBoardCellColors('cell'),
+                          ...getCellDividerStyle(),
                         }}
                       >
                         {starSet.has(`${row},${col}`) ? (
@@ -153,7 +175,7 @@ export default function StarbattleExample({
                         y1={y}
                         x2={x2}
                         y2={y}
-                        stroke="#3f2a1e"
+                        stroke={woodBoardTheme.border}
                         strokeWidth="3"
                         strokeLinecap="square"
                       />
@@ -171,7 +193,7 @@ export default function StarbattleExample({
                         y1={y1}
                         x2={x}
                         y2={y2}
-                        stroke="#3f2a1e"
+                        stroke={woodBoardTheme.border}
                         strokeWidth="3"
                         strokeLinecap="square"
                       />

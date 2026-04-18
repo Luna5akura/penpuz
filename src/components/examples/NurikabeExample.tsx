@@ -2,6 +2,16 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import { validateNurikabe, getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardCrossFontSize,
+  getBoardNumberFontSize,
+  getCellDividerStyle,
+  getCrossMarkStyle,
+  getInvalidBoardCellColors,
+  woodBoardTheme,
+} from '../../puzzles/boardTheme';
 import type { NurikabeClue } from '../../puzzles/types';
 
 interface Props {
@@ -99,8 +109,8 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || dragMode.current === 'none') return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left - 12;
-    const relativeY = e.clientY - rect.top - 12;
+    const relativeX = e.clientX - rect.left - commonBoardChrome.padding;
+    const relativeY = e.clientY - rect.top - commonBoardChrome.padding;
     const col = Math.floor(relativeX / 45);
     const row = Math.floor(relativeY / 45);
     if (row >= 0 && row < height && col >= 0 && col < width) {
@@ -139,8 +149,13 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
             {playableLabel}
           </p>
           <div
-            className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700 select-none"
-            style={{ gridTemplateColumns: `repeat(${width}, 44px)` }}
+            className="inline-grid dark:bg-gray-800 select-none"
+            style={{
+              gridTemplateColumns: `repeat(${width}, 44px)`,
+              background: woodBoardTheme.frame,
+              padding: `${commonBoardChrome.padding}px`,
+              border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+            }}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -160,18 +175,25 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                     key={`${r}-${c}`}
                     onPointerDown={(e) => handlePointerDown(r, c, e)}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    style={{ paddingTop: '4px', width: '44px', height: '44px', fontSize: '35px', lineHeight: '44px' }}
-                    className={`flex items-center justify-center font-mono font-bold tracking-tight border-0 cursor-pointer
-                      ${isBad2x2 ? 'bg-red-500 text-white' :
-                        isClue(r, c) ? (isMarked ? 'bg-[#f0e6d2] dark:bg-gray-700 text-[#3f2a1e]' : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e]') :
-                        isShaded ? 'bg-[#3f2a1e] text-white' :
-                        isMarked ? 'bg-[#f0e6d2] dark:bg-gray-700 text-gray-400' : 'bg-[#f8f1e3] dark:bg-gray-800'}`}
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      fontSize: `${getBoardNumberFontSize(44)}px`,
+                      lineHeight: 1,
+                      ...(isBad2x2
+                        ? getInvalidBoardCellColors('dark')
+                        : isClue(r, c)
+                          ? getBoardCellColors(isMarked ? 'marked' : 'clue')
+                          : getBoardCellColors(isShaded ? 'shaded' : isMarked ? 'marked' : 'cell')),
+                      ...getCellDividerStyle(),
+                    }}
+                    className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0 cursor-pointer"
                   >
                     {isClue(r, c) ? (
                       <span className={isBadClue ? 'text-red-600 dark:text-red-400' : ''}>
                         {getClueValue(r, c)}
                       </span>
-                    ) : isMarked ? '×' : ''}
+                    ) : isMarked ? <span style={getCrossMarkStyle(getBoardCrossFontSize(44))}>{'×'}</span> : ''}
                   </div>
                 );
               })
@@ -187,28 +209,51 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
           {!isAnswerVisible ? (
             <div
               onClick={() => setConfirmSpoiler(true)}
-              className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700 cursor-pointer hover:opacity-90 relative"
-              style={{ gridTemplateColumns: `repeat(${width}, 44px)` }}
+            className="inline-grid dark:bg-gray-800 cursor-pointer hover:opacity-90 relative"
+            style={{
+              gridTemplateColumns: `repeat(${width}, 44px)`,
+              background: woodBoardTheme.frame,
+              padding: `${commonBoardChrome.padding}px`,
+              border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+            }}
             >
               <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80 rounded-lg">
                 <div className="text-white text-6xl">👁️‍🗨️</div>
               </div>
               {correctSolution.flatMap((row, r) =>
-                row.map((_, c) => <div key={`${r}-${c}`} className="w-[44px] h-[44px] bg-[#f8f1e3] dark:bg-gray-800" />)
+                row.map((_, c) => (
+                  <div
+                    key={`${r}-${c}`}
+                    className="w-[44px] h-[44px] dark:bg-gray-800"
+                    style={{ background: woodBoardTheme.cell, ...getCellDividerStyle() }}
+                  />
+                ))
               )}
             </div>
           ) : (
             <div
-              className="inline-grid gap-[1px] bg-[#d2b48c] dark:bg-gray-800 p-3 border-4 border-[#3f2a1e] dark:border-gray-700"
-              style={{ gridTemplateColumns: `repeat(${width}, 44px)` }}
+              className="inline-grid dark:bg-gray-800"
+              style={{
+                gridTemplateColumns: `repeat(${width}, 44px)`,
+                background: woodBoardTheme.frame,
+                padding: `${commonBoardChrome.padding}px`,
+                border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+              }}
             >
               {correctSolution.flatMap((row, r) =>
                 row.map((isBlack, c) => (
                   <div
                     key={`${r}-${c}`}
-                    className={`flex items-center justify-center font-mono font-bold tracking-tight border-0
-                      ${isBlack ? 'bg-[#3f2a1e] text-white' : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'}`}
-                    style={{ paddingTop: '4px', width: '44px', height: '44px', fontSize: '35px', lineHeight: '44px' }}
+                    className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0"
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      fontSize: `${getBoardNumberFontSize(44)}px`,
+                      lineHeight: 1,
+                      background: isBlack ? woodBoardTheme.shaded : woodBoardTheme.cell,
+                      color: isBlack ? woodBoardTheme.shadedText : woodBoardTheme.border,
+                      ...getCellDividerStyle(),
+                    }}
                   >
                     {getClueValue(r, c)}
                   </div>

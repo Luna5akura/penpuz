@@ -6,131 +6,133 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* 扩展字体：优先使用经典衬线字体 */
-  --font-family-serif: "ui-serif", "Georgia", "Noto Serif SC", system-ui, serif;
-
-  /* 可选：为谜题网格添加自定义变量 */
-  --puzzle-bg: oklch(96% 0.01 75);     /* 浅米色网格背景 */
-  --puzzle-border: oklch(40% 0.05 30); /* 墨水边框 */
+  --font-family-body: "Geist Variable", "Noto Sans SC", system-ui, sans-serif;
+  --font-family-heading: "Geist Variable", "Noto Sans SC", system-ui, sans-serif;
+  --puzzle-bg: oklch(97% 0.01 75);
+  --puzzle-border: oklch(40% 0.05 30);
 }
 
 :root {
-  /* 纸笔主题核心变量 */
-  --background: oklch(1 0 0);   /* 温暖米色纸张 #f8f1e3 近似色 */
-  --foreground: oklch(0.145 0 0);      /* 深墨水黑 */
-
+  --background: oklch(0.985 0.01 75);
+  --foreground: oklch(0.2 0.01 45);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-
+  --card-foreground: oklch(0.2 0.01 45);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-
-  --primary: oklch(0.205 0 0);         /* 主色：墨水棕黑 */
+  --popover-foreground: oklch(0.2 0.01 45);
+  --primary: oklch(0.26 0.02 45);
   --primary-foreground: oklch(0.985 0 0);
-
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-
-  --accent: oklch(0.97 0 0);          /* 轻微高亮色，用于按钮/徽章 */
-  --accent-foreground: oklch(0.205 0 0);
-
+  --secondary: oklch(0.94 0.01 75);
+  --secondary-foreground: oklch(0.22 0.01 45);
+  --muted: oklch(0.955 0.01 75);
+  --muted-foreground: oklch(0.43 0.01 45);
+  --accent: oklch(0.94 0.01 75);
+  --accent-foreground: oklch(0.22 0.01 45);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(98% 0.01 80);
-
-  --border: oklch(0.922 0 0);          /* 柔和纸张边框 */
-  --input: oklch(0.922 0 0);
+  --border: oklch(0.79 0.015 70);
+  --input: oklch(0.9 0.01 75);
   --ring: oklch(0.708 0 0);
-
-  /* 保留图表颜色（若后续需要） */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
-
-  --radius: 0.625rem;                       /* 略微柔和圆角，更适合纸质卡片 */                       --chart-4: oklch(0.371 0 0);                       --chart-5: oklch(0.269 0 0);                       --sidebar: oklch(0.985 0 0);                       --sidebar-foreground: oklch(0.145 0 0);                       --sidebar-primary: oklch(0.205 0 0);                       --sidebar-primary-foreground: oklch(0.985 0 0);                       --sidebar-accent: oklch(0.97 0 0);                       --sidebar-accent-foreground: oklch(0.205 0 0);                       --sidebar-border: oklch(0.922 0 0);                       --sidebar-ring: oklch(0.708 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0;
 }
 
 .dark {
-  /* 暗黑模式：深色纸张风格（可选，若不需要可删除整个 .dark 块） */
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
-
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
-
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
-
   --border: oklch(1 0 0 / 10%);
-
   --popover: oklch(0.205 0 0);
-
   --popover-foreground: oklch(0.985 0 0);
-
   --secondary: oklch(0.269 0 0);
-
   --secondary-foreground: oklch(0.985 0 0);
-
   --muted: oklch(0.269 0 0);
-
   --muted-foreground: oklch(0.708 0 0);
-
   --accent: oklch(0.269 0 0);
-
   --accent-foreground: oklch(0.985 0 0);
-
   --destructive: oklch(0.704 0.191 22.216);
-
   --input: oklch(1 0 0 / 15%);
-
   --ring: oklch(0.556 0 0);
-
   --chart-1: oklch(0.87 0 0);
-
   --chart-2: oklch(0.556 0 0);
-
   --chart-3: oklch(0.439 0 0);
-
   --chart-4: oklch(0.371 0 0);
-
   --chart-5: oklch(0.269 0 0);
-
   --sidebar: oklch(0.205 0 0);
-
   --sidebar-foreground: oklch(0.985 0 0);
-
   --sidebar-primary: oklch(0.488 0.243 264.376);
-
   --sidebar-primary-foreground: oklch(0.985 0 0);
-
   --sidebar-accent: oklch(0.269 0 0);
-
   --sidebar-accent-foreground: oklch(0.985 0 0);
-
   --sidebar-border: oklch(1 0 0 / 10%);
-
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-/* 全局基础样式：增强纸笔质感 */
 @layer base {
-  body {
-    font-family: var(--font-family-serif);
-    @apply antialiased bg-background text-foreground;
+  html {
+    font-size: 18px;
+    @apply font-sans;
   }
 
-  /* 谜题容器通用纸张效果 */
+  body {
+    font-family: var(--font-family-body);
+    line-height: 1.6;
+    letter-spacing: 0.01em;
+    @apply min-h-screen antialiased bg-background text-foreground;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
   .puzzle-container {
     background-color: var(--puzzle-bg);
-    box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08);
+    box-shadow: none;
   }
+
   * {
     @apply border-border outline-ring/50;
   }
-  html {
-    @apply font-sans;
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-family-heading);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+
+  button,
+  [role="button"],
+  input,
+  textarea,
+  select {
+    border-radius: 0 !important;
+  }
+
+  p,
+  li,
+  label,
+  button,
+  input,
+  textarea,
+  select {
+    font-size: 1rem;
   }
 }
 

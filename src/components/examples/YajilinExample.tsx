@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
+import { commonBoardChrome, getBoardCellColors, woodBoardTheme } from '../../puzzles/boardTheme';
 import { ClueArrow } from '../../puzzles/Yajilin/ClueArrow';
 import { getClueNumberFontSize } from '../../puzzles/Yajilin/clueSizing';
 import { createYajilinEdgeSet, parseYajilinEdgeKey } from '../../puzzles/Yajilin/utils';
@@ -19,8 +20,8 @@ interface Props {
 
 const CELL_SIZE = 44;
 const GAP = 1;
-const PADDING = 3;
-const BORDER = 4;
+const PADDING = commonBoardChrome.padding;
+const BORDER = commonBoardChrome.border;
 
 export default function YajilinExample({
   width,
@@ -52,8 +53,8 @@ export default function YajilinExample({
   const boardWidthPx = width * CELL_SIZE + (width - 1) * GAP + PADDING * 2;
   const boardHeightPx = height * CELL_SIZE + (height - 1) * GAP + PADDING * 2;
   const clueNumberFontSize = useMemo(() => getClueNumberFontSize(CELL_SIZE), []);
-  const verticalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.53), []);
-  const horizontalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.55), []);
+  const verticalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.5), []);
+  const horizontalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.52), []);
 
   return (
     <>
@@ -81,14 +82,20 @@ export default function YajilinExample({
               className="relative cursor-pointer hover:opacity-90"
             >
               <div
-                className="grid bg-[#d2b48c] dark:bg-gray-800 border-4 border-[#3f2a1e] dark:border-gray-700 p-[3px]"
-                style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`, gap: `${GAP}px` }}
+                className="grid dark:bg-gray-800"
+                style={{
+                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
+                  gap: `${GAP}px`,
+                  background: woodBoardTheme.gridLine,
+                  padding: `${commonBoardChrome.padding}px`,
+                  border: `${BORDER}px solid ${woodBoardTheme.border}`,
+                }}
               >
                 {Array.from({ length: width * height }, (_, index) => (
                   <div
                     key={index}
-                    className="bg-[#f8f1e3] dark:bg-gray-800"
-                    style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px` }}
+                    className="dark:bg-gray-800"
+                    style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, background: woodBoardTheme.cell }}
                   />
                 ))}
               </div>
@@ -103,14 +110,18 @@ export default function YajilinExample({
                 width: `${boardWidthPx + BORDER * 2}px`,
                 height: `${boardHeightPx + BORDER * 2}px`,
                 padding: `${PADDING}px`,
-                background: '#d2b48c',
-                border: `${BORDER}px solid #3f2a1e`,
+                background: woodBoardTheme.frame,
+                border: `${BORDER}px solid ${woodBoardTheme.border}`,
                 boxSizing: 'border-box',
               }}
             >
               <div
                 className="grid"
-                style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`, gap: `${GAP}px` }}
+                style={{
+                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
+                  gap: `${GAP}px`,
+                  background: woodBoardTheme.gridLine,
+                }}
               >
                 {Array.from({ length: height }).flatMap((_, r) =>
                   Array.from({ length: width }).map((__, c) => {
@@ -119,19 +130,19 @@ export default function YajilinExample({
                     return (
                       <div
                         key={`${r}-${c}`}
-                        className={`flex items-center justify-center font-mono font-bold tracking-tight
-                          ${clue
-                            ? 'bg-[#f5ead8] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'
-                            : isShaded
-                              ? 'bg-[#3f2a1e] text-white'
-                              : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'}`}
-                        style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, paddingTop: clue ? '0px' : '2px' }}
+                        className="flex items-center justify-center font-semibold tabular-nums tracking-tight"
+                        style={{
+                          width: `${CELL_SIZE}px`,
+                          height: `${CELL_SIZE}px`,
+                          paddingTop: clue ? '0px' : '2px',
+                          ...getBoardCellColors(clue ? 'clue' : isShaded ? 'shaded' : 'cell'),
+                        }}
                       >
                         {clue ? (
                           <div className="relative w-full h-full">
                             <ClueArrow direction={clue.direction} cellSize={CELL_SIZE} />
                             <span
-                              className="absolute leading-none font-bold"
+                              className="absolute leading-none font-semibold tabular-nums"
                               style={{
                                 left: clue.direction === 'up' || clue.direction === 'down' ? `${Math.floor(CELL_SIZE * 0.5)}px` : '50%',
                                 top:
@@ -168,7 +179,7 @@ export default function YajilinExample({
                       y1={y1}
                       x2={x2}
                       y2={y2}
-                      stroke="#111111"
+                      stroke={woodBoardTheme.ink}
                       strokeWidth="3"
                       strokeLinecap="round"
                     />
@@ -181,7 +192,7 @@ export default function YajilinExample({
                   const centerX = PADDING + ((edge.c1 + edge.c2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   const centerY = PADDING + ((edge.r1 + edge.r2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   return (
-                    <g key={`cross-${edgeKey}`} stroke="#111111" strokeWidth="1.6" strokeLinecap="round">
+                    <g key={`cross-${edgeKey}`} stroke={woodBoardTheme.border} strokeWidth="1.6" strokeLinecap="round">
                       <line x1={centerX - 3} y1={centerY - 3} x2={centerX + 3} y2={centerY + 3} />
                       <line x1={centerX - 3} y1={centerY + 3} x2={centerX + 3} y2={centerY - 3} />
                     </g>

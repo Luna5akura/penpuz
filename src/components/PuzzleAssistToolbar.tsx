@@ -67,13 +67,13 @@ export default function PuzzleAssistToolbar({
 
   return (
     <div
-      className={`flex flex-col items-center gap-2 rounded-xl border px-4 py-3 transition-colors ${
+      className={`flex w-full flex-col items-center gap-3 border-2 px-4 py-4 transition-colors ${
         trialActive
-          ? 'border-amber-500 bg-amber-50/90 dark:border-amber-400 dark:bg-amber-950/30'
-          : 'border-[#d2b48c] bg-white/60 dark:border-gray-700 dark:bg-gray-900/50'
+          ? 'border-amber-500 bg-amber-50 dark:border-amber-400 dark:bg-amber-950/30'
+          : 'border-[#bfa889] bg-[#fffdf8] dark:border-gray-700 dark:bg-gray-900/60'
       }`}
     >
-      <div className={`flex flex-wrap items-center justify-center gap-2 ${trialActive ? 'w-full' : 'mx-auto'}`}>
+      <div className={`flex flex-wrap items-center justify-center gap-3 ${trialActive ? 'w-full' : 'mx-auto'}`}>
         <Button variant="outline" size="sm" onClick={onUndo} disabled={!canUndo} title="Ctrl/Cmd + Z">
           {copy.assistToolbar.undo}
         </Button>
@@ -113,11 +113,11 @@ export default function PuzzleAssistToolbar({
         )}
       </div>
       {trialActive && (
-        <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
-          <span className="rounded-full bg-amber-200 px-2 py-1 font-medium text-amber-900 dark:bg-amber-900/60 dark:text-amber-100">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-sm">
+          <span className="border border-amber-400 bg-amber-100 px-3 py-1.5 font-semibold text-amber-950 dark:border-amber-500 dark:bg-amber-900/60 dark:text-amber-100">
             {copy.assistToolbar.trialModeActive}
           </span>
-          <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-800 dark:bg-sky-950/60 dark:text-sky-200">
+          <span className="border border-sky-300 bg-sky-50 px-3 py-1.5 font-medium text-sky-900 dark:border-sky-700 dark:bg-sky-950/60 dark:text-sky-200">
             {copy.assistToolbar.checkpointCount(trialCheckpointCount)}
           </span>
         </div>

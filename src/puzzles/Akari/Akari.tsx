@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
-import type { HeyawakePuzzleData } from '../types';
+import type { AkariPuzzleData } from '../types';
 import {
   commonBoardChrome,
   getBoardCellColors,
@@ -15,14 +15,15 @@ import {
   woodBoardTheme,
 } from '../boardTheme';
 import {
-  createEmptyHeyawakeGrid,
-  getHeyawakeBoundarySegments,
-  type HeyawakeCellState,
-  validateHeyawake,
+  createEmptyAkariGrid,
+  getAkariIllumination,
+  isAkariBlackCell,
+  type AkariCellState,
+  validateAkari,
 } from './utils';
 
 interface Props {
-  puzzle: HeyawakePuzzleData;
+  puzzle: AkariPuzzleData;
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
@@ -32,24 +33,22 @@ interface Props {
   showValidationMessage?: boolean;
 }
 
-type HeyawakeSnapshot = {
-  grid: HeyawakeCellState[][];
+type AkariSnapshot = {
+  grid: AkariCellState[][];
   levels: number[][];
 };
 
-type DragMode =
-  | 'add-shade'
-  | 'remove-shade'
-  | 'add-mark'
-  | 'add-mark-desktop'
-  | 'remove-mark'
-  | 'clear-all'
+type PendingTap =
+  | { kind: 'desktop-left-cell'; row: number; col: number }
+  | { kind: 'desktop-right-cell'; row: number; col: number }
+  | { kind: 'mobile-bulb'; row: number; col: number }
   | null;
 
+type CellDragMode = 'desktop-mark' | 'desktop-clear' | 'mobile-mark' | 'mobile-clear' | null;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
-export default function HeyawakeBoard({
+export default function AkariBoard({
   puzzle,
   startTime,
   resetToken,
@@ -59,41 +58,37 @@ export default function HeyawakeBoard({
   fixedCellSize,
   showValidationMessage = false,
 }: Props) {
-  const { width, height, clues, regionIds } = puzzle;
+  const { width, height, cells } = puzzle;
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? 1024 : window.innerWidth
   );
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
-    pendingTap: { row: number; col: number } | null;
-    dragMode: DragMode;
     activeMouseButton: 0 | 2 | null;
-    startRow: number;
-    startCol: number;
+    pendingTap: PendingTap;
+    cellDragMode: CellDragMode;
     lastCell: { row: number; col: number } | null;
     moved: boolean;
   }>({
     pointerId: null,
-    pendingTap: null,
-    dragMode: null,
     activeMouseButton: null,
-    startRow: -1,
-    startCol: -1,
+    pendingTap: null,
+    cellDragMode: null,
     lastCell: null,
     moved: false,
   });
   const hasCompleted = useRef(false);
 
-  const createInitialSnapshot = useCallback<() => HeyawakeSnapshot>(() => ({
-    grid: createEmptyHeyawakeGrid(width, height),
+  const createInitialSnapshot = useCallback<() => AkariSnapshot>(() => ({
+    grid: createEmptyAkariGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as HeyawakeSnapshot | null) ?? createInitialSnapshot();
+    return (initialSnapshot as AkariSnapshot | null) ?? createInitialSnapshot();
   }, [createInitialSnapshot, initialSnapshot]);
 
-  const history = usePuzzleHistory<HeyawakeSnapshot>(createInitialSnapshot(), {
+  const history = usePuzzleHistory<AkariSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...trialSnapshot,
       levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
@@ -127,21 +122,14 @@ export default function HeyawakeBoard({
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
   const isMobile = viewportWidth < 640;
   const validation = useMemo(
-    () => (hasEdited ? validateHeyawake(grid, puzzle) : null),
+    () => (hasEdited ? validateAkari(grid, puzzle) : null),
     [grid, hasEdited, puzzle]
   );
   const invalidCellSet = useMemo(
     () => new Set((validation?.badCells ?? []).map((cell) => `${cell.r},${cell.c}`)),
     [validation]
   );
-  const boundaries = useMemo(
-    () => getHeyawakeBoundarySegments(regionIds, width, height),
-    [height, regionIds, width]
-  );
-  const clueMap = useMemo(
-    () => new Map(clues.map((clue) => [`${clue.row},${clue.col}`, clue.value])),
-    [clues]
-  );
+  const illumination = useMemo(() => getAkariIllumination(grid, puzzle), [grid, puzzle]);
 
   const cellSize = useMemo(() => {
     return getResponsiveCellSize({
@@ -162,11 +150,9 @@ export default function HeyawakeBoard({
     reset(getResetSnapshot());
     pointerState.current = {
       pointerId: null,
-      pendingTap: null,
-      dragMode: null,
       activeMouseButton: null,
-      startRow: -1,
-      startCol: -1,
+      pendingTap: null,
+      cellDragMode: null,
       lastCell: null,
       moved: false,
     };
@@ -183,72 +169,46 @@ export default function HeyawakeBoard({
     onComplete(Math.floor((Date.now() - startTime) / 1000));
   }, [onComplete, startTime, validation]);
 
-  const applyCellState = useCallback((row: number, col: number, mode: Exclude<DragMode, null>) => {
+  const updateCellState = useCallback((row: number, col: number, nextState: AkariCellState) => {
+    if (isAkariBlackCell(cells[row][col])) return;
+
     applyChange((currentSnapshot) => {
-      const currentState = currentSnapshot.grid[row][col];
-      let nextState = currentState;
-
-      if (mode === 'add-shade') {
-        nextState = 1;
-      } else if (mode === 'add-mark-desktop') {
-        if (currentState === 1) return currentSnapshot;
-        nextState = 2;
-      } else if (mode === 'remove-shade') {
-        if (currentState !== 1) return currentSnapshot;
-        nextState = 0;
-      } else if (mode === 'add-mark') {
-        nextState = 2;
-      } else if (mode === 'remove-mark') {
-        if (currentState !== 2) return currentSnapshot;
-        nextState = 0;
-      } else if (mode === 'clear-all') {
-        if (currentState === 0) return currentSnapshot;
-        nextState = 0;
-      }
-
-      if (nextState === currentState) return currentSnapshot;
+      if (currentSnapshot.grid[row][col] === nextState) return currentSnapshot;
 
       const nextGrid = currentSnapshot.grid.map((currentRow) => [...currentRow]);
       const nextLevels = currentSnapshot.levels.map((currentRow) => [...currentRow]);
       nextGrid[row][col] = nextState;
       nextLevels[row][col] = nextState === 0 ? 0 : trialActive ? currentTrialLevel : 0;
-
       return {
         ...currentSnapshot,
         grid: nextGrid,
         levels: nextLevels,
       };
     }, { coalesce: true });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, cells, currentTrialLevel, trialActive]);
 
-  const sameCheckerColor = useCallback((row: number, col: number, startRow: number, startCol: number) => (
-    (row + col) % 2 === (startRow + startCol) % 2
-  ), []);
+  const toggleBulb = useCallback((row: number, col: number) => {
+    if (isAkariBlackCell(cells[row][col])) return;
+    const nextState = grid[row][col] === 1 ? 0 : 1;
+    updateCellState(row, col, nextState);
+  }, [cells, grid, updateCellState]);
 
-  const applyDragToCell = useCallback((row: number, col: number) => {
-    const current = pointerState.current;
-    if (!current.dragMode) return;
+  const applyDragModeToCell = useCallback((row: number, col: number, mode: Exclude<CellDragMode, null>) => {
+    if (isAkariBlackCell(cells[row][col])) return;
 
-    const sameCell = current.lastCell?.row === row && current.lastCell?.col === col;
-    if (sameCell) return;
-
-    if (!current.moved && current.pendingTap) {
-      applyCellState(current.pendingTap.row, current.pendingTap.col, current.dragMode);
-    }
-
-    current.moved = true;
-    current.pendingTap = null;
-    current.lastCell = { row, col };
-
-    if (
-      current.dragMode === 'add-shade' &&
-      !sameCheckerColor(row, col, current.startRow, current.startCol)
-    ) {
+    if (mode === 'desktop-mark' || mode === 'mobile-mark') {
+      updateCellState(row, col, 2);
       return;
     }
 
-    applyCellState(row, col, current.dragMode);
-  }, [applyCellState, sameCheckerColor]);
+    if (mode === 'desktop-clear') {
+      if (grid[row][col] !== 2) return;
+      updateCellState(row, col, 0);
+      return;
+    }
+
+    updateCellState(row, col, 0);
+  }, [cells, grid, updateCellState]);
 
   const getBoardCell = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
@@ -265,57 +225,88 @@ export default function HeyawakeBoard({
     return { row, col };
   }, [cellSize, height, width]);
 
+  const applyDragToCell = useCallback((row: number, col: number) => {
+    const current = pointerState.current;
+    if (!current.cellDragMode) return;
+
+    const sameCell = current.lastCell?.row === row && current.lastCell?.col === col;
+    if (sameCell) return;
+
+    if (!current.moved && current.pendingTap) {
+      applyDragModeToCell(current.pendingTap.row, current.pendingTap.col, current.cellDragMode);
+    }
+
+    current.moved = true;
+    current.pendingTap = null;
+    current.lastCell = { row, col };
+    applyDragModeToCell(row, col, current.cellDragMode);
+  }, [applyDragModeToCell]);
+
   const finishPointer = useCallback((pointerId?: number) => {
     const current = pointerState.current;
     if (current.pointerId === null) return;
     if (pointerId !== undefined && current.pointerId !== pointerId) return;
 
-    if (current.pendingTap && current.dragMode) {
-      applyCellState(current.pendingTap.row, current.pendingTap.col, current.dragMode);
+    if (!current.moved) {
+      if (current.pendingTap?.kind === 'desktop-left-cell') {
+        toggleBulb(current.pendingTap.row, current.pendingTap.col);
+      } else if (current.pendingTap?.kind === 'desktop-right-cell' && current.cellDragMode) {
+        applyDragModeToCell(current.pendingTap.row, current.pendingTap.col, current.cellDragMode);
+      } else if (current.pendingTap?.kind === 'mobile-bulb') {
+        updateCellState(current.pendingTap.row, current.pendingTap.col, 1);
+      } else if (current.pendingTap && current.cellDragMode) {
+        applyDragModeToCell(current.pendingTap.row, current.pendingTap.col, current.cellDragMode);
+      }
     }
 
     pointerState.current = {
       pointerId: null,
-      pendingTap: null,
-      dragMode: null,
       activeMouseButton: null,
-      startRow: -1,
-      startCol: -1,
+      pendingTap: null,
+      cellDragMode: null,
       lastCell: null,
       moved: false,
     };
     finishBatch();
-  }, [applyCellState, finishBatch]);
+  }, [applyDragModeToCell, finishBatch, toggleBulb, updateCellState]);
 
   const handleCellPointerDown = (row: number, col: number, event: React.PointerEvent<HTMLDivElement>) => {
     if (pointerState.current.pointerId !== null) return;
+    if (isAkariBlackCell(cells[row][col])) return;
 
     const currentState = grid[row][col];
     const isTouchPointer = event.pointerType === 'touch' || (event.button === 0 && isMobile);
 
-    let nextDragMode: DragMode = null;
+    let pendingTap: PendingTap = null;
+    let cellDragMode: CellDragMode = null;
+
     if (isTouchPointer) {
-      if (currentState === 0) nextDragMode = 'add-shade';
-      else if (currentState === 1) nextDragMode = 'add-mark';
-      else nextDragMode = 'clear-all';
+      if (currentState === 0) {
+        pendingTap = { kind: 'mobile-bulb', row, col };
+      } else if (currentState === 1) {
+        pendingTap = { kind: 'desktop-right-cell', row, col };
+        cellDragMode = 'mobile-mark';
+      } else {
+        pendingTap = { kind: 'desktop-right-cell', row, col };
+        cellDragMode = 'mobile-clear';
+      }
     } else if (event.button === 0) {
-      nextDragMode = currentState === 1 ? 'remove-shade' : 'add-shade';
+      pendingTap = { kind: 'desktop-left-cell', row, col };
     } else if (event.button === 2) {
-      nextDragMode = currentState === 2 ? 'remove-mark' : 'add-mark-desktop';
+      pendingTap = { kind: 'desktop-right-cell', row, col };
+      cellDragMode = currentState === 2 ? 'desktop-clear' : 'desktop-mark';
     }
 
-    if (!nextDragMode) return;
+    if (!pendingTap) return;
 
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
 
     pointerState.current = {
       pointerId: event.pointerId,
-      pendingTap: { row, col },
-      dragMode: nextDragMode,
       activeMouseButton: isTouchPointer ? null : (event.button === 2 ? 2 : 0),
-      startRow: row,
-      startCol: col,
+      pendingTap,
+      cellDragMode,
       lastCell: { row, col },
       moved: false,
     };
@@ -324,7 +315,7 @@ export default function HeyawakeBoard({
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     const current = pointerState.current;
-    if (current.pointerId !== event.pointerId || !current.dragMode) return;
+    if (current.pointerId !== event.pointerId || !current.pendingTap) return;
 
     if (current.activeMouseButton === 0 && (event.buttons & 1) === 0) {
       finishPointer(event.pointerId);
@@ -339,6 +330,15 @@ export default function HeyawakeBoard({
     const hitCell = getBoardCell(event.clientX, event.clientY);
     if (!hitCell) return;
 
+    if (!current.cellDragMode) {
+      if (current.pendingTap.kind === 'desktop-left-cell' || current.pendingTap.kind === 'mobile-bulb') {
+        if (hitCell.row !== current.pendingTap.row || hitCell.col !== current.pendingTap.col) {
+          current.moved = true;
+        }
+      }
+      return;
+    }
+
     applyDragToCell(hitCell.row, hitCell.col);
   };
 
@@ -346,9 +346,9 @@ export default function HeyawakeBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const clueFontSize = getBoardNumberFontSize(cellSize);
+  const bulbDiameter = Math.max(20, Math.floor(cellSize * 0.8));
   const crossFontSize = getBoardCrossFontSize(cellSize);
-  const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
+  const clueFontSize = getBoardNumberFontSize(cellSize);
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -377,24 +377,29 @@ export default function HeyawakeBoard({
             gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
           }}
         >
-          {grid.flatMap((currentRow, row) =>
-            currentRow.map((state, col) => {
-              const clueValue = clueMap.get(`${row},${col}`);
-              const trialColors = getTrialLevelColors(levels[row][col]);
+          {Array.from({ length: height }).flatMap((_, row) =>
+            Array.from({ length: width }).map((__, col) => {
+              const puzzleCell = cells[row][col];
+              const state = grid[row][col];
+              const isBlack = isAkariBlackCell(puzzleCell);
+              const isLit = illumination.illuminated[row][col];
               const isInvalid = showValidationMessage && invalidCellSet.has(`${row},${col}`);
-              const isShaded = state === 1;
+              const isBulb = state === 1;
               const isMarked = state === 2;
-              const baseStyle = getBoardCellColors(isShaded ? 'shaded' : isMarked ? 'marked' : 'cell');
+              const trialColors = getTrialLevelColors(levels[row][col]);
+
+              const baseStyle = getBoardCellColors(
+                isBlack ? 'shaded' : isBulb ? 'brightLit' : isLit ? 'lit' : 'cell'
+              );
               const invalidStyle = isInvalid
-                ? getInvalidBoardCellColors(isShaded ? 'dark' : isMarked ? 'marked' : 'soft')
+                ? getInvalidBoardCellColors(isBlack || isBulb ? 'dark' : 'soft')
                 : undefined;
               const trialStyle = trialColors
-                ? isShaded
-                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
-                  : isMarked
-                    ? { background: trialColors.softFill, color: trialColors.text }
-                    : { background: trialColors.softFill, color: woodBoardTheme.border }
-                : undefined;
+                ? {
+                    ...getCellDividerStyle(),
+                    boxShadow: `inset 0 0 0 2px ${trialColors.line}`,
+                  }
+                : getCellDividerStyle();
 
               return (
                 <div
@@ -405,88 +410,36 @@ export default function HeyawakeBoard({
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     ...baseStyle,
-                    ...getCellDividerStyle(),
-                    ...invalidStyle,
                     ...trialStyle,
+                    ...invalidStyle,
                   }}
                 >
-                  {clueValue !== undefined ? (
+                  {typeof puzzleCell === 'number' ? (
                     <span
                       className="font-semibold tabular-nums"
-                      style={{
-                        fontSize: `${clueFontSize}px`,
-                        lineHeight: 1,
-                        color: isShaded ? woodBoardTheme.shadedText : trialColors?.text ?? woodBoardTheme.border,
-                      }}
+                      style={{ fontSize: `${clueFontSize}px`, lineHeight: 1 }}
                     >
-                      {clueValue}
+                      {puzzleCell}
                     </span>
-                  ) : isMarked ? (
-                    <span style={getCrossMarkStyle(crossFontSize)}>×</span>
-                  ) : null}
-
-                  {clueValue !== undefined && isMarked ? (
+                  ) : !isBlack && isBulb ? (
                     <span
+                      aria-hidden="true"
                       style={{
-                        position: 'absolute',
-                        right: `${Math.max(2, Math.floor(cellSize * 0.08))}px`,
-                        bottom: `${Math.max(0, Math.floor(cellSize * 0.02))}px`,
-                        ...getCrossMarkStyle(
-                          Math.max(12, Math.floor(cellSize * 0.28)),
-                          trialColors?.text ?? woodBoardTheme.markedText
-                        ),
+                        width: `${bulbDiameter}px`,
+                        height: `${bulbDiameter}px`,
+                        borderRadius: '9999px',
+                        background: woodBoardTheme.shaded,
+                        display: 'block',
                       }}
-                    >
-                      ×
-                    </span>
+                    />
+                  ) : !isBlack && isMarked ? (
+                    <span style={getCrossMarkStyle(crossFontSize)}>×</span>
                   ) : null}
                 </div>
               );
             })
           )}
         </div>
-
-        <svg
-          className="absolute top-0 left-0 pointer-events-none"
-          width={outerWidth - BOARD_BORDER * 2}
-          height={outerHeight - BOARD_BORDER * 2}
-        >
-          {boundaries.horizontal.map((segment) => {
-            const x1 = BOARD_PADDING + segment.col * cellSize;
-            const y = BOARD_PADDING + segment.row * cellSize;
-            const x2 = x1 + cellSize;
-            return (
-              <line
-                key={`h-${segment.row}-${segment.col}`}
-                x1={x1}
-                y1={y}
-                x2={x2}
-                y2={y}
-                stroke={woodBoardTheme.border}
-                strokeWidth={boundaryStroke}
-                strokeLinecap="square"
-              />
-            );
-          })}
-
-          {boundaries.vertical.map((segment) => {
-            const x = BOARD_PADDING + segment.col * cellSize;
-            const y1 = BOARD_PADDING + segment.row * cellSize;
-            const y2 = y1 + cellSize;
-            return (
-              <line
-                key={`v-${segment.row}-${segment.col}`}
-                x1={x}
-                y1={y1}
-                x2={x}
-                y2={y2}
-                stroke={woodBoardTheme.border}
-                strokeWidth={boundaryStroke}
-                strokeLinecap="square"
-              />
-            );
-          })}
-        </svg>
       </div>
 
       <PuzzleAssistToolbar

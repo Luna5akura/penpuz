@@ -5,6 +5,7 @@ import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { ClueArrow } from './ClueArrow';
 import { getClueNumberFontSize, MOBILE_CLUE_REFERENCE_SIZE } from './clueSizing';
+import { commonBoardChrome, getBoardCellColors, getBoardCrossFontSize, getCrossMarkStyle, getResponsiveCellSize, woodBoardTheme } from '../boardTheme';
 import {
   createEmptyYajilinGrid,
   detectYajilinHitTarget,
@@ -21,13 +22,14 @@ interface Props {
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
+  initialSnapshot?: unknown;
+  onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
 }
 
-const BOARD_PADDING = 3;
+const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_GAP = 1;
-const BOARD_BORDER = 4;
-const DESKTOP_CLUE_SIZE = 58;
+const BOARD_BORDER = commonBoardChrome.border;
 
 type PendingTap =
   | { kind: 'desktop-left-cell'; row: number; col: number }
@@ -45,7 +47,15 @@ type YajilinSnapshot = {
   crossedEdgeLevels: Record<string, number>;
 };
 
-export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete, fixedCellSize }: Props) {
+export default function YajilinBoard({
+  puzzle,
+  startTime,
+  resetToken,
+  onComplete,
+  initialSnapshot,
+  onSnapshotChange,
+  fixedCellSize,
+}: Props) {
   const { copy } = useI18n();
   const { width, height, clues } = puzzle;
   const [viewportWidth, setViewportWidth] = useState(() =>
@@ -59,6 +69,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     lastCell: { row: number; col: number } | null;
     drawMode: 'add' | 'remove' | null;
     cellDragMode: 'shade-to-mark' | null;
+    desktopMarkDrag: boolean;
     movedToDraw: boolean;
     pendingTap: PendingTap;
   }>({
@@ -68,6 +79,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     lastCell: null,
     drawMode: null,
     cellDragMode: null,
+    desktopMarkDrag: false,
     movedToDraw: false,
     pendingTap: null,
   });
@@ -80,6 +92,9 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     loopEdgeLevels: {},
     crossedEdgeLevels: {},
   }), [height, width]);
+  const getResetSnapshot = useCallback(() => {
+    return (initialSnapshot as YajilinSnapshot | null) ?? createInitialSnapshot();
+  }, [createInitialSnapshot, initialSnapshot]);
   const history = usePuzzleHistory<YajilinSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...trialSnapshot,
@@ -87,6 +102,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
       loopEdgeLevels: {},
       crossedEdgeLevels: {},
     }),
+    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
   });
   const {
     snapshot,
@@ -126,24 +142,22 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
 
   const isMobile = viewportWidth < 640;
   const cellSize = useMemo(() => {
-    if (fixedCellSize) return fixedCellSize;
-
-    const mobile = viewportWidth < 640;
-    const horizontalViewportPadding = mobile ? 48 : 96;
-    const boardChromeWidth = (BOARD_PADDING + BOARD_BORDER) * 2;
-    const maxAvailableWidth = Math.max(0, viewportWidth - horizontalViewportPadding - boardChromeWidth);
-    const nextSize = Math.floor((maxAvailableWidth - (width - 1) * BOARD_GAP) / width);
-    return Math.max(mobile ? 28 : 42, Math.min(mobile ? 48 : DESKTOP_CLUE_SIZE, nextSize));
+    return getResponsiveCellSize({
+      fixedCellSize,
+      viewportWidth,
+      width,
+      columnGap: BOARD_GAP,
+    });
   }, [fixedCellSize, viewportWidth, width]);
 
   const clueNumberFontSize = useMemo(() => getClueNumberFontSize(cellSize), [cellSize]);
   const verticalClueNumberTop = useMemo(() => {
-    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.53);
-    return Math.max(16, Math.floor(cellSize * 0.53));
+    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.5);
+    return Math.max(15, Math.floor(cellSize * 0.5));
   }, [cellSize]);
   const horizontalClueNumberTop = useMemo(() => {
-    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.55);
-    return Math.max(17, Math.floor(cellSize * 0.55));
+    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.52);
+    return Math.max(16, Math.floor(cellSize * 0.52));
   }, [cellSize]);
 
   const validation = useMemo(
@@ -168,7 +182,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
   }, [onComplete, startTime, validation]);
 
   const resetBoard = useCallback(() => {
-    reset(createInitialSnapshot());
+    reset(getResetSnapshot());
     pointerState.current = {
       pointerId: null,
       isTouch: false,
@@ -176,11 +190,12 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
       lastCell: null,
       drawMode: null,
       cellDragMode: null,
+      desktopMarkDrag: false,
       movedToDraw: false,
       pendingTap: null,
     };
     hasCompleted.current = false;
-  }, [createInitialSnapshot, reset]);
+  }, [getResetSnapshot, reset]);
 
   useEffect(() => {
     resetBoard();
@@ -487,6 +502,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
         current.lastCell = { row: hitTarget.row, col: hitTarget.col };
         current.drawMode = null;
         current.cellDragMode = null;
+        current.desktopMarkDrag = true;
         current.movedToDraw = false;
         current.pendingTap = { kind: 'desktop-right-cell', row: hitTarget.row, col: hitTarget.col };
         startBatch();
@@ -501,6 +517,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     current.isTouch = isTouchPointer;
     current.drawMode = null;
     current.cellDragMode = null;
+    current.desktopMarkDrag = false;
     current.movedToDraw = false;
     current.pendingTap = null;
     startBatch();
@@ -539,7 +556,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
     const cell = getCellFromPoint(point.x, point.y);
     if (!cell) return;
 
-    if (current.pendingTap?.kind === 'desktop-right-cell') {
+    if (current.desktopMarkDrag) {
       const sameCell = current.lastCell?.row === cell.row && current.lastCell?.col === cell.col;
       if (sameCell) return;
       applyCellMarkDrag(cell.row, cell.col);
@@ -589,8 +606,8 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
           width: `${boardWidthPx + BOARD_BORDER * 2}px`,
           height: `${boardHeightPx + BOARD_BORDER * 2}px`,
           padding: `${BOARD_PADDING}px`,
-          background: '#d2b48c',
-          border: `${BOARD_BORDER}px solid #3f2a1e`,
+          background: woodBoardTheme.frame,
+          border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
           boxSizing: 'border-box',
           maxWidth: '100%',
         }}
@@ -605,6 +622,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
           style={{
             gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
             gap: `${BOARD_GAP}px`,
+            background: woodBoardTheme.gridLine,
           }}
         >
           {grid.flatMap((row, r) =>
@@ -615,7 +633,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const cellStyle = !clue && trialColors
                 ? isShaded
-                  ? { background: trialColors.fill, color: '#ffffff' }
+                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
                   : isMarked
                     ? { background: trialColors.softFill, color: trialColors.text }
                     : undefined
@@ -623,18 +641,12 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
               return (
                 <div
                   key={`${r}-${c}`}
-                  className={`relative flex items-center justify-center font-mono font-bold tracking-tight
-                    ${clue
-                      ? 'bg-[#f5ead8] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'
-                      : isShaded
-                        ? 'bg-[#3f2a1e] text-white'
-                        : isMarked
-                          ? 'bg-[#efe2ca] dark:bg-gray-700 text-gray-500 dark:text-gray-300'
-                          : 'bg-[#f8f1e3] dark:bg-gray-800 text-[#3f2a1e] dark:text-gray-100'}`}
+                  className="relative flex items-center justify-center font-semibold tabular-nums tracking-tight dark:text-gray-100"
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     paddingTop: clue ? '0px' : '2px',
+                    ...getBoardCellColors(clue ? 'clue' : isShaded ? 'shaded' : isMarked ? 'marked' : 'cell'),
                     ...cellStyle,
                   }}
                 >
@@ -642,7 +654,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
                     <div className="relative w-full h-full">
                       <ClueArrow direction={clue.direction} cellSize={cellSize} />
                       <span
-                        className="absolute leading-none font-bold"
+                        className="absolute leading-none font-semibold tabular-nums"
                         style={{
                           left: clue.direction === 'up' || clue.direction === 'down' ? `${Math.floor(cellSize * 0.5)}px` : '50%',
                           top:
@@ -658,7 +670,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
                       </span>
                     </div>
                   ) : isMarked ? (
-                    <span style={{ fontSize: `${Math.max(20, Math.floor(cellSize * 0.52))}px` }}>×</span>
+                    <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span>
                   ) : null}
                 </div>
               );
@@ -688,7 +700,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
                 y1={y1}
                 x2={x2}
                 y2={y2}
-                stroke={trialColors?.line ?? '#111111'}
+                stroke={trialColors?.line ?? woodBoardTheme.ink}
                 strokeWidth={Math.max(2.5, Math.floor(cellSize * 0.08))}
                 strokeLinecap="round"
               />
@@ -707,7 +719,7 @@ export default function YajilinBoard({ puzzle, startTime, resetToken, onComplete
             return (
               <g
                 key={`cross-${edgeKey}`}
-                stroke={trialColors?.line ?? '#111111'}
+                stroke={trialColors?.text ?? woodBoardTheme.border}
                 strokeWidth="1.6"
                 strokeLinecap="round"
               >

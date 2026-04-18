@@ -2,7 +2,10 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import { useI18n } from '@/i18n/useI18n';
+import { commonBoardChrome, getBoardCellColors, getBoardNumberFontSize, woodBoardTheme } from '../../puzzles/boardTheme';
 import { validateFillomino } from '../../puzzles/Fillomino/utils';
+
+const BOARD_PADDING = commonBoardChrome.padding;
 
 interface Props {
   width: number;
@@ -199,14 +202,18 @@ export default function FillominoExample({
   const getLineStyle = useCallback((key: string, isAnswer = false): { stroke: string; strokeWidth: number } => {
     // 优先级：deepLines（手动绘制） → autoThinLines（自动灰线） → 默认细线
     if (!isAnswer && deepLines.has(key)) {
-      return { stroke: '#374151', strokeWidth: 4 };
+      return { stroke: woodBoardTheme.deepLine, strokeWidth: 4 };
     }
     const currentAuto = isAnswer ? autoThinLinesAnswer : autoThinLines;
     if (currentAuto.has(key)) {
-      return { stroke: '#6b7280', strokeWidth: 2 };
+      return { stroke: woodBoardTheme.accentBorder, strokeWidth: 3 };
     }
-    return { stroke: '#e5e7eb', strokeWidth: 1 };
+    return { stroke: woodBoardTheme.gridLine, strokeWidth: 1 };
   }, [deepLines, autoThinLines, autoThinLinesAnswer]);
+
+  const alignStrokeCoordinate = useCallback((coordinate: number, strokeWidth: number) => (
+    strokeWidth % 2 === 1 ? coordinate + 0.5 : coordinate
+  ), []);
 
   const changeNumber = useCallback((r: number, c: number, increment: number) => {
     if (cluesGrid[r][c] !== null) return;
@@ -471,9 +478,9 @@ export default function FillominoExample({
             style={{
               position: 'relative',
               display: 'inline-block',
-              background: '#d2b48c',
-              padding: '3px',
-              border: '4px solid #3f2a1e',
+              background: woodBoardTheme.frame,
+              padding: `${BOARD_PADDING}px`,
+              border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
               touchAction: 'none',
             }}
             onContextMenu={(e) => e.preventDefault()}
@@ -498,14 +505,15 @@ export default function FillominoExample({
                       onMouseLeave={() => {
                         if (!isDragging.current) hoveredCellRef.current = null;
                       }}
-                      className={`flex items-center justify-center font-mono font-bold cursor-pointer border-0 relative
-                        ${isPreFilled ? 'bg-[#f0e6d2] text-[#3f2a1e]' : 'bg-white hover:bg-gray-100 active:bg-gray-200'}
+                      className={`flex items-center justify-center font-semibold tabular-nums cursor-pointer border-0 relative
+                        ${isPreFilled ? '' : 'hover:bg-gray-100 active:bg-gray-200'}
                         ${invalidCells.some(cell => cell.r === r && cell.c === c) ? 'text-red-600' : ''}`}
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        fontSize: `${Math.floor(cellSize * 0.7)}px`,
+                        fontSize: `${getBoardNumberFontSize(cellSize)}px`,
                         lineHeight: `${cellSize}px`,
+                        ...getBoardCellColors(isPreFilled ? 'prefilled' : 'cell'),
                       }}
                     >
                       {value ?? ''}
@@ -520,18 +528,19 @@ export default function FillominoExample({
               height={svgHeight}
               style={{
                 position: 'absolute',
-                top: '3px',
-                left: '3px',
+                top: `${commonBoardChrome.padding}px`,
+                left: `${commonBoardChrome.padding}px`,
                 pointerEvents: 'none',
                 overflow: 'visible',
                 zIndex: 10,
               }}
+              shapeRendering="crispEdges"
             >
               {Array.from({ length: height }, (_, r) =>
                 Array.from({ length: width - 1 }, (_, c) => {
                   const key = `h-${r}-${c}`;
                   const { stroke, strokeWidth } = getLineStyle(key);
-                  const x = (c + 1) * cellSize;
+                  const x = alignStrokeCoordinate((c + 1) * cellSize, strokeWidth);
                   const y1 = r * cellSize;
                   const y2 = (r + 1) * cellSize;
                   return <line key={`edge-v-${r}-${c}`} x1={x} y1={y1} x2={x} y2={y2} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="butt" />;
@@ -541,7 +550,7 @@ export default function FillominoExample({
                 Array.from({ length: width }, (_, c) => {
                   const key = `v-${r}-${c}`;
                   const { stroke, strokeWidth } = getLineStyle(key);
-                  const y = (r + 1) * cellSize;
+                  const y = alignStrokeCoordinate((r + 1) * cellSize, strokeWidth);
                   const x1 = c * cellSize;
                   const x2 = (c + 1) * cellSize;
                   return <line key={`edge-h-${r}-${c}`} x1={x1} y1={y} x2={x2} y2={y} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="butt" />;
@@ -561,7 +570,7 @@ export default function FillominoExample({
                   const { y: cy2 } = getCenter(r + 1, c);
                   x1 = cx; y1 = cy1; x2 = cx; y2 = cy2;
                 }
-                return <line key={`thin-${key}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#6b7280" strokeWidth="2" strokeLinecap="round" />;
+                return <line key={`thin-${key}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={woodBoardTheme.thinLine} strokeWidth="2" strokeLinecap="round" />;
               })}
             </svg>
 
@@ -573,7 +582,7 @@ export default function FillominoExample({
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
                   background: '#fff',
-                  border: '3px solid #3f2a1e',
+                  border: `3px solid ${woodBoardTheme.border}`,
                   borderRadius: '12px',
                   padding: '12px',
                   boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.2)',
@@ -584,7 +593,7 @@ export default function FillominoExample({
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-                  <button onClick={closeNumpad} style={{ width: '32px', height: '32px', fontSize: '24px', fontWeight: 'bold', color: '#3f2a1e', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%' }}>✕</button>
+                  <button onClick={closeNumpad} style={{ width: '32px', height: '32px', fontSize: '24px', fontWeight: 'bold', color: woodBoardTheme.border, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%' }}>✕</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: '8px' }}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
@@ -596,8 +605,8 @@ export default function FillominoExample({
                         height: '52px',
                         fontSize: '24px',
                         fontWeight: 'bold',
-                        background: '#f0e6d2',
-                        border: '2px solid #3f2a1e',
+                        ...getBoardCellColors('prefilled'),
+                        border: `2px solid ${woodBoardTheme.border}`,
                         borderRadius: '8px',
                         display: 'flex',
                         alignItems: 'center',
@@ -616,7 +625,7 @@ export default function FillominoExample({
                       fontSize: '20px',
                       fontWeight: 'bold',
                       background: '#fee2e2',
-                      border: '2px solid #3f2a1e',
+                      border: `2px solid ${woodBoardTheme.border}`,
                       borderRadius: '8px',
                       color: '#b91c1c',
                       display: 'flex',
@@ -646,9 +655,9 @@ export default function FillominoExample({
               style={{
                 position: 'relative',
                 display: 'inline-block',
-                background: '#d2b48c',
-                padding: '3px',
-                border: '4px solid #3f2a1e',
+                background: woodBoardTheme.frame,
+                padding: `${BOARD_PADDING}px`,
+                border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
               }}
             >
               <div
@@ -662,10 +671,11 @@ export default function FillominoExample({
                   row.map((_, c) => (
                     <div
                       key={`${r}-${c}`}
-                      className="flex items-center justify-center font-mono font-bold bg-[#f8f1e3]"
+                      className="flex items-center justify-center font-semibold tabular-nums"
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
+                        ...getBoardCellColors('cell'),
                       }}
                     />
                   ))
@@ -681,9 +691,9 @@ export default function FillominoExample({
               style={{
                 position: 'relative',
                 display: 'inline-block',
-                background: '#d2b48c',
-                padding: '3px',
-                border: '4px solid #3f2a1e',
+                background: woodBoardTheme.frame,
+                padding: `${BOARD_PADDING}px`,
+                border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
               }}
             >
               <div
@@ -697,12 +707,13 @@ export default function FillominoExample({
                   row.map((val, c) => (
                     <div
                       key={`${r}-${c}`}
-                      className="flex items-center justify-center font-mono font-bold bg-[#f8f1e3]"
+                      className="flex items-center justify-center font-semibold tabular-nums"
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        fontSize: `${Math.floor(cellSize * 0.8)}px`,
+                        fontSize: `${getBoardNumberFontSize(cellSize)}px`,
                         lineHeight: `${cellSize}px`,
+                        ...getBoardCellColors('cell'),
                       }}
                     >
                       {val ?? ''}
@@ -716,18 +727,19 @@ export default function FillominoExample({
                 height={svgHeight}
                 style={{
                   position: 'absolute',
-                  top: '3px',
-                  left: '3px',
+                  top: `${BOARD_PADDING}px`,
+                  left: `${BOARD_PADDING}px`,
                   pointerEvents: 'none',
                   overflow: 'visible',
                   zIndex: 10,
                 }}
+                shapeRendering="crispEdges"
               >
                 {Array.from({ length: height }, (_, r) =>
                   Array.from({ length: width - 1 }, (_, c) => {
                     const key = `h-${r}-${c}`;
                     const { stroke, strokeWidth } = getLineStyle(key, true);
-                    const x = (c + 1) * cellSize;
+                    const x = alignStrokeCoordinate((c + 1) * cellSize, strokeWidth);
                     const y1 = r * cellSize;
                     const y2 = (r + 1) * cellSize;
                     return <line key={`edge-v-${r}-${c}`} x1={x} y1={y1} x2={x} y2={y2} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="butt" />;
@@ -737,7 +749,7 @@ export default function FillominoExample({
                   Array.from({ length: width }, (_, c) => {
                     const key = `v-${r}-${c}`;
                     const { stroke, strokeWidth } = getLineStyle(key, true);
-                    const y = (r + 1) * cellSize;
+                    const y = alignStrokeCoordinate((r + 1) * cellSize, strokeWidth);
                     const x1 = c * cellSize;
                     const x2 = (c + 1) * cellSize;
                     return <line key={`edge-h-${r}-${c}`} x1={x1} y1={y} x2={x2} y2={y} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="butt" />;
