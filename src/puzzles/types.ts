@@ -66,6 +66,20 @@ export interface HeyawakePuzzleData {
   clues: HeyawakeClue[];
 }
 
+export interface AqreClue {
+  row: number;
+  col: number;
+  value: number;
+}
+
+export interface AqrePuzzleData {
+  type: 'aqre';
+  width: number;
+  height: number;
+  regionIds: number[][];
+  clues: AqreClue[];
+}
+
 export type AkariCell = number | 'black' | null;
 
 export interface AkariPuzzleData {
@@ -81,6 +95,7 @@ export type PuzzleData =
   | YajilinPuzzleData
   | StarbattlePuzzleData
   | HeyawakePuzzleData
+  | AqrePuzzleData
   | AkariPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
@@ -143,6 +158,14 @@ export type PuzzleExample =
       height: number;
       regionIds: number[][];
       clues: HeyawakeClue[];
+      correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'aqre';
+      width: number;
+      height: number;
+      regionIds: number[][];
+      clues: AqreClue[];
       correctSolution: (0 | 1)[][];
     }
   | {

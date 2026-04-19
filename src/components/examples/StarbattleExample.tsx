@@ -7,6 +7,7 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getCellDividerStyle,
+  getOutlinedBorderStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getStarbattleBoundarySegments } from '../../puzzles/Starbattle/utils';
@@ -48,6 +49,8 @@ export default function StarbattleExample({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const boundaryStroke = 3;
+  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
 
   return (
     <>
@@ -169,16 +172,26 @@ export default function StarbattleExample({
                     const y = BOARD_PADDING + segment.row * CELL_SIZE;
                     const x2 = x1 + CELL_SIZE;
                     return (
-                      <line
-                        key={`h-${segment.row}-${segment.col}`}
-                        x1={x1}
-                        y1={y}
-                        x2={x2}
-                        y2={y}
-                        stroke={woodBoardTheme.border}
-                        strokeWidth="3"
-                        strokeLinecap="square"
-                      />
+                      <g key={`h-${segment.row}-${segment.col}`}>
+                        <line
+                          x1={x1}
+                          y1={y}
+                          x2={x2}
+                          y2={y}
+                          stroke={woodBoardTheme.cell}
+                          strokeWidth={boundaryOutlineStroke}
+                          strokeLinecap="butt"
+                        />
+                        <line
+                          x1={x1}
+                          y1={y}
+                          x2={x2}
+                          y2={y}
+                          stroke={woodBoardTheme.border}
+                          strokeWidth={boundaryStroke}
+                          strokeLinecap="square"
+                        />
+                      </g>
                     );
                   })}
 
@@ -187,16 +200,26 @@ export default function StarbattleExample({
                     const y1 = BOARD_PADDING + segment.row * CELL_SIZE;
                     const y2 = y1 + CELL_SIZE;
                     return (
-                      <line
-                        key={`v-${segment.row}-${segment.col}`}
-                        x1={x}
-                        y1={y1}
-                        x2={x}
-                        y2={y2}
-                        stroke={woodBoardTheme.border}
-                        strokeWidth="3"
-                        strokeLinecap="square"
-                      />
+                      <g key={`v-${segment.row}-${segment.col}`}>
+                        <line
+                          x1={x}
+                          y1={y1}
+                          x2={x}
+                          y2={y2}
+                          stroke={woodBoardTheme.cell}
+                          strokeWidth={boundaryOutlineStroke}
+                          strokeLinecap="butt"
+                        />
+                        <line
+                          x1={x}
+                          y1={y1}
+                          x2={x}
+                          y2={y2}
+                          stroke={woodBoardTheme.border}
+                          strokeWidth={boundaryStroke}
+                          strokeLinecap="square"
+                        />
+                      </g>
                     );
                   })}
                 </svg>

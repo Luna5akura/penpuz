@@ -184,7 +184,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                         ? getInvalidBoardCellColors('dark')
                         : isClue(r, c)
                           ? getBoardCellColors(isMarked ? 'marked' : 'clue')
-                          : getBoardCellColors(isShaded ? 'shaded' : isMarked ? 'marked' : 'cell')),
+                          : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                       ...getCellDividerStyle(),
                     }}
                     className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0 cursor-pointer"

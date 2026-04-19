@@ -290,7 +290,7 @@ export default function NurikabeBoard({
                   lineHeight: 1,
                   ...(clue
                     ? getBoardCellColors(isMarked ? 'marked' : 'clue')
-                    : getBoardCellColors(isShaded ? 'shaded' : isMarked ? 'marked' : 'cell')),
+                    : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                   ...getCellDividerStyle(),
                   ...style,
                 }}

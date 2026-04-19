@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import type { HeyawakePuzzleData } from '../../puzzles/types';
-import HeyawakeBoard from '../../puzzles/Heyawake/Heyawake';
+import type { AqrePuzzleData } from '../../puzzles/types';
+import AqreBoard from '../../puzzles/Aqre/Aqre';
 import {
   commonBoardChrome,
   getBoardCellColors,
@@ -10,9 +10,9 @@ import {
   getOutlinedBorderStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
-import { getHeyawakeBoundarySegments } from '../../puzzles/Heyawake/utils';
+import { getAqreBoundarySegments } from '../../puzzles/Aqre/utils';
 
-interface Props extends HeyawakePuzzleData {
+interface Props extends AqrePuzzleData {
   correctSolution: (0 | 1)[][];
   playableLabel: string;
   answerLabel: string;
@@ -22,7 +22,7 @@ const CELL_SIZE = 42;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
-export default function HeyawakeExample({
+export default function AqreExample({
   width,
   height,
   regionIds,
@@ -35,8 +35,8 @@ export default function HeyawakeExample({
   const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
-  const examplePuzzle = useMemo<HeyawakePuzzleData>(
-    () => ({ type: 'heyawake', width, height, regionIds, clues }),
+  const examplePuzzle = useMemo<AqrePuzzleData>(
+    () => ({ type: 'aqre', width, height, regionIds, clues }),
     [clues, height, regionIds, width]
   );
   const clueMap = useMemo(
@@ -44,7 +44,7 @@ export default function HeyawakeExample({
     [clues]
   );
   const boundaries = useMemo(
-    () => getHeyawakeBoundarySegments(regionIds, width, height),
+    () => getAqreBoundarySegments(regionIds, width, height),
     [height, regionIds, width]
   );
   const boardWidth = width * CELL_SIZE;
@@ -61,8 +61,8 @@ export default function HeyawakeExample({
           <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
             {playableLabel}
           </p>
-          <HeyawakeBoard
-            key={`heyawake-example-${width}-${height}`}
+          <AqreBoard
+            key={`aqre-example-${width}-${height}`}
             puzzle={examplePuzzle}
             startTime={exampleStartTime}
             resetToken={0}

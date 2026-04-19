@@ -4,20 +4,24 @@ import FillominoBoard from './Fillomino/Fillomino';
 import YajilinBoard from './Yajilin/Yajilin';
 import StarbattleBoard from './Starbattle/Starbattle';
 import HeyawakeBoard from './Heyawake/Heyawake';
+import AqreBoard from './Aqre/Aqre';
 import AkariBoard from './Akari/Akari';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
 import StarbattleExample from '../components/examples/StarbattleExample';
 import HeyawakeExample from '../components/examples/HeyawakeExample';
+import AqreExample from '../components/examples/AqreExample';
 import AkariExample from '../components/examples/AkariExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
 import { parseStarbattleLink } from './Starbattle/utils';
 import { parseHeyawakeLink } from './Heyawake/utils';
+import { parseAqreLink } from './Aqre/utils';
 import { parseAkariLink } from './Akari/utils';
 import type {
+  AqrePuzzleData,
   AkariPuzzleData,
   FillominoPuzzleData,
   HeyawakePuzzleData,
@@ -53,6 +57,7 @@ type PuzzleRegistry = {
   yajilin: PuzzleRegistryEntry<YajilinPuzzleData>;
   starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
   heyawake: PuzzleRegistryEntry<HeyawakePuzzleData>;
+  aqre: PuzzleRegistryEntry<AqrePuzzleData>;
   akari: PuzzleRegistryEntry<AkariPuzzleData>;
 };
 
@@ -82,8 +87,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（5×5）',
-        en: 'Example (5×5)',
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
       },
       playableLabel: {
         'zh-CN': '可游玩例题',
@@ -495,6 +500,103 @@ export const puzzleRegistry: PuzzleRegistry = {
 
       return (
         <HeyawakeExample
+          width={example.width}
+          height={example.height}
+          regionIds={example.regionIds}
+          clues={example.clues}
+          correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  aqre: {
+    parsePuzzLink: parseAqreLink,
+    template: {
+      type: 'aqre',
+      name: {
+        'zh-CN': 'Aqre',
+        en: 'Aqre',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '盘面被粗边框分成若干区域。涂黑一些格子。',
+          '带数字的区域中，数字表示该区域内恰好要涂黑多少格。',
+          '横向或纵向都不能出现连续4格或以上同为黑格，或同为留白格。',
+          '所有黑格必须正交连成一个整体。',
+        ],
+        en: [
+          'The board is divided into rooms. Shade some cells on the board.',
+          'In a numbered room, the number gives the total count of shaded cells in that room.',
+          'There may not be a horizontal or vertical run of 4 or more consecutive shaded cells or 4 or more consecutive unshaded cells.',
+          'All shaded cells on the board must form one orthogonally connected area.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩例题',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'aqre',
+        width: 6,
+        height: 6,
+        regionIds: [
+          [0, 1, 1, 1, 2, 2],
+          [0, 0, 1, 1, 1, 3],
+          [0, 0, 4, 4, 3, 3],
+          [5, 0, 4, 4, 3, 3],
+          [5, 6, 6, 6, 3, 7],
+          [6, 6, 6, 8, 8, 8],
+        ],
+        clues: [
+          { row: 0, col: 0, value: 6 },
+          { row: 0, col: 1, value: 0 },
+          { row: 1, col: 5, value: 4 },
+          { row: 2, col: 2, value: 3 },
+          { row: 4, col: 1, value: 4 },
+          { row: 5, col: 3, value: 0 },
+        ],
+        correctSolution: [
+          [1, 0, 0, 0, 1, 1],
+          [1, 1, 0, 0, 0, 1],
+          [1, 1, 0, 1, 1, 1],
+          [0, 1, 1, 1, 0, 0],
+          [0, 0, 1, 1, 1, 0],
+          [0, 1, 1, 0, 0, 0],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <AqreBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'aqre') {
+        throw new Error('Aqre template example type mismatch.');
+      }
+
+      return (
+        <AqreExample
           width={example.width}
           height={example.height}
           regionIds={example.regionIds}

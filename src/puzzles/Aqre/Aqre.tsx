@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
-import type { HeyawakePuzzleData } from '../types';
+import type { AqrePuzzleData } from '../types';
 import {
   commonBoardChrome,
   getBoardCellColors,
@@ -16,14 +16,14 @@ import {
   woodBoardTheme,
 } from '../boardTheme';
 import {
-  createEmptyHeyawakeGrid,
-  getHeyawakeBoundarySegments,
-  type HeyawakeCellState,
-  validateHeyawake,
+  createEmptyAqreGrid,
+  getAqreBoundarySegments,
+  type AqreCellState,
+  validateAqre,
 } from './utils';
 
 interface Props {
-  puzzle: HeyawakePuzzleData;
+  puzzle: AqrePuzzleData;
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
@@ -33,8 +33,8 @@ interface Props {
   showValidationMessage?: boolean;
 }
 
-type HeyawakeSnapshot = {
-  grid: HeyawakeCellState[][];
+type AqreSnapshot = {
+  grid: AqreCellState[][];
   levels: number[][];
 };
 
@@ -42,7 +42,6 @@ type DragMode =
   | 'add-shade'
   | 'remove-shade'
   | 'add-mark'
-  | 'add-mark-desktop'
   | 'remove-mark'
   | 'clear-all'
   | null;
@@ -50,7 +49,7 @@ type DragMode =
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
-export default function HeyawakeBoard({
+export default function AqreBoard({
   puzzle,
   startTime,
   resetToken,
@@ -70,31 +69,25 @@ export default function HeyawakeBoard({
     pendingTap: { row: number; col: number } | null;
     dragMode: DragMode;
     activeMouseButton: 0 | 2 | null;
-    startRow: number;
-    startCol: number;
     lastCell: { row: number; col: number } | null;
-    moved: boolean;
   }>({
     pointerId: null,
     pendingTap: null,
     dragMode: null,
     activeMouseButton: null,
-    startRow: -1,
-    startCol: -1,
     lastCell: null,
-    moved: false,
   });
   const hasCompleted = useRef(false);
 
-  const createInitialSnapshot = useCallback<() => HeyawakeSnapshot>(() => ({
-    grid: createEmptyHeyawakeGrid(width, height),
+  const createInitialSnapshot = useCallback<() => AqreSnapshot>(() => ({
+    grid: createEmptyAqreGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as HeyawakeSnapshot | null) ?? createInitialSnapshot();
+    return (initialSnapshot as AqreSnapshot | null) ?? createInitialSnapshot();
   }, [createInitialSnapshot, initialSnapshot]);
 
-  const history = usePuzzleHistory<HeyawakeSnapshot>(createInitialSnapshot(), {
+  const history = usePuzzleHistory<AqreSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...trialSnapshot,
       levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
@@ -128,7 +121,7 @@ export default function HeyawakeBoard({
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
   const isMobile = viewportWidth < 640;
   const validation = useMemo(
-    () => (hasEdited ? validateHeyawake(grid, puzzle) : null),
+    () => (hasEdited ? validateAqre(grid, puzzle) : null),
     [grid, hasEdited, puzzle]
   );
   const invalidCellSet = useMemo(
@@ -136,7 +129,7 @@ export default function HeyawakeBoard({
     [validation]
   );
   const boundaries = useMemo(
-    () => getHeyawakeBoundarySegments(regionIds, width, height),
+    () => getAqreBoundarySegments(regionIds, width, height),
     [height, regionIds, width]
   );
   const clueMap = useMemo(
@@ -144,13 +137,11 @@ export default function HeyawakeBoard({
     [clues]
   );
 
-  const cellSize = useMemo(() => {
-    return getResponsiveCellSize({
-      fixedCellSize,
-      viewportWidth,
-      width,
-    });
-  }, [fixedCellSize, viewportWidth, width]);
+  const cellSize = useMemo(() => getResponsiveCellSize({
+    fixedCellSize,
+    viewportWidth,
+    width,
+  }), [fixedCellSize, viewportWidth, width]);
 
   useEffect(() => {
     const updateSize = () => setViewportWidth(window.innerWidth);
@@ -166,10 +157,7 @@ export default function HeyawakeBoard({
       pendingTap: null,
       dragMode: null,
       activeMouseButton: null,
-      startRow: -1,
-      startCol: -1,
       lastCell: null,
-      moved: false,
     };
     hasCompleted.current = false;
   }, [getResetSnapshot, reset]);
@@ -191,9 +179,6 @@ export default function HeyawakeBoard({
 
       if (mode === 'add-shade') {
         nextState = 1;
-      } else if (mode === 'add-mark-desktop') {
-        if (currentState === 1) return currentSnapshot;
-        nextState = 2;
       } else if (mode === 'remove-shade') {
         if (currentState !== 1) return currentSnapshot;
         nextState = 0;
@@ -222,10 +207,6 @@ export default function HeyawakeBoard({
     }, { coalesce: true });
   }, [applyChange, currentTrialLevel, trialActive]);
 
-  const sameCheckerColor = useCallback((row: number, col: number, startRow: number, startCol: number) => (
-    (row + col) % 2 === (startRow + startCol) % 2
-  ), []);
-
   const applyDragToCell = useCallback((row: number, col: number) => {
     const current = pointerState.current;
     if (!current.dragMode) return;
@@ -233,23 +214,14 @@ export default function HeyawakeBoard({
     const sameCell = current.lastCell?.row === row && current.lastCell?.col === col;
     if (sameCell) return;
 
-    if (!current.moved && current.pendingTap) {
+    if (current.pendingTap) {
       applyCellState(current.pendingTap.row, current.pendingTap.col, current.dragMode);
     }
 
-    current.moved = true;
     current.pendingTap = null;
     current.lastCell = { row, col };
-
-    if (
-      current.dragMode === 'add-shade' &&
-      !sameCheckerColor(row, col, current.startRow, current.startCol)
-    ) {
-      return;
-    }
-
     applyCellState(row, col, current.dragMode);
-  }, [applyCellState, sameCheckerColor]);
+  }, [applyCellState]);
 
   const getBoardCell = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
@@ -280,10 +252,7 @@ export default function HeyawakeBoard({
       pendingTap: null,
       dragMode: null,
       activeMouseButton: null,
-      startRow: -1,
-      startCol: -1,
       lastCell: null,
-      moved: false,
     };
     finishBatch();
   }, [applyCellState, finishBatch]);
@@ -302,7 +271,7 @@ export default function HeyawakeBoard({
     } else if (event.button === 0) {
       nextDragMode = currentState === 1 ? 'remove-shade' : 'add-shade';
     } else if (event.button === 2) {
-      nextDragMode = currentState === 2 ? 'remove-mark' : 'add-mark-desktop';
+      nextDragMode = currentState === 2 ? 'remove-mark' : 'add-mark';
     }
 
     if (!nextDragMode) return;
@@ -315,10 +284,7 @@ export default function HeyawakeBoard({
       pendingTap: { row, col },
       dragMode: nextDragMode,
       activeMouseButton: isTouchPointer ? null : (event.button === 2 ? 2 : 0),
-      startRow: row,
-      startCol: col,
       lastCell: { row, col },
-      moved: false,
     };
     startBatch();
   };
@@ -424,20 +390,11 @@ export default function HeyawakeBoard({
                       {clueValue}
                     </span>
                   ) : isMarked ? (
-                    <span style={getCrossMarkStyle(crossFontSize)}>×</span>
-                  ) : null}
-
-                  {clueValue !== undefined && isMarked ? (
                     <span
-                      style={{
-                        position: 'absolute',
-                        right: `${Math.max(2, Math.floor(cellSize * 0.08))}px`,
-                        bottom: `${Math.max(0, Math.floor(cellSize * 0.02))}px`,
-                        ...getCrossMarkStyle(
-                          Math.max(12, Math.floor(cellSize * 0.28)),
-                          trialColors?.text ?? woodBoardTheme.markedText
-                        ),
-                      }}
+                      style={getCrossMarkStyle(
+                        crossFontSize,
+                        trialColors?.text ?? woodBoardTheme.border
+                      )}
                     >
                       ×
                     </span>

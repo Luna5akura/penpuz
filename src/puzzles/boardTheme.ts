@@ -29,6 +29,7 @@ export type BoardCellTone =
   | 'clue'
   | 'prefilled'
   | 'marked'
+  | 'playerShaded'
   | 'shaded'
   | 'lit'
   | 'brightLit';
@@ -41,6 +42,8 @@ export function getBoardCellColors(tone: BoardCellTone) {
       return { background: woodBoardTheme.prefilledCell, color: woodBoardTheme.border } as const;
     case 'marked':
       return { background: woodBoardTheme.marked, color: woodBoardTheme.markedText } as const;
+    case 'playerShaded':
+      return { background: woodBoardTheme.shaded, color: woodBoardTheme.shadedText } as const;
     case 'shaded':
       return { background: woodBoardTheme.shaded, color: woodBoardTheme.shadedText } as const;
     case 'lit':
@@ -87,6 +90,10 @@ export function getCellDividerStyle(width = 1, color = woodBoardTheme.gridLine) 
     borderRight: `${width}px solid ${color}`,
     borderBottom: `${width}px solid ${color}`,
   } as const;
+}
+
+export function getOutlinedBorderStrokeWidth(strokeWidth: number, outlineExtra = 2) {
+  return strokeWidth + outlineExtra;
 }
 
 export const commonBoardChrome = {

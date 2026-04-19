@@ -646,7 +646,7 @@ export default function YajilinBoard({
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     paddingTop: clue ? '0px' : '2px',
-                    ...getBoardCellColors(clue ? 'clue' : isShaded ? 'shaded' : isMarked ? 'marked' : 'cell'),
+                    ...getBoardCellColors(clue ? 'clue' : isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell'),
                     ...cellStyle,
                   }}
                 >

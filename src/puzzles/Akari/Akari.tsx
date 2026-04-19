@@ -49,6 +49,35 @@ type CellDragMode = 'desktop-mark' | 'desktop-clear' | 'mobile-mark' | 'mobile-c
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
+function normalizeAkariSnapshot(
+  snapshot: unknown,
+  width: number,
+  height: number
+): AkariSnapshot {
+  const fallbackGrid = createEmptyAkariGrid(width, height);
+  const fallbackLevels = Array.from({ length: height }, () => Array(width).fill(0));
+  const source = snapshot as Partial<AkariSnapshot> | null | undefined;
+
+  const grid = Array.from({ length: height }, (_, row) =>
+    Array.from({ length: width }, (_, col) => {
+      const value = source?.grid?.[row]?.[col];
+      return value === 1 || value === 2 ? value : 0;
+    })
+  ) as AkariCellState[][];
+
+  const levels = Array.from({ length: height }, (_, row) =>
+    Array.from({ length: width }, (_, col) => {
+      const value = source?.levels?.[row]?.[col];
+      return typeof value === 'number' ? value : fallbackLevels[row][col];
+    })
+  );
+
+  return {
+    grid: source?.grid ? grid : fallbackGrid,
+    levels,
+  };
+}
+
 export default function AkariBoard({
   puzzle,
   startTime,
@@ -87,13 +116,15 @@ export default function AkariBoard({
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as AkariSnapshot | null) ?? createInitialSnapshot();
-  }, [createInitialSnapshot, initialSnapshot]);
+    return initialSnapshot
+      ? normalizeAkariSnapshot(initialSnapshot, width, height)
+      : createInitialSnapshot();
+  }, [createInitialSnapshot, height, initialSnapshot, width]);
 
   const history = usePuzzleHistory<AkariSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...trialSnapshot,
-      levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
+      ...normalizeAkariSnapshot(trialSnapshot, width, height),
+      levels: Array.from({ length: height }, () => Array(width).fill(0)),
     }),
     onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
   });
@@ -119,8 +150,12 @@ export default function AkariBoard({
     finishBatch,
   } = history;
 
-  const grid = snapshot.grid;
-  const levels = snapshot.levels;
+  const normalizedSnapshot = useMemo(
+    () => normalizeAkariSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
+  const grid = normalizedSnapshot.grid;
+  const levels = normalizedSnapshot.levels;
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
   const isMobile = viewportWidth < 640;
   const validation = useMemo(

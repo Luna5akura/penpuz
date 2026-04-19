@@ -135,7 +135,7 @@ export default function YajilinExample({
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
                           paddingTop: clue ? '0px' : '2px',
-                          ...getBoardCellColors(clue ? 'clue' : isShaded ? 'shaded' : 'cell'),
+                          ...getBoardCellColors(clue ? 'clue' : isShaded ? 'playerShaded' : 'cell'),
                         }}
                       >
                         {clue ? (

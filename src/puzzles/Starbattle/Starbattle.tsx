@@ -11,6 +11,7 @@ import {
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
+  getOutlinedBorderStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -475,6 +476,7 @@ export default function StarbattleBoard({
   const crossFontSize = getBoardCrossFontSize(cellSize);
   const dotRadius = Math.max(6, Math.floor(cellSize * 0.16));
   const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
+  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -562,16 +564,26 @@ export default function StarbattleBoard({
             const y = BOARD_PADDING + segment.row * cellSize;
             const x2 = x1 + cellSize;
             return (
-              <line
-                key={`h-${segment.row}-${segment.col}`}
-                x1={x1}
-                y1={y}
-                x2={x2}
-                y2={y}
-                stroke={woodBoardTheme.border}
-                strokeWidth={boundaryStroke}
-                strokeLinecap="square"
-              />
+              <g key={`h-${segment.row}-${segment.col}`}>
+                <line
+                  x1={x1}
+                  y1={y}
+                  x2={x2}
+                  y2={y}
+                  stroke={woodBoardTheme.cell}
+                  strokeWidth={boundaryOutlineStroke}
+                  strokeLinecap="butt"
+                />
+                <line
+                  x1={x1}
+                  y1={y}
+                  x2={x2}
+                  y2={y}
+                  stroke={woodBoardTheme.border}
+                  strokeWidth={boundaryStroke}
+                  strokeLinecap="square"
+                />
+              </g>
             );
           })}
 
@@ -580,16 +592,26 @@ export default function StarbattleBoard({
             const y1 = BOARD_PADDING + segment.row * cellSize;
             const y2 = y1 + cellSize;
             return (
-              <line
-                key={`v-${segment.row}-${segment.col}`}
-                x1={x}
-                y1={y1}
-                x2={x}
-                y2={y2}
-                stroke={woodBoardTheme.border}
-                strokeWidth={boundaryStroke}
-                strokeLinecap="square"
-              />
+              <g key={`v-${segment.row}-${segment.col}`}>
+                <line
+                  x1={x}
+                  y1={y1}
+                  x2={x}
+                  y2={y2}
+                  stroke={woodBoardTheme.cell}
+                  strokeWidth={boundaryOutlineStroke}
+                  strokeLinecap="butt"
+                />
+                <line
+                  x1={x}
+                  y1={y1}
+                  x2={x}
+                  y2={y2}
+                  stroke={woodBoardTheme.border}
+                  strokeWidth={boundaryStroke}
+                  strokeLinecap="square"
+                />
+              </g>
             );
           })}
 
