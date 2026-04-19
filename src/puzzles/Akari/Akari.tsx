@@ -31,6 +31,7 @@ interface Props {
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
   showValidationMessage?: boolean;
+  validationHighlightMode?: 'default' | 'example';
 }
 
 type AkariSnapshot = {
@@ -57,6 +58,7 @@ export default function AkariBoard({
   onSnapshotChange,
   fixedCellSize,
   showValidationMessage = false,
+  validationHighlightMode = 'default',
 }: Props) {
   const { width, height, cells } = puzzle;
   const [viewportWidth, setViewportWidth] = useState(() =>
@@ -130,6 +132,35 @@ export default function AkariBoard({
     [validation]
   );
   const illumination = useMemo(() => getAkariIllumination(grid, puzzle), [grid, puzzle]);
+  const clueMismatchSet = useMemo(() => {
+    const mismatches = new Set<string>();
+
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const clue = cells[row][col];
+        if (typeof clue !== 'number') continue;
+
+        const neighbors = [
+          [row - 1, col],
+          [row + 1, col],
+          [row, col - 1],
+          [row, col + 1],
+        ] as const;
+
+        let bulbCount = 0;
+        for (const [nextRow, nextCol] of neighbors) {
+          if (nextRow < 0 || nextRow >= height || nextCol < 0 || nextCol >= width) continue;
+          if (grid[nextRow][nextCol] === 1) bulbCount += 1;
+        }
+
+        if (bulbCount !== clue) {
+          mismatches.add(`${row},${col}`);
+        }
+      }
+    }
+
+    return mismatches;
+  }, [cells, grid, height, width]);
 
   const cellSize = useMemo(() => {
     return getResponsiveCellSize({
@@ -386,14 +417,25 @@ export default function AkariBoard({
               const isInvalid = showValidationMessage && invalidCellSet.has(`${row},${col}`);
               const isBulb = state === 1;
               const isMarked = state === 2;
+              const hasClueMismatch = clueMismatchSet.has(`${row},${col}`);
+              const hasConflictingBulb = illumination.conflictingBulbs.has(`${row},${col}`);
               const trialColors = getTrialLevelColors(levels[row][col]);
 
               const baseStyle = getBoardCellColors(
                 isBlack ? 'shaded' : isBulb ? 'brightLit' : isLit ? 'lit' : 'cell'
               );
-              const invalidStyle = isInvalid
-                ? getInvalidBoardCellColors(isBlack || isBulb ? 'dark' : 'soft')
-                : undefined;
+              const invalidStyle = (() => {
+                if (!isInvalid) return undefined;
+
+                if (validationHighlightMode === 'example') {
+                  if (hasClueMismatch) {
+                    return getInvalidBoardCellColors('dark');
+                  }
+                  return undefined;
+                }
+
+                return getInvalidBoardCellColors(isBlack || isBulb ? 'dark' : 'soft');
+              })();
               const trialStyle = trialColors
                 ? {
                     ...getCellDividerStyle(),
@@ -428,7 +470,10 @@ export default function AkariBoard({
                         width: `${bulbDiameter}px`,
                         height: `${bulbDiameter}px`,
                         borderRadius: '9999px',
-                        background: woodBoardTheme.shaded,
+                        background:
+                          validationHighlightMode === 'example' && hasConflictingBulb
+                            ? getInvalidBoardCellColors('dark').background
+                            : woodBoardTheme.shaded,
                         display: 'block',
                       }}
                     />

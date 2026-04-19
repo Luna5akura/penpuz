@@ -182,20 +182,28 @@ export function useDailyPuzzleSession() {
     setBoardInstance((value) => value + 1);
   }, [daily, savedCompletion]);
 
-  const handleRestart = useCallback(() => {
+  const restartPuzzle = useCallback((nextElapsedTime: number) => {
     if (daily) {
       clearSavedProgress(daily.dateStr);
     }
     setStarted(true);
-    setStartTime(Date.now());
-    setElapsedTime(0);
+    setStartTime(Date.now() - nextElapsedTime * 1000);
+    setElapsedTime(nextElapsedTime);
     setAttemptCompleted(false);
-    setResultTime(savedCompletion?.time ?? 0);
+    setResultTime(savedCompletion?.time ?? nextElapsedTime);
     setResultOpen(false);
     setSavedProgress(null);
     setBoardSnapshot(null);
     setBoardInstance((value) => value + 1);
   }, [daily, savedCompletion]);
+
+  const handleRestartPreserveTime = useCallback(() => {
+    restartPuzzle(elapsedTime);
+  }, [elapsedTime, restartPuzzle]);
+
+  const handleRestartResetTime = useCallback(() => {
+    restartPuzzle(0);
+  }, [restartPuzzle]);
 
   const handleComplete = useCallback((finalTime: number) => {
     const persistedCompletion = saveCompletion(finalTime);
@@ -269,7 +277,8 @@ export function useDailyPuzzleSession() {
     showHistory,
     boardSnapshot,
     handleStart,
-    handleRestart,
+    handleRestartPreserveTime,
+    handleRestartResetTime,
     handleComplete,
     handleViewResult,
     handleBoardProgress,

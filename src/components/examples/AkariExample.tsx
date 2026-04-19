@@ -75,6 +75,7 @@ export default function AkariExample({
             onComplete={() => setShowAnswer(true)}
             fixedCellSize={CELL_SIZE}
             showValidationMessage
+            validationHighlightMode="example"
           />
         </div>
 

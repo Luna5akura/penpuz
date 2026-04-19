@@ -118,7 +118,7 @@ export default function CompletionModal({
         if (!open) onClose();
       }}
     >
-      <DialogContent className="max-w-lg border-[#bfa889] bg-[#fffdf8] p-6 dark:border-gray-700 dark:bg-gray-900">
+      <DialogContent className="max-w-md border-[#d7c7b4] bg-[#fffdf9] p-4 dark:border-gray-700 dark:bg-gray-900">
         {/* Keep the fallback textarea inside the dialog so Radix focus trapping doesn't block selection/copy. */}
         <textarea
           ref={hiddenCopyRef}
@@ -129,19 +129,19 @@ export default function CompletionModal({
         />
 
         <DialogHeader>
-          <DialogTitle className="text-center text-3xl text-[#2f241a] dark:text-gray-100">
+          <DialogTitle className="text-center text-2xl text-[#2f241a] dark:text-gray-100">
             {copy.completionModal.title}
           </DialogTitle>
-          <DialogDescription className="text-center text-lg text-muted-foreground">
+          <DialogDescription className="text-center text-base text-muted-foreground">
             {copy.completionModal.subtitle}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="border-y-2 border-[#d5c1a6] py-7 text-center dark:border-gray-700">
-          <p className="mb-2 text-6xl font-mono font-bold tracking-tight text-[#2f241a] dark:text-gray-100 sm:text-7xl">
+        <div className="py-2 text-center">
+          <p className="mb-1 text-5xl font-mono font-bold tracking-tight text-[#2f241a] dark:text-gray-100 sm:text-6xl">
             {minutes}:{seconds < 10 ? '0' : ''}{seconds}
           </p>
-          <p className="text-lg text-muted-foreground dark:text-gray-400">{copy.completionModal.elapsedLabel}</p>
+          <p className="text-sm text-muted-foreground dark:text-gray-400">{copy.completionModal.elapsedLabel}</p>
         </div>
 
         {/* 复制按钮 */}
@@ -151,13 +151,13 @@ export default function CompletionModal({
 
         {/* 手动复制备用方案 */}
         {showManualCopy && (
-          <div className="mt-4 border-2 bg-gray-100 p-4 text-base dark:bg-gray-800">
-            <p className="mb-3 text-center text-base text-muted-foreground">{copy.completionModal.manualCopyHint}</p>
+          <div className="border bg-muted/60 p-3 text-sm dark:bg-gray-800">
+            <p className="mb-2 text-center text-sm text-muted-foreground">{copy.completionModal.manualCopyHint}</p>
             <textarea
               ref={manualCopyRef}
               readOnly
               value={shareText}
-              className="min-h-32 w-full resize-none whitespace-pre-wrap break-all border-2 bg-white p-3 text-sm font-mono dark:bg-gray-900"
+              className="min-h-28 w-full resize-none whitespace-pre-wrap break-all border bg-white p-2.5 text-xs font-mono dark:bg-gray-900"
               onFocus={(event) => event.currentTarget.select()}
               onClick={(event) => event.currentTarget.select()}
             />
