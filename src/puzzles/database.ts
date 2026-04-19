@@ -130,7 +130,7 @@ const allPuzzles: PuzzleEntry[] = [
 ];
 
 
-const START_DATE = '2026-04-08';
+const START_DATE = '2026-04-09';
 const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 
 export function getPuzzleDateStr(daysSinceStart: number): string {

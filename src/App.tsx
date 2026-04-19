@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useI18n } from './i18n/useI18n';
 import { puzzleDifficultyLabels } from './puzzles/types';
 import { formatMinutesSeconds } from './lib/formatDuration';
+import { Card } from './components/ui/card';
 
 const HISTORY_PAGE_SIZE = 5;
 
