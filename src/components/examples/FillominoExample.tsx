@@ -3,7 +3,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import { useI18n } from '@/i18n/useI18n';
 import { commonBoardChrome, getBoardCellColors, getBoardNumberFontSize, woodBoardTheme } from '../../puzzles/boardTheme';
-import { validateFillomino } from '../../puzzles/Fillomino/utils';
+import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from '../../puzzles/Fillomino/utils';
 
 const BOARD_PADDING = commonBoardChrome.padding;
 
@@ -112,91 +112,15 @@ export default function FillominoExample({
     return { x: c * step + cellSize / 2, y: r * step + cellSize / 2 };
   }, [cellSize, gap]);
 
-  const getEdgeKey = useCallback((r1: number, c1: number, r2: number, c2: number): string | null => {
-    if (r1 === r2 && Math.abs(c1 - c2) === 1) return `h-${r1}-${Math.min(c1, c2)}`;
-    if (c1 === c2 && Math.abs(r1 - r2) === 1) return `v-${Math.min(r1, r2)}-${c1}`;
-    return null;
-  }, []);
+  const autoThinLines = useMemo(
+    () => getFillominoAutoBoundaryLines(grid, width, height),
+    [grid, height, width]
+  );
 
-  const autoThinLines = useMemo(() => {
-    const keys = new Set<string>();
-    const visited = Array.from({ length: height }, () => Array(width).fill(false));
-    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-    for (let r = 0; r < height; r++) {
-      for (let c = 0; c < width; c++) {
-        const val = grid[r][c];
-        if (val === null || visited[r][c] || val === 0) continue;
-        const component: { r: number; c: number }[] = [];
-        const stack = [{ r, c }];
-        visited[r][c] = true;
-        while (stack.length > 0) {
-          const cell = stack.pop()!;
-          component.push(cell);
-          for (const [dr, dc] of directions) {
-            const nr = cell.r + dr;
-            const nc = cell.c + dc;
-            if (nr >= 0 && nr < height && nc >= 0 && nc < width && !visited[nr][nc] && grid[nr][nc] === val) {
-              visited[nr][nc] = true;
-              stack.push({ r: nr, c: nc });
-            }
-          }
-        }
-        if (component.length === val) {
-          for (const cell of component) {
-            for (const [dr, dc] of directions) {
-              const nr = cell.r + dr;
-              const nc = cell.c + dc;
-              if (nr >= 0 && nr < height && nc >= 0 && nc < width && grid[nr][nc] !== val) {
-                const edgeKey = getEdgeKey(cell.r, cell.c, nr, nc);
-                if (edgeKey) keys.add(edgeKey);
-              }
-            }
-          }
-        }
-      }
-    }
-    return keys;
-  }, [grid, height, width, getEdgeKey]);
-
-  const autoThinLinesAnswer = useMemo(() => {
-    const keys = new Set<string>();
-    const visited = Array.from({ length: height }, () => Array(width).fill(false));
-    const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
-    for (let r = 0; r < height; r++) {
-      for (let c = 0; c < width; c++) {
-        const val = correctGrid[r][c];
-        if (val === null || visited[r][c] || val === 0) continue;
-        const component: { r: number; c: number }[] = [];
-        const stack = [{ r, c }];
-        visited[r][c] = true;
-        while (stack.length > 0) {
-          const cell = stack.pop()!;
-          component.push(cell);
-          for (const [dr, dc] of directions) {
-            const nr = cell.r + dr;
-            const nc = cell.c + dc;
-            if (nr >= 0 && nr < height && nc >= 0 && nc < width && !visited[nr][nc] && correctGrid[nr][nc] === val) {
-              visited[nr][nc] = true;
-              stack.push({ r: nr, c: nc });
-            }
-          }
-        }
-        if (component.length === val) {
-          for (const cell of component) {
-            for (const [dr, dc] of directions) {
-              const nr = cell.r + dr;
-              const nc = cell.c + dc;
-              if (nr >= 0 && nr < height && nc >= 0 && nc < width && correctGrid[nr][nc] !== val) {
-                const edgeKey = getEdgeKey(cell.r, cell.c, nr, nc);
-                if (edgeKey) keys.add(edgeKey);
-              }
-            }
-          }
-        }
-      }
-    }
-    return keys;
-  }, [correctGrid, height, width, getEdgeKey]);
+  const autoThinLinesAnswer = useMemo(
+    () => getFillominoAutoBoundaryLines(correctGrid, width, height),
+    [correctGrid, height, width]
+  );
 
   // ==================== 关键修复：getLineStyle ====================
   const getLineStyle = useCallback((key: string, isAnswer = false): { stroke: string; strokeWidth: number } => {
@@ -330,7 +254,7 @@ export default function FillominoExample({
       const dr = Math.abs(lastR - currentCell.row);
       const dc = Math.abs(lastC - currentCell.col);
       if (lastR !== -1 && lastC !== -1 && dr + dc === 1) {
-        const edgeKey = getEdgeKey(lastR, lastC, currentCell.row, currentCell.col);
+        const edgeKey = getFillominoEdgeKey(lastR, lastC, currentCell.row, currentCell.col);
         if (edgeKey) handleBoundaryEdit('thin', edgeKey);
       }
     } else if (dragType.current === 'clear') {
@@ -342,7 +266,7 @@ export default function FillominoExample({
     if (dragType.current === 'copy' && (currentCell.row !== startRow.current || currentCell.col !== startCol.current)) {
       copyValueDrag(currentCell.row, currentCell.col);
     }
-  }, [getCellFromPos, getNearestVertex, getEdgeKey, handleBoundaryEdit, copyValueDrag, clearCellDrag, height, width]);
+  }, [getCellFromPos, getNearestVertex, handleBoundaryEdit, copyValueDrag, clearCellDrag, height, width]);
 
   const handleDocumentPointerUp = useCallback(() => {
     if (longPressTimerRef.current) {

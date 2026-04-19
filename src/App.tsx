@@ -281,7 +281,6 @@ function App() {
                 ) : (
                   <div className="space-y-1">
                     {pagedHistoryItems.map((item) => {
-                      const attempted = !!item.completion || !!item.progress;
                       const statusLabel = item.completion
                         ? copy.app.completedTag
                         : item.progress

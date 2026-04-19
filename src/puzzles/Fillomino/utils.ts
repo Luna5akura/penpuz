@@ -73,6 +73,29 @@ export function getFillominoAutoBoundaryLines(
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
       const value = grid[r][c];
+      if (value === null) continue;
+
+      if (c + 1 < width) {
+        const rightValue = grid[r][c + 1];
+        if (rightValue !== null && rightValue !== value) {
+          const edgeKey = getFillominoEdgeKey(r, c, r, c + 1);
+          if (edgeKey) keys.add(edgeKey);
+        }
+      }
+
+      if (r + 1 < height) {
+        const downValue = grid[r + 1][c];
+        if (downValue !== null && downValue !== value) {
+          const edgeKey = getFillominoEdgeKey(r, c, r + 1, c);
+          if (edgeKey) keys.add(edgeKey);
+        }
+      }
+    }
+  }
+
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const value = grid[r][c];
       if (value === null || visited[r][c]) continue;
 
       const component: { r: number; c: number }[] = [];

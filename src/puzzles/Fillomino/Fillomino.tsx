@@ -500,6 +500,13 @@ export default function FillominoBoard({
         mode = 'thinLine';
       } else if (clues[r][c] !== null) {
         mode = 'copy';
+      } else if (grid[r][c] === null) {
+        mode = 'clear';
+        longPressTimerRef.current = setTimeout(() => {
+          suppressTapRef.current = true;
+          setNumpadTarget({ row: r, col: c });
+          setShowNumpad(true);
+        }, longPressThreshold);
       } else {
         mode = 'tapNumber';
         longPressTimerRef.current = setTimeout(() => {
