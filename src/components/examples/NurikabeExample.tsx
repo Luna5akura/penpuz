@@ -6,6 +6,7 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
   getCrossMarkStyle,
@@ -152,9 +153,8 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
             className="inline-grid dark:bg-gray-800 select-none"
             style={{
               gridTemplateColumns: `repeat(${width}, 44px)`,
-              background: woodBoardTheme.frame,
               padding: `${commonBoardChrome.padding}px`,
-              border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+              ...getBoardFrameStyle(),
             }}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
@@ -183,7 +183,10 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                       ...(isBad2x2
                         ? getInvalidBoardCellColors('dark')
                         : isClue(r, c)
-                          ? getBoardCellColors(isMarked ? 'marked' : 'clue')
+                          ? {
+                              ...getBoardCellColors('clue'),
+                              background: woodBoardTheme.marked,
+                            }
                           : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                       ...getCellDividerStyle(),
                     }}
@@ -212,9 +215,8 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
             className="inline-grid dark:bg-gray-800 cursor-pointer hover:opacity-90 relative"
             style={{
               gridTemplateColumns: `repeat(${width}, 44px)`,
-              background: woodBoardTheme.frame,
               padding: `${commonBoardChrome.padding}px`,
-              border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+              ...getBoardFrameStyle(),
             }}
             >
               <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80 rounded-lg">
@@ -235,9 +237,8 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
               className="inline-grid dark:bg-gray-800"
               style={{
                 gridTemplateColumns: `repeat(${width}, 44px)`,
-                background: woodBoardTheme.frame,
                 padding: `${commonBoardChrome.padding}px`,
-                border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+                ...getBoardFrameStyle(),
               }}
             >
               {correctSolution.flatMap((row, r) =>

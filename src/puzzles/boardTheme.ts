@@ -4,9 +4,10 @@ export const woodBoardTheme = {
   cell: '#f8f1e3',
   clueCell: '#f5ead8',
   prefilledCell: '#f0e6d2',
+  panel: '#fbf6ed',
   shaded: '#3f2a1e',
   shadedText: '#ffffff',
-  marked: '#f5ead8',
+  marked: '#ead9bf',
   markedText: '#7a6a5b',
   lit: '#d9efb5',
   brightLit: '#b7dd7f',
@@ -67,7 +68,7 @@ export function getInvalidBoardCellColors(kind: 'dark' | 'soft' | 'marked' = 'so
   } as const;
 }
 
-export function getCrossMarkStyle(fontSize: number, color = woodBoardTheme.border) {
+export function getCrossMarkStyle(fontSize: number, color = woodBoardTheme.markedText) {
   return {
     fontSize: `${fontSize}px`,
     lineHeight: 1,
@@ -89,6 +90,15 @@ export function getCellDividerStyle(width = 1, color = woodBoardTheme.gridLine) 
     boxSizing: 'border-box',
     borderRight: `${width}px solid ${color}`,
     borderBottom: `${width}px solid ${color}`,
+  } as const;
+}
+
+export function getBoardFrameStyle(borderWidth = commonBoardChrome.border) {
+  return {
+    background: woodBoardTheme.frame,
+    border: `${borderWidth}px solid ${woodBoardTheme.border}`,
+    boxSizing: 'border-box',
+    maxWidth: '100%',
   } as const;
 }
 

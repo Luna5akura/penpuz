@@ -7,6 +7,7 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
   getCrossMarkStyle,
@@ -424,10 +425,7 @@ export default function AkariBoard({
         style={{
           width: `${outerWidth}px`,
           height: `${outerHeight}px`,
-          background: woodBoardTheme.frame,
-          border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-          boxSizing: 'border-box',
-          maxWidth: '100%',
+          ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={(event) => finishPointer(event.pointerId)}
@@ -513,7 +511,7 @@ export default function AkariBoard({
                       }}
                     />
                   ) : !isBlack && isMarked ? (
-                    <span style={getCrossMarkStyle(crossFontSize)}>×</span>
+                    <span style={getCrossMarkStyle(crossFontSize, woodBoardTheme.markedText)}>×</span>
                   ) : null}
                 </div>
               );

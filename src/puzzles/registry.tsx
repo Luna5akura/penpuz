@@ -516,7 +516,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'aqre',
       name: {
-        'zh-CN': 'Aqre',
+        'zh-CN': '黑白无四',
         en: 'Aqre',
       },
       rulesTitle: {

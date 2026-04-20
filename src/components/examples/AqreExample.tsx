@@ -5,6 +5,7 @@ import AqreBoard from '../../puzzles/Aqre/Aqre';
 import {
   commonBoardChrome,
   getBoardCellColors,
+  getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
   getOutlinedBorderStrokeWidth,
@@ -86,10 +87,8 @@ export default function AqreExample({
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
-                  border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-                  background: woodBoardTheme.frame,
                   padding: `${BOARD_PADDING}px`,
-                  boxSizing: 'border-box',
+                  ...getBoardFrameStyle(BOARD_BORDER),
                 }}
               >
                 <div
@@ -120,9 +119,7 @@ export default function AqreExample({
               style={{
                 width: `${outerWidth}px`,
                 height: `${outerHeight}px`,
-                background: woodBoardTheme.frame,
-                border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-                boxSizing: 'border-box',
+                ...getBoardFrameStyle(BOARD_BORDER),
               }}
             >
               <div
@@ -166,26 +163,16 @@ export default function AqreExample({
                   const y = BOARD_PADDING + segment.row * CELL_SIZE;
                   const x2 = x1 + CELL_SIZE;
                   return (
-                    <g key={`h-${segment.row}-${segment.col}`}>
-                      <line
-                        x1={x1}
-                        y1={y}
-                        x2={x2}
-                        y2={y}
-                        stroke={woodBoardTheme.cell}
-                        strokeWidth={boundaryOutlineStroke}
-                        strokeLinecap="butt"
-                      />
-                      <line
-                        x1={x1}
-                        y1={y}
-                        x2={x2}
-                        y2={y}
-                        stroke={woodBoardTheme.border}
-                        strokeWidth={boundaryStroke}
-                        strokeLinecap="square"
-                      />
-                    </g>
+                    <line
+                      key={`h-outline-${segment.row}-${segment.col}`}
+                      x1={x1}
+                      y1={y}
+                      x2={x2}
+                      y2={y}
+                      stroke={woodBoardTheme.cell}
+                      strokeWidth={boundaryOutlineStroke}
+                      strokeLinecap="butt"
+                    />
                   );
                 })}
 
@@ -194,26 +181,52 @@ export default function AqreExample({
                   const y1 = BOARD_PADDING + segment.row * CELL_SIZE;
                   const y2 = y1 + CELL_SIZE;
                   return (
-                    <g key={`v-${segment.row}-${segment.col}`}>
-                      <line
-                        x1={x}
-                        y1={y1}
-                        x2={x}
-                        y2={y2}
-                        stroke={woodBoardTheme.cell}
-                        strokeWidth={boundaryOutlineStroke}
-                        strokeLinecap="butt"
-                      />
-                      <line
-                        x1={x}
-                        y1={y1}
-                        x2={x}
-                        y2={y2}
-                        stroke={woodBoardTheme.border}
-                        strokeWidth={boundaryStroke}
-                        strokeLinecap="square"
-                      />
-                    </g>
+                    <line
+                      key={`v-outline-${segment.row}-${segment.col}`}
+                      x1={x}
+                      y1={y1}
+                      x2={x}
+                      y2={y2}
+                      stroke={woodBoardTheme.cell}
+                      strokeWidth={boundaryOutlineStroke}
+                      strokeLinecap="butt"
+                    />
+                  );
+                })}
+
+                {boundaries.horizontal.map((segment) => {
+                  const x1 = BOARD_PADDING + segment.col * CELL_SIZE;
+                  const y = BOARD_PADDING + segment.row * CELL_SIZE;
+                  const x2 = x1 + CELL_SIZE;
+                  return (
+                    <line
+                      key={`h-stroke-${segment.row}-${segment.col}`}
+                      x1={x1}
+                      y1={y}
+                      x2={x2}
+                      y2={y}
+                      stroke={woodBoardTheme.border}
+                      strokeWidth={boundaryStroke}
+                      strokeLinecap="square"
+                    />
+                  );
+                })}
+
+                {boundaries.vertical.map((segment) => {
+                  const x = BOARD_PADDING + segment.col * CELL_SIZE;
+                  const y1 = BOARD_PADDING + segment.row * CELL_SIZE;
+                  const y2 = y1 + CELL_SIZE;
+                  return (
+                    <line
+                      key={`v-stroke-${segment.row}-${segment.col}`}
+                      x1={x}
+                      y1={y1}
+                      x2={x}
+                      y2={y2}
+                      stroke={woodBoardTheme.border}
+                      strokeWidth={boundaryStroke}
+                      strokeLinecap="square"
+                    />
                   );
                 })}
               </svg>

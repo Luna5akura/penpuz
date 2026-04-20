@@ -2,7 +2,13 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import { useI18n } from '@/i18n/useI18n';
-import { commonBoardChrome, getBoardCellColors, getBoardNumberFontSize, woodBoardTheme } from '../../puzzles/boardTheme';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardFrameStyle,
+  getBoardNumberFontSize,
+  woodBoardTheme,
+} from '../../puzzles/boardTheme';
 import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from '../../puzzles/Fillomino/utils';
 
 const BOARD_PADDING = commonBoardChrome.padding;
@@ -402,10 +408,9 @@ export default function FillominoExample({
             style={{
               position: 'relative',
               display: 'inline-block',
-              background: woodBoardTheme.frame,
               padding: `${BOARD_PADDING}px`,
-              border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
               touchAction: 'none',
+              ...getBoardFrameStyle(),
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
@@ -437,7 +442,12 @@ export default function FillominoExample({
                         height: `${cellSize}px`,
                         fontSize: `${getBoardNumberFontSize(cellSize)}px`,
                         lineHeight: `${cellSize}px`,
-                        ...getBoardCellColors(isPreFilled ? 'prefilled' : 'cell'),
+                        ...(isPreFilled
+                          ? {
+                              ...getBoardCellColors('prefilled'),
+                              background: woodBoardTheme.marked,
+                            }
+                          : getBoardCellColors('cell')),
                       }}
                     >
                       {value ?? ''}
@@ -505,7 +515,7 @@ export default function FillominoExample({
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  background: '#fff',
+                  background: woodBoardTheme.panel,
                   border: `3px solid ${woodBoardTheme.border}`,
                   borderRadius: '12px',
                   padding: '12px',
@@ -548,10 +558,10 @@ export default function FillominoExample({
                       height: '52px',
                       fontSize: '20px',
                       fontWeight: 'bold',
-                      background: '#fee2e2',
+                      background: woodBoardTheme.invalidSoft,
                       border: `2px solid ${woodBoardTheme.border}`,
                       borderRadius: '8px',
-                      color: '#b91c1c',
+                      color: woodBoardTheme.invalidText,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -579,9 +589,8 @@ export default function FillominoExample({
               style={{
                 position: 'relative',
                 display: 'inline-block',
-                background: woodBoardTheme.frame,
                 padding: `${BOARD_PADDING}px`,
-                border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+                ...getBoardFrameStyle(),
               }}
             >
               <div
@@ -615,9 +624,8 @@ export default function FillominoExample({
               style={{
                 position: 'relative',
                 display: 'inline-block',
-                background: woodBoardTheme.frame,
                 padding: `${BOARD_PADDING}px`,
-                border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
+                ...getBoardFrameStyle(),
               }}
             >
               <div

@@ -6,7 +6,14 @@ import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino }
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
-import { commonBoardChrome, getBoardCellColors, getBoardNumberFontSize, getResponsiveCellSize, woodBoardTheme } from '../boardTheme';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardFrameStyle,
+  getBoardNumberFontSize,
+  getResponsiveCellSize,
+  woodBoardTheme,
+} from '../boardTheme';
 
 interface Props {
   puzzle: FillominoPuzzleData;
@@ -613,12 +620,9 @@ export default function FillominoBoard({
         style={{
           position: 'relative',
           display: 'inline-block',
-          background: woodBoardTheme.frame,
           padding: `${BOARD_PADDING}px`,
-          border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
           touchAction: 'none',
-          boxSizing: 'border-box',
-          maxWidth: '100%',
+          ...getBoardFrameStyle(),
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
@@ -654,7 +658,12 @@ export default function FillominoBoard({
                     height: `${cellSize}px`,
                     fontSize: `${getBoardNumberFontSize(cellSize)}px`,
                     lineHeight: `${cellSize}px`,
-                    ...getBoardCellColors(isPreFilled ? 'prefilled' : 'cell'),
+                    ...(isPreFilled
+                      ? {
+                          ...getBoardCellColors('prefilled'),
+                          background: woodBoardTheme.marked,
+                        }
+                      : getBoardCellColors('cell')),
                     ...(trialColors && !isPreFilled
                       ? {
                           background: trialColors.softFill,
@@ -764,7 +773,7 @@ export default function FillominoBoard({
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              background: '#fff',
+              background: woodBoardTheme.panel,
               border: `3px solid ${woodBoardTheme.border}`,
               borderRadius: '12px',
               padding: '12px',
@@ -825,10 +834,10 @@ export default function FillominoBoard({
                   height: '52px',
                   fontSize: '20px',
                   fontWeight: 'bold',
-                  background: '#fee2e2',
+                  background: woodBoardTheme.invalidSoft,
                   border: `2px solid ${woodBoardTheme.border}`,
                   borderRadius: '8px',
-                  color: '#b91c1c',
+                  color: woodBoardTheme.invalidText,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

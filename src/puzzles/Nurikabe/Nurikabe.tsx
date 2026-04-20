@@ -9,6 +9,7 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
   getCrossMarkStyle,
@@ -251,12 +252,9 @@ export default function NurikabeBoard({
         style={{
           display: 'inline-grid',
           gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          background: woodBoardTheme.frame,
           padding: `${commonBoardChrome.padding}px`,
-          border: `${commonBoardChrome.border}px solid ${woodBoardTheme.border}`,
           touchAction: 'none',
-          maxWidth: '100%',
-          boxSizing: 'border-box',
+          ...getBoardFrameStyle(),
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -270,7 +268,7 @@ export default function NurikabeBoard({
             const trialColors = getTrialLevelColors(levels[r][c]);
             const style = trialColors && !clue
               ? isShaded
-                ? { background: trialColors.fill, color: '#ffffff' }
+                ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
                 : isMarked
                   ? { background: trialColors.softFill, color: trialColors.text }
                   : undefined
@@ -289,14 +287,19 @@ export default function NurikabeBoard({
                   fontSize: `${getBoardNumberFontSize(cellSize)}px`,
                   lineHeight: 1,
                   ...(clue
-                    ? getBoardCellColors(isMarked ? 'marked' : 'clue')
+                    ? {
+                        ...getBoardCellColors('clue'),
+                        background: woodBoardTheme.marked,
+                      }
                     : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                   ...getCellDividerStyle(),
                   ...style,
                 }}
                 className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0 cursor-pointer touch-none"
               >
-                {clue ? clue.value : isMarked ? <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span> : ''}
+                {clue ? clue.value : isMarked ? (
+                  <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
+                ) : ''}
               </div>
             );
             })

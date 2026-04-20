@@ -13,7 +13,6 @@ import { renderPuzzleBoard } from './puzzles/registry';
 import { Button } from './components/ui/button';
 // import { Card } from './components/ui/card';
 import { Badge } from './components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './components/ui/dialog';
 import { useI18n } from './i18n/useI18n';
 import { puzzleDifficultyLabels } from './puzzles/types';
 import { formatMinutesSeconds } from './lib/formatDuration';
@@ -390,23 +389,34 @@ function App() {
           puzzleType={daily?.puzzle.type || 'nurikabe'}
           dateStr={daily.dateStr}
         />
-        <Dialog open={restartDialogOpen} onOpenChange={setRestartDialogOpen}>
-          <DialogContent className="max-w-sm border-[#d7c7b4] bg-card dark:border-gray-700 dark:bg-card">
-            <DialogHeader>
-              <DialogTitle>{copy.app.restartOptionsTitle}</DialogTitle>
-              <DialogDescription>{copy.app.restartOptionsHint}</DialogDescription>
-            </DialogHeader>
-            <div className="flex flex-col gap-2">
-              <Button onClick={handleRestartWithTime}>{copy.app.restartKeepTime}</Button>
-              <Button variant="outline" onClick={handleRestartFromZero}>
-                {copy.app.restartResetTime}
-              </Button>
-              <Button variant="ghost" onClick={() => setRestartDialogOpen(false)}>
-                {copy.shared.cancel}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {restartDialogOpen && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3"
+            onClick={() => setRestartDialogOpen(false)}
+          >
+            <Card
+              className="w-full max-w-sm border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={copy.app.restartOptionsTitle}
+            >
+              <div className="space-y-2">
+                <h2 className="text-xl font-semibold text-foreground">{copy.app.restartOptionsTitle}</h2>
+                <p className="text-sm text-muted-foreground">{copy.app.restartOptionsHint}</p>
+              </div>
+              <div className="mt-4 flex flex-col gap-2">
+                <Button onClick={handleRestartWithTime}>{copy.app.restartKeepTime}</Button>
+                <Button variant="outline" onClick={handleRestartFromZero}>
+                  {copy.app.restartResetTime}
+                </Button>
+                <Button variant="ghost" onClick={() => setRestartDialogOpen(false)}>
+                  {copy.shared.cancel}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

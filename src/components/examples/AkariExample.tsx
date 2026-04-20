@@ -5,6 +5,7 @@ import AkariBoard from '../../puzzles/Akari/Akari';
 import {
   commonBoardChrome,
   getBoardCellColors,
+  getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
   woodBoardTheme,
@@ -93,10 +94,8 @@ export default function AkariExample({
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
-                  border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-                  background: woodBoardTheme.frame,
                   padding: `${BOARD_PADDING}px`,
-                  boxSizing: 'border-box',
+                  ...getBoardFrameStyle(BOARD_BORDER),
                 }}
               >
                 <div
@@ -127,9 +126,7 @@ export default function AkariExample({
               style={{
                 width: `${outerWidth}px`,
                 height: `${outerHeight}px`,
-                background: woodBoardTheme.frame,
-                border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-                boxSizing: 'border-box',
+                ...getBoardFrameStyle(BOARD_BORDER),
               }}
             >
               <div

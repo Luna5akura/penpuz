@@ -8,6 +8,7 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardFrameStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
@@ -499,10 +500,7 @@ export default function StarbattleBoard({
         style={{
           width: `${outerWidth}px`,
           height: `${outerHeight}px`,
-          background: woodBoardTheme.frame,
-          border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-          boxSizing: 'border-box',
-          maxWidth: '100%',
+          ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -522,7 +520,13 @@ export default function StarbattleBoard({
             row.map((state, c) => {
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const isInvalid = showValidationMessage && invalidCellSet.has(`${r},${c}`);
-              const baseStyle = getBoardCellColors(state === 2 ? 'marked' : 'cell');
+              const isMarked = state === 2;
+              const baseStyle = isMarked
+                ? {
+                    ...getBoardCellColors('marked'),
+                    background: woodBoardTheme.marked,
+                  }
+                : getBoardCellColors('cell');
               const trialStyle = trialColors
                 ? state === 1
                   ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
@@ -538,7 +542,7 @@ export default function StarbattleBoard({
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    ...(isInvalid ? getInvalidBoardCellColors('soft') : baseStyle),
+                    ...(isInvalid ? getInvalidBoardCellColors(isMarked ? 'marked' : 'soft') : baseStyle),
                     ...getCellDividerStyle(),
                     ...trialStyle,
                   }}
@@ -546,7 +550,7 @@ export default function StarbattleBoard({
                   {state === 1 ? (
                     <span style={{ fontSize: `${starFontSize}px`, lineHeight: 1 }}>★</span>
                   ) : state === 2 ? (
-                    <span style={getCrossMarkStyle(crossFontSize)}>×</span>
+                    <span style={getCrossMarkStyle(crossFontSize, trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
                   ) : null}
                 </div>
               );
@@ -564,26 +568,16 @@ export default function StarbattleBoard({
             const y = BOARD_PADDING + segment.row * cellSize;
             const x2 = x1 + cellSize;
             return (
-              <g key={`h-${segment.row}-${segment.col}`}>
-                <line
-                  x1={x1}
-                  y1={y}
-                  x2={x2}
-                  y2={y}
-                  stroke={woodBoardTheme.cell}
-                  strokeWidth={boundaryOutlineStroke}
-                  strokeLinecap="butt"
-                />
-                <line
-                  x1={x1}
-                  y1={y}
-                  x2={x2}
-                  y2={y}
-                  stroke={woodBoardTheme.border}
-                  strokeWidth={boundaryStroke}
-                  strokeLinecap="square"
-                />
-              </g>
+              <line
+                key={`h-outline-${segment.row}-${segment.col}`}
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={woodBoardTheme.cell}
+                strokeWidth={boundaryOutlineStroke}
+                strokeLinecap="butt"
+              />
             );
           })}
 
@@ -592,26 +586,52 @@ export default function StarbattleBoard({
             const y1 = BOARD_PADDING + segment.row * cellSize;
             const y2 = y1 + cellSize;
             return (
-              <g key={`v-${segment.row}-${segment.col}`}>
-                <line
-                  x1={x}
-                  y1={y1}
-                  x2={x}
-                  y2={y2}
-                  stroke={woodBoardTheme.cell}
-                  strokeWidth={boundaryOutlineStroke}
-                  strokeLinecap="butt"
-                />
-                <line
-                  x1={x}
-                  y1={y1}
-                  x2={x}
-                  y2={y2}
-                  stroke={woodBoardTheme.border}
-                  strokeWidth={boundaryStroke}
-                  strokeLinecap="square"
-                />
-              </g>
+              <line
+                key={`v-outline-${segment.row}-${segment.col}`}
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={woodBoardTheme.cell}
+                strokeWidth={boundaryOutlineStroke}
+                strokeLinecap="butt"
+              />
+            );
+          })}
+
+          {boundaries.horizontal.map((segment) => {
+            const x1 = BOARD_PADDING + segment.col * cellSize;
+            const y = BOARD_PADDING + segment.row * cellSize;
+            const x2 = x1 + cellSize;
+            return (
+              <line
+                key={`h-stroke-${segment.row}-${segment.col}`}
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={woodBoardTheme.border}
+                strokeWidth={boundaryStroke}
+                strokeLinecap="square"
+              />
+            );
+          })}
+
+          {boundaries.vertical.map((segment) => {
+            const x = BOARD_PADDING + segment.col * cellSize;
+            const y1 = BOARD_PADDING + segment.row * cellSize;
+            const y2 = y1 + cellSize;
+            return (
+              <line
+                key={`v-stroke-${segment.row}-${segment.col}`}
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={woodBoardTheme.border}
+                strokeWidth={boundaryStroke}
+                strokeLinecap="square"
+              />
             );
           })}
 

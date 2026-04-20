@@ -70,13 +70,12 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/9h9h9h9g34i332h454i13g94g9h9g39j51n14j9g19h94g9g331i23h32i323g9h9h9h9000000000000000000000000000000000008',
     difficulty: '极难',
   },
-  
   {
     puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/bjbjbg.icqb6acvacgan.ldhbj',
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?aqre/10/10/i8ikjp3m7sfovpe9o9f17ivs4081g23s5sfu5306j0g1j00j',
+    puzzLink: 'https://pzprxs.vercel.app/p?aqre/10/10/bbdr0i1k2o4gf0ln5lcinv81o283o281nvci12321003g23011102012113',
     difficulty: '困难',
   },
   {
@@ -110,6 +109,10 @@ const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/j1i1g1j.g.i.m.n1h.p1h1h.k.j11p.h.i.l1i1',
     difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?aqre/10/10/69dmr9ibdmqkirdml4dmg9dmvv00dmvv00dm433033301423134300343133',
+    difficulty: '困难',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/022ecspp3ojj76e8010sf0000see70000unu44444444',

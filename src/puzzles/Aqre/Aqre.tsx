@@ -7,6 +7,7 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
   getCrossMarkStyle,
@@ -326,10 +327,7 @@ export default function AqreBoard({
         style={{
           width: `${outerWidth}px`,
           height: `${outerHeight}px`,
-          background: woodBoardTheme.frame,
-          border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-          boxSizing: 'border-box',
-          maxWidth: '100%',
+          ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={(event) => finishPointer(event.pointerId)}
@@ -415,26 +413,16 @@ export default function AqreBoard({
             const y = BOARD_PADDING + segment.row * cellSize;
             const x2 = x1 + cellSize;
             return (
-              <g key={`h-${segment.row}-${segment.col}`}>
-                <line
-                  x1={x1}
-                  y1={y}
-                  x2={x2}
-                  y2={y}
-                  stroke={woodBoardTheme.cell}
-                  strokeWidth={boundaryOutlineStroke}
-                  strokeLinecap="butt"
-                />
-                <line
-                  x1={x1}
-                  y1={y}
-                  x2={x2}
-                  y2={y}
-                  stroke={woodBoardTheme.border}
-                  strokeWidth={boundaryStroke}
-                  strokeLinecap="square"
-                />
-              </g>
+              <line
+                key={`h-outline-${segment.row}-${segment.col}`}
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={woodBoardTheme.cell}
+                strokeWidth={boundaryOutlineStroke}
+                strokeLinecap="butt"
+              />
             );
           })}
 
@@ -443,26 +431,52 @@ export default function AqreBoard({
             const y1 = BOARD_PADDING + segment.row * cellSize;
             const y2 = y1 + cellSize;
             return (
-              <g key={`v-${segment.row}-${segment.col}`}>
-                <line
-                  x1={x}
-                  y1={y1}
-                  x2={x}
-                  y2={y2}
-                  stroke={woodBoardTheme.cell}
-                  strokeWidth={boundaryOutlineStroke}
-                  strokeLinecap="butt"
-                />
-                <line
-                  x1={x}
-                  y1={y1}
-                  x2={x}
-                  y2={y2}
-                  stroke={woodBoardTheme.border}
-                  strokeWidth={boundaryStroke}
-                  strokeLinecap="square"
-                />
-              </g>
+              <line
+                key={`v-outline-${segment.row}-${segment.col}`}
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={woodBoardTheme.cell}
+                strokeWidth={boundaryOutlineStroke}
+                strokeLinecap="butt"
+              />
+            );
+          })}
+
+          {boundaries.horizontal.map((segment) => {
+            const x1 = BOARD_PADDING + segment.col * cellSize;
+            const y = BOARD_PADDING + segment.row * cellSize;
+            const x2 = x1 + cellSize;
+            return (
+              <line
+                key={`h-stroke-${segment.row}-${segment.col}`}
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={woodBoardTheme.border}
+                strokeWidth={boundaryStroke}
+                strokeLinecap="square"
+              />
+            );
+          })}
+
+          {boundaries.vertical.map((segment) => {
+            const x = BOARD_PADDING + segment.col * cellSize;
+            const y1 = BOARD_PADDING + segment.row * cellSize;
+            const y2 = y1 + cellSize;
+            return (
+              <line
+                key={`v-stroke-${segment.row}-${segment.col}`}
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={woodBoardTheme.border}
+                strokeWidth={boundaryStroke}
+                strokeLinecap="square"
+              />
             );
           })}
         </svg>

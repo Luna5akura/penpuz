@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
-import { commonBoardChrome, getBoardCellColors, woodBoardTheme } from '../../puzzles/boardTheme';
+import { commonBoardChrome, getBoardCellColors, getBoardFrameStyle, woodBoardTheme } from '../../puzzles/boardTheme';
 import { ClueArrow } from '../../puzzles/Yajilin/ClueArrow';
 import { getClueNumberFontSize } from '../../puzzles/Yajilin/clueSizing';
 import { createYajilinEdgeSet, parseYajilinEdgeKey } from '../../puzzles/Yajilin/utils';
@@ -110,9 +110,7 @@ export default function YajilinExample({
                 width: `${boardWidthPx + BORDER * 2}px`,
                 height: `${boardHeightPx + BORDER * 2}px`,
                 padding: `${PADDING}px`,
-                background: woodBoardTheme.frame,
-                border: `${BORDER}px solid ${woodBoardTheme.border}`,
-                boxSizing: 'border-box',
+                ...getBoardFrameStyle(BORDER),
               }}
             >
               <div

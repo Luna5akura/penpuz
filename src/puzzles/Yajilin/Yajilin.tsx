@@ -5,7 +5,15 @@ import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { ClueArrow } from './ClueArrow';
 import { getClueNumberFontSize, MOBILE_CLUE_REFERENCE_SIZE } from './clueSizing';
-import { commonBoardChrome, getBoardCellColors, getBoardCrossFontSize, getCrossMarkStyle, getResponsiveCellSize, woodBoardTheme } from '../boardTheme';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardCrossFontSize,
+  getBoardFrameStyle,
+  getCrossMarkStyle,
+  getResponsiveCellSize,
+  woodBoardTheme,
+} from '../boardTheme';
 import {
   createEmptyYajilinGrid,
   detectYajilinHitTarget,
@@ -606,10 +614,7 @@ export default function YajilinBoard({
           width: `${boardWidthPx + BOARD_BORDER * 2}px`,
           height: `${boardHeightPx + BOARD_BORDER * 2}px`,
           padding: `${BOARD_PADDING}px`,
-          background: woodBoardTheme.frame,
-          border: `${BOARD_BORDER}px solid ${woodBoardTheme.border}`,
-          boxSizing: 'border-box',
-          maxWidth: '100%',
+          ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -670,7 +675,7 @@ export default function YajilinBoard({
                       </span>
                     </div>
                   ) : isMarked ? (
-                    <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span>
+                    <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
                   ) : null}
                 </div>
               );
