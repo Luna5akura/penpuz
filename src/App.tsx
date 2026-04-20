@@ -105,6 +105,7 @@ function App() {
     const startIndex = (safeHistoryPage - 1) * HISTORY_PAGE_SIZE;
     return historyItems.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
   }, [historyItems, safeHistoryPage]);
+  const historyPlaceholderCount = Math.max(0, HISTORY_PAGE_SIZE - pagedHistoryItems.length);
 
   useEffect(() => {
     if (!showHistory) return;
@@ -354,6 +355,32 @@ function App() {
                         </button>
                       );
                     })}
+                    {Array.from({ length: historyPlaceholderCount }, (_, index) => (
+                      <div
+                        key={`history-placeholder-${safeHistoryPage}-${index}`}
+                        aria-hidden="true"
+                        className="border-b px-2 py-3 opacity-0 pointer-events-none select-none dark:border-gray-700"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="mt-1 h-2.5 w-2.5 shrink-0 bg-transparent" />
+                          <div className="min-w-0 flex-1">
+                            <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  <span className="text-lg font-semibold">placeholder</span>
+                                  <span className="h-6 w-14 rounded-md border" />
+                                  <span className="h-6 w-16 rounded-md border" />
+                                </div>
+                                <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs">
+                                  <span className="font-medium tracking-wide">placeholder</span>
+                                </div>
+                              </div>
+                              <div className="shrink-0 text-right font-mono text-sm">00:00</div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
