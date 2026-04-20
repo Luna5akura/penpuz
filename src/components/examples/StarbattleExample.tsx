@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../../puzzles/types';
 import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
@@ -107,9 +108,7 @@ export default function StarbattleExample({
                   ))}
                 </div>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
+              <ExampleAnswerOverlay />
             </div>
           ) : (
             <div className="flex flex-col items-end gap-3">

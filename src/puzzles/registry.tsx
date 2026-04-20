@@ -5,6 +5,7 @@ import YajilinBoard from './Yajilin/Yajilin';
 import StarbattleBoard from './Starbattle/Starbattle';
 import HeyawakeBoard from './Heyawake/Heyawake';
 import AqreBoard from './Aqre/Aqre';
+import NikojiBoard from './Nikoji/Nikoji';
 import AkariBoard from './Akari/Akari';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
@@ -12,6 +13,7 @@ import YajilinExample from '../components/examples/YajilinExample';
 import StarbattleExample from '../components/examples/StarbattleExample';
 import HeyawakeExample from '../components/examples/HeyawakeExample';
 import AqreExample from '../components/examples/AqreExample';
+import NikojiExample from '../components/examples/NikojiExample';
 import AkariExample from '../components/examples/AkariExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
@@ -19,12 +21,14 @@ import { parseYajilinLink } from './Yajilin/utils';
 import { parseStarbattleLink } from './Starbattle/utils';
 import { parseHeyawakeLink } from './Heyawake/utils';
 import { parseAqreLink } from './Aqre/utils';
+import { parseNikojiLink } from './Nikoji/utils';
 import { parseAkariLink } from './Akari/utils';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
   FillominoPuzzleData,
   HeyawakePuzzleData,
+  NikojiPuzzleData,
   NurikabePuzzleData,
   PuzzleData,
   PuzzleEntry,
@@ -58,6 +62,7 @@ type PuzzleRegistry = {
   starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
   heyawake: PuzzleRegistryEntry<HeyawakePuzzleData>;
   aqre: PuzzleRegistryEntry<AqrePuzzleData>;
+  nikoji: PuzzleRegistryEntry<NikojiPuzzleData>;
   akari: PuzzleRegistryEntry<AkariPuzzleData>;
 };
 
@@ -256,8 +261,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（5×5）',
-        en: 'Example (5×5)',
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
       },
       playableLabel: {
         'zh-CN': '可游玩例题',
@@ -357,8 +362,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（5×5）',
-        en: 'Example (5×5)',
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
       },
       playableLabel: {
         'zh-CN': '可游玩例题',
@@ -602,6 +607,88 @@ export const puzzleRegistry: PuzzleRegistry = {
           regionIds={example.regionIds}
           clues={example.clues}
           correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  nikoji: {
+    parsePuzzLink: parseNikojiLink,
+    template: {
+      type: 'nikoji',
+      name: {
+        'zh-CN': 'NIKOJI',
+        en: 'NIKOJI',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '用边线把盘面分成若干区域，并且每个区域必须恰好包含一个字母。',
+          '相同字母所在的区域必须形状和朝向都一致，而且字母在区域中的相对位置也一致。',
+          '不同字母所在的区域必须是不同形状；旋转或镜像后仍算相同形状。',
+        ],
+        en: [
+          'Divide the grid into regions, and each region must contain exactly one letter.',
+          'Regions with the same letter must be identical in shape and orientation, and the letter must appear in the same relative position.',
+          'Regions with different letters must have different shapes, even after rotation or reflection.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩例题',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'nikoji',
+        width: 4,
+        height: 4,
+        letters: [
+          [null, null, null, 'A'],
+          ['B', null, 'A', null],
+          ['C', null, null, null],
+          ['C', 'B', null, 'D'],
+        ],
+        solutionRegionIds: [
+          [0, 0, 1, 1],
+          [0, 2, 2, 3],
+          [4, 5, 5, 3],
+          [6, 5, 3, 3],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <NikojiBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'nikoji') {
+        throw new Error('Nikoji template example type mismatch.');
+      }
+
+      return (
+        <NikojiExample
+          width={example.width}
+          height={example.height}
+          letters={example.letters}
+          solutionRegionIds={example.solutionRegionIds}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
         />

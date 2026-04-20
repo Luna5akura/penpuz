@@ -1,6 +1,7 @@
 // src/components/examples/NurikabeExample.tsx
 import { useState, useEffect, useMemo, useRef } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import { validateNurikabe, getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
 import {
   commonBoardChrome,
@@ -219,9 +220,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
               ...getBoardFrameStyle(),
             }}
             >
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80 rounded-lg">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
+              <ExampleAnswerOverlay rounded />
               {correctSolution.flatMap((row, r) =>
                 row.map((_, c) => (
                   <div

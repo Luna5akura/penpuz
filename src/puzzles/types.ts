@@ -80,6 +80,13 @@ export interface AqrePuzzleData {
   clues: AqreClue[];
 }
 
+export interface NikojiPuzzleData {
+  type: 'nikoji';
+  width: number;
+  height: number;
+  letters: (string | null)[][];
+}
+
 export type AkariCell = number | 'black' | null;
 
 export interface AkariPuzzleData {
@@ -96,6 +103,7 @@ export type PuzzleData =
   | StarbattlePuzzleData
   | HeyawakePuzzleData
   | AqrePuzzleData
+  | NikojiPuzzleData
   | AkariPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
@@ -167,6 +175,13 @@ export type PuzzleExample =
       regionIds: number[][];
       clues: AqreClue[];
       correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'nikoji';
+      width: number;
+      height: number;
+      letters: (string | null)[][];
+      solutionRegionIds: number[][];
     }
   | {
       puzzleType: 'akari';

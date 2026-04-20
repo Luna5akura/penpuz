@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { AqrePuzzleData } from '../../puzzles/types';
 import AqreBoard from '../../puzzles/Aqre/Aqre';
 import {
@@ -109,9 +110,7 @@ export default function AqreExample({
                   ))}
                 </div>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
+              <ExampleAnswerOverlay />
             </div>
           ) : (
             <div

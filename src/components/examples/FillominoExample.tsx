@@ -1,6 +1,7 @@
 // src/components/examples/FillominoExample.tsx
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import { useI18n } from '@/i18n/useI18n';
 import {
   commonBoardChrome,
@@ -614,9 +615,7 @@ export default function FillominoExample({
                   ))
                 )}
               </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80 rounded-lg pointer-events-none">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
+              <ExampleAnswerOverlay rounded />
             </div>
           ) : (
             <div

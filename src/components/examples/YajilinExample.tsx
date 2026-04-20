@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
 import { commonBoardChrome, getBoardCellColors, getBoardFrameStyle, woodBoardTheme } from '../../puzzles/boardTheme';
@@ -82,26 +83,31 @@ export default function YajilinExample({
               className="relative cursor-pointer hover:opacity-90"
             >
               <div
-                className="grid dark:bg-gray-800"
+                className="relative"
                 style={{
-                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                  gap: `${GAP}px`,
-                  background: woodBoardTheme.gridLine,
-                  padding: `${commonBoardChrome.padding}px`,
-                  border: `${BORDER}px solid ${woodBoardTheme.border}`,
+                  width: `${boardWidthPx + BORDER * 2}px`,
+                  height: `${boardHeightPx + BORDER * 2}px`,
+                  padding: `${PADDING}px`,
+                  ...getBoardFrameStyle(BORDER),
                 }}
               >
-                {Array.from({ length: width * height }, (_, index) => (
-                  <div
-                    key={index}
-                    className="dark:bg-gray-800"
-                    style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, background: woodBoardTheme.cell }}
-                  />
-                ))}
+                <div
+                  className="grid"
+                  style={{
+                    gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
+                    gap: `${GAP}px`,
+                    background: woodBoardTheme.gridLine,
+                  }}
+                >
+                  {Array.from({ length: width * height }, (_, index) => (
+                    <div
+                      key={index}
+                      style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, background: woodBoardTheme.cell }}
+                    />
+                  ))}
+                </div>
               </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
+              <ExampleAnswerOverlay />
             </div>
           ) : (
             <div
@@ -133,7 +139,12 @@ export default function YajilinExample({
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
                           paddingTop: clue ? '0px' : '2px',
-                          ...getBoardCellColors(clue ? 'clue' : isShaded ? 'playerShaded' : 'cell'),
+                          ...(clue
+                            ? {
+                                ...getBoardCellColors('clue'),
+                                background: woodBoardTheme.marked,
+                              }
+                            : getBoardCellColors(isShaded ? 'playerShaded' : 'cell')),
                         }}
                       >
                         {clue ? (
