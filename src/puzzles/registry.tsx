@@ -730,7 +730,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'nikoji',
       name: {
-        'zh-CN': 'NIKOJI',
+        'zh-CN': '异同分割',
         en: 'NIKOJI',
       },
       rulesTitle: {
