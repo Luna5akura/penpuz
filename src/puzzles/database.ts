@@ -83,6 +83,10 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'https://pzprxs.vercel.app/p?mintonette/10/10/.h4i4m3p4h42h2i4m3k4h1q2h4h14zh2h./',
+    difficulty: '困难',
+  },
+  {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
     difficulty: '简单',
   },
@@ -109,6 +113,10 @@ const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/2h2h2h2j34n56j2h2h2h2g46g64g53h53g35g46g2h2h2h2j35n64j2h2h2h2',
     difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?mintonette/10/10/g..n0l0.o.i0h0m77n69m0h0i.o.0l0n..g',
+    difficulty: '极难',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/j1i1g1j.g.i.m.n1h.p1h1h.k.j11p.h.i.l1i1',

@@ -9,7 +9,7 @@ interface Props {
   isOpen: boolean;
   time: number;
   onClose: () => void;
-  puzzleType: 'nurikabe' | 'fillomino' | 'yajilin' | 'starbattle' | 'heyawake' | 'aqre' | 'nikoji' | 'akari';
+  puzzleType: 'nurikabe' | 'fillomino' | 'yajilin' | 'starbattle' | 'heyawake' | 'aqre' | 'mintonette' | 'nikoji' | 'akari';
   dateStr: string;
 }
 

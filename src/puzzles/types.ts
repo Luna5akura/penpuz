@@ -80,6 +80,26 @@ export interface AqrePuzzleData {
   clues: AqreClue[];
 }
 
+export interface MintonetteClue {
+  row: number;
+  col: number;
+  value: number | null;
+}
+
+export interface MintonetteSolutionEdge {
+  r1: number;
+  c1: number;
+  r2: number;
+  c2: number;
+}
+
+export interface MintonettePuzzleData {
+  type: 'mintonette';
+  width: number;
+  height: number;
+  clues: MintonetteClue[];
+}
+
 export interface NikojiPuzzleData {
   type: 'nikoji';
   width: number;
@@ -103,6 +123,7 @@ export type PuzzleData =
   | StarbattlePuzzleData
   | HeyawakePuzzleData
   | AqrePuzzleData
+  | MintonettePuzzleData
   | NikojiPuzzleData
   | AkariPuzzleData;
 export type PuzzleType = PuzzleData['type'];
@@ -175,6 +196,14 @@ export type PuzzleExample =
       regionIds: number[][];
       clues: AqreClue[];
       correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'mintonette';
+      width: number;
+      height: number;
+      clues: MintonetteClue[];
+      solutionEdges: MintonetteSolutionEdge[];
+      crossedEdges?: MintonetteSolutionEdge[];
     }
   | {
       puzzleType: 'nikoji';

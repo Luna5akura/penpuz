@@ -5,6 +5,7 @@ import YajilinBoard from './Yajilin/Yajilin';
 import StarbattleBoard from './Starbattle/Starbattle';
 import HeyawakeBoard from './Heyawake/Heyawake';
 import AqreBoard from './Aqre/Aqre';
+import MintonetteBoard from './Mintonette/Mintonette';
 import NikojiBoard from './Nikoji/Nikoji';
 import AkariBoard from './Akari/Akari';
 import NurikabeExample from '../components/examples/NurikabeExample';
@@ -13,6 +14,7 @@ import YajilinExample from '../components/examples/YajilinExample';
 import StarbattleExample from '../components/examples/StarbattleExample';
 import HeyawakeExample from '../components/examples/HeyawakeExample';
 import AqreExample from '../components/examples/AqreExample';
+import MintonetteExample from '../components/examples/MintonetteExample';
 import NikojiExample from '../components/examples/NikojiExample';
 import AkariExample from '../components/examples/AkariExample';
 import { parsePuzzLink } from './Nurikabe/utils';
@@ -21,6 +23,7 @@ import { parseYajilinLink } from './Yajilin/utils';
 import { parseStarbattleLink } from './Starbattle/utils';
 import { parseHeyawakeLink } from './Heyawake/utils';
 import { parseAqreLink } from './Aqre/utils';
+import { parseMintonetteLink } from './Mintonette/utils';
 import { parseNikojiLink } from './Nikoji/utils';
 import { parseAkariLink } from './Akari/utils';
 import type {
@@ -28,6 +31,7 @@ import type {
   AkariPuzzleData,
   FillominoPuzzleData,
   HeyawakePuzzleData,
+  MintonettePuzzleData,
   NikojiPuzzleData,
   NurikabePuzzleData,
   PuzzleData,
@@ -62,6 +66,7 @@ type PuzzleRegistry = {
   starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
   heyawake: PuzzleRegistryEntry<HeyawakePuzzleData>;
   aqre: PuzzleRegistryEntry<AqrePuzzleData>;
+  mintonette: PuzzleRegistryEntry<MintonettePuzzleData>;
   nikoji: PuzzleRegistryEntry<NikojiPuzzleData>;
   akari: PuzzleRegistryEntry<AkariPuzzleData>;
 };
@@ -261,8 +266,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（4×4）',
-        en: 'Example (4×4)',
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
       },
       playableLabel: {
         'zh-CN': '可游玩例题',
@@ -607,6 +612,113 @@ export const puzzleRegistry: PuzzleRegistry = {
           regionIds={example.regionIds}
           clues={example.clues}
           correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  mintonette: {
+    parsePuzzLink: parseMintonetteLink,
+    template: {
+      type: 'mintonette',
+      name: {
+        'zh-CN': '数弯',
+        en: 'Mintonette',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在圆圈之间画线，把所有圆圈两两配对。',
+          '线段之间不能交叉，也不能重叠。',
+          '带数字的圆圈表示这条线到达另一端之前必须拐弯的次数；没有数字的圆圈可以配任意拐弯次数。',
+          '盘面上的每一个格子都必须被某一条线使用。',
+        ],
+        en: [
+          'Draw lines between circles to form pairs.',
+          'Lines cannot cross or overlap each other.',
+          'A number indicates the amount of turns the line must take before reaching the end. Circles without numbers can be used as any number.',
+          'All cells must be used by a line.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩例题',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'mintonette',
+        width: 5,
+        height: 5,
+        clues: [
+          { row: 0, col: 0, value: 0 },
+          { row: 0, col: 2, value: 0 },
+          { row: 0, col: 4, value: null },
+          { row: 1, col: 4, value: null },
+          { row: 2, col: 3, value: 2 },
+          { row: 2, col: 4, value: null },
+          { row: 3, col: 2, value: 1 },
+          { row: 4, col: 0, value: 3 },
+          { row: 4, col: 3, value: 2 },
+          { row: 4, col: 4, value: 1 },
+        ],
+        solutionEdges: [
+          { r1: 0, c1: 0, r2: 0, c2: 1 },
+          { r1: 0, c1: 1, r2: 0, c2: 2 },
+          { r1: 0, c1: 3, r2: 0, c2: 4 },
+          { r1: 1, c1: 0, r2: 1, c2: 1 },
+          { r1: 1, c1: 1, r2: 1, c2: 2 },
+          { r1: 1, c1: 2, r2: 1, c2: 3 },
+          { r1: 2, c1: 1, r2: 2, c2: 2 },
+          { r1: 2, c1: 2, r2: 2, c2: 3 },
+          { r1: 3, c1: 2, r2: 3, c2: 3 },
+          { r1: 0, c1: 3, r2: 1, c2: 3 },
+          { r1: 1, c1: 0, r2: 2, c2: 0 },
+          { r1: 1, c1: 4, r2: 2, c2: 4 },
+          { r1: 2, c1: 0, r2: 3, c2: 0 },
+          { r1: 2, c1: 1, r2: 3, c2: 1 },
+          { r1: 3, c1: 0, r2: 4, c2: 0 },
+          { r1: 3, c1: 1, r2: 4, c2: 1 },
+          { r1: 3, c1: 3, r2: 3, c2: 4 },
+          { r1: 4, c1: 1, r2: 4, c2: 2 },
+          { r1: 4, c1: 2, r2: 4, c2: 3 },
+          { r1: 3, c1: 4, r2: 4, c2: 4 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <MintonetteBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'mintonette') {
+        throw new Error('Mintonette template example type mismatch.');
+      }
+
+      return (
+        <MintonetteExample
+          width={example.width}
+          height={example.height}
+          clues={example.clues}
+          solutionEdges={example.solutionEdges}
+          crossedEdges={example.crossedEdges}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
         />

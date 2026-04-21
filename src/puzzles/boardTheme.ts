@@ -85,6 +85,14 @@ export function getBoardNumberFontSize(cellSize: number, ratio = 0.68, min = 22)
   return Math.max(min, Math.floor(cellSize * ratio));
 }
 
+export function getBoardCircleClueDiameter(cellSize: number, ratio = 0.76, min = 28) {
+  return Math.max(min, Math.floor(cellSize * ratio));
+}
+
+export function getBoardCircleClueStrokeWidth(cellSize: number, ratio = 0.065, min = 2.5) {
+  return Math.max(min, Number((cellSize * ratio).toFixed(1)));
+}
+
 export function getCellDividerStyle(width = 1, color = woodBoardTheme.gridLine) {
   return {
     boxSizing: 'border-box',
