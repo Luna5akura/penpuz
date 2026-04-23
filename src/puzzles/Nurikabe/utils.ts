@@ -85,34 +85,26 @@ export function validateNurikabe(
   width: number,
   height: number
 ): { valid: boolean; message?: string } {
-  const visited = Array.from({ length: height }, () => Array(width).fill(false));
-
   // 1. 线索格必须为空白
   for (const clue of clues) {
     if (grid[clue.row][clue.col]) return { valid: false, message: '线索格不可涂黑' };
   }
 
-  // 2. 检查每个岛屿面积（关键修复在此）
-  for (const clue of clues) {
-    const size = floodFillIsland(grid, clue.row, clue.col, visited, width, height);
-    if (clue.value !== '?' && size !== clue.value) {
-      return { valid: false, message: `岛屿面积不符：预期 ${clue.value}，实际 ${size}` };
+  for (const island of collectIslands(grid, clues, width, height)) {
+    if (island.clueIndices.length === 0) {
+      return { valid: false, message: '存在未连接数字的空白格' };
+    }
+    if (island.clueIndices.length > 1) {
+      return { valid: false, message: '每个岛屿必须且只能包含一个线索' };
+    }
+
+    const clue = clues[island.clueIndices[0]];
+    if (clue.value !== '?' && island.size !== clue.value) {
+      return { valid: false, message: `岛屿面积不符：预期 ${clue.value}，实际 ${island.size}` };
     }
   }
 
-    // 3. 所有空白格必须属于某个岛屿（已忽略标记格）
-  for (let r = 0; r < height; r++) {
-    for (let c = 0; c < width; c++) {
-      if (!grid[r][c] && !visited[r][c]) {
-        return { valid: false, message: '存在未连接数字的空白格' };
-      }
-    }
-  }
-
-  // 4~6 保持完全不变（岛屿不正交相邻、海域连通、无2×2黑块）
-  if (hasAdjacentIslands(grid, width, height)) {
-    return { valid: false, message: '岛屿之间不能正交相邻' };
-  }
+  // 5~6：海域连通、无2×2黑块
   if (!isSeaConnected(grid, width, height)) {
     return { valid: false, message: '海域必须全部连通' };
   }
@@ -123,73 +115,78 @@ export function validateNurikabe(
   return { valid: true };
 }
 
-// Flood Fill 辅助函数（岛屿面积）
-function floodFillIsland(
+type NurikabeIsland = {
+  size: number;
+  clueIndices: number[];
+};
+
+function collectIslands(
+  grid: boolean[][],
+  clues: NurikabeClue[],
+  width: number,
+  height: number
+): NurikabeIsland[] {
+  const visited = Array.from({ length: height }, () => Array(width).fill(false));
+  const clueIndexMap = new Map<string, number>();
+
+  clues.forEach((clue, index) => {
+    clueIndexMap.set(`${clue.row},${clue.col}`, index);
+  });
+
+  const islands: NurikabeIsland[] = [];
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      if (grid[r][c] || visited[r][c]) continue;
+      islands.push(collectSingleIsland(grid, r, c, visited, clueIndexMap, width, height));
+    }
+  }
+
+  return islands;
+}
+
+function collectSingleIsland(
   grid: boolean[][],
   r: number,
   c: number,
   visited: boolean[][],
+  clueIndexMap: Map<string, number>,
   width: number,
   height: number
-): number {
-  if (r < 0 || r >= height || c < 0 || c >= width || grid[r][c] || visited[r][c]) return 0;
-  visited[r][c] = true;
-  let size = 1;
-  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-  for (const [dr, dc] of dirs) {
-    size += floodFillIsland(grid, r + dr, c + dc, visited, width, height);
-  }
-  return size;
-}
+) : NurikabeIsland {
+  const stack: Array<[number, number]> = [[r, c]];
+  let size = 0;
+  const clueIndices: number[] = [];
 
-// 4. 岛屿之间不能正交相邻（不同岛屿不可正交接触）
-function hasAdjacentIslands(grid: boolean[][], width: number, height: number): boolean {
-  const islandId = Array.from({ length: height }, () => Array(width).fill(-1));
-  let id = 0;
-  const tempVisited = Array.from({ length: height }, () => Array(width).fill(false));
-
-  for (let r = 0; r < height; r++) {
-    for (let c = 0; c < width; c++) {
-      if (!grid[r][c] && !tempVisited[r][c]) {
-        floodFillAssignId(grid, r, c, tempVisited, islandId, id, width, height);
-        id++;
-      }
+  while (stack.length > 0) {
+    const [currentRow, currentCol] = stack.pop()!;
+    if (
+      currentRow < 0 ||
+      currentRow >= height ||
+      currentCol < 0 ||
+      currentCol >= width ||
+      grid[currentRow][currentCol] ||
+      visited[currentRow][currentCol]
+    ) {
+      continue;
     }
-  }
 
-  const dirs = [[0, 1], [1, 0]]; // 只检查右和下，避免重复
-  for (let r = 0; r < height; r++) {
-    for (let c = 0; c < width; c++) {
-      if (grid[r][c]) continue;
-      for (const [dr, dc] of dirs) {
-        const nr = r + dr;
-        const nc = c + dc;
-        if (nr < height && nc < width && !grid[nr][nc] && islandId[r][c] !== islandId[nr][nc]) {
-          return true;
-        }
-      }
+    visited[currentRow][currentCol] = true;
+    size++;
+
+    const clueIndex = clueIndexMap.get(`${currentRow},${currentCol}`);
+    if (clueIndex !== undefined) {
+      clueIndices.push(clueIndex);
     }
-  }
-  return false;
-}
 
-function floodFillAssignId(
-  grid: boolean[][],
-  r: number,
-  c: number,
-  visited: boolean[][],
-  islandId: number[][],
-  id: number,
-  width: number,
-  height: number
-) {
-  if (r < 0 || r >= height || c < 0 || c >= width || grid[r][c] || visited[r][c]) return;
-  visited[r][c] = true;
-  islandId[r][c] = id;
-  const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]];
-  for (const [dr, dc] of dirs) {
-    floodFillAssignId(grid, r + dr, c + dc, visited, islandId, id, width, height);
+    stack.push(
+      [currentRow - 1, currentCol],
+      [currentRow + 1, currentCol],
+      [currentRow, currentCol - 1],
+      [currentRow, currentCol + 1]
+    );
   }
+
+  return { size, clueIndices };
 }
 
 // 5. 海域必须全部连通
@@ -263,8 +260,6 @@ export function getNurikabeViolations(
     badClueIndices: [],
   };
 
-  const visited = Array.from({ length: height }, () => Array(width).fill(false));
-
   // 规则1：线索格被涂黑
   for (let i = 0; i < clues.length; i++) {
     const clue = clues[i];
@@ -274,27 +269,25 @@ export function getNurikabeViolations(
     }
   }
 
-  // 规则2：岛屿面积不符（? 不检查）
-  for (let i = 0; i < clues.length; i++) {
-    const clue = clues[i];
-    const size = floodFillIsland(grid, clue.row, clue.col, visited, width, height);
-    if (clue.value !== '?' && size !== clue.value) {
+  for (const island of collectIslands(grid, clues, width, height)) {
+    if (island.clueIndices.length === 0) {
+      violations.violatedRules.push(3);
+      continue;
+    }
+
+    if (island.clueIndices.length > 1) {
+      violations.violatedRules.push(4);
+      violations.badClueIndices.push(...island.clueIndices);
+      continue;
+    }
+
+    const clueIndex = island.clueIndices[0];
+    const clue = clues[clueIndex];
+    if (clue.value !== '?' && island.size !== clue.value) {
       violations.violatedRules.push(2);
-      violations.badClueIndices.push(i);
+      violations.badClueIndices.push(clueIndex);
     }
   }
-
-  // 规则3：存在未连接数字的空白格
-  let hasUnconnected = false;
-  for (let r = 0; r < height; r++) {
-    for (let c = 0; c < width; c++) {
-      if (!grid[r][c] && !visited[r][c]) hasUnconnected = true;
-    }
-  }
-  if (hasUnconnected) violations.violatedRules.push(3);
-
-  // 规则4：岛屿正交相邻
-  if (hasAdjacentIslands(grid, width, height)) violations.violatedRules.push(4);
 
   // 规则5：海域未连通
   if (!isSeaConnected(grid, width, height)) violations.violatedRules.push(5);
@@ -311,6 +304,7 @@ export function getNurikabeViolations(
 
   // 去重规则序号
   violations.violatedRules = [...new Set(violations.violatedRules)];
+  violations.badClueIndices = [...new Set(violations.badClueIndices)];
 
   return violations;
 }
