@@ -188,7 +188,7 @@ export default function KurarinExample({
                       key={`clue-${clue.row}-${clue.col}-${index}`}
                       cx={x}
                       cy={y}
-                      r={Math.max(8, Math.floor(CELL_SIZE * 0.26))}
+                      r={Math.max(8, Math.floor(CELL_SIZE * 0.16))}
                       fill={clueStyle.fill}
                       stroke={clueStyle.stroke}
                       strokeWidth={Math.max(2, Math.floor(CELL_SIZE * 0.05))}

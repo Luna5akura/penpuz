@@ -87,12 +87,12 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
-    difficulty: '简单',
-  },
-  {
     puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/95u69hu893vvm8pui8i25qcjdef4aa4kek16',
     difficulty: '极难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/.i.n.g.k.n.h.g.g.l.i.h.g.g.j.k.n.g.i.g.l.o',
+    difficulty: '简单',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/204h92i14284h52a4k1vu700u0vo07vo000032210142134242',

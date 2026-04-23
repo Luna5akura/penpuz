@@ -40,7 +40,9 @@ const BOARD_BORDER = commonBoardChrome.border;
 type PendingTap =
   | { kind: 'desktop-left-cell'; row: number; col: number }
   | { kind: 'desktop-right-cell'; row: number; col: number }
-  | { kind: 'mobile-cell'; row: number; col: number }
+  | { kind: 'mobile-place-black-cell'; row: number; col: number }
+  | { kind: 'mobile-clear-mark-cell'; row: number; col: number }
+  | { kind: 'mobile-mark-cell'; row: number; col: number }
   | { kind: 'mobile-edge'; key: string }
   | null;
 
@@ -74,8 +76,7 @@ export default function KurarinBoard({
     startCell: { row: number; col: number } | null;
     lastCell: { row: number; col: number } | null;
     drawMode: 'add' | 'remove' | null;
-    cellDragMode: 'shade' | 'mark' | 'mobile-cycle' | null;
-    mobileDragTarget: 0 | 1 | 2 | null;
+    cellDragMode: 'mark' | 'mobile-mark' | null;
     desktopMarkDrag: boolean;
     movedToDraw: boolean;
     pendingTap: PendingTap;
@@ -86,7 +87,6 @@ export default function KurarinBoard({
     lastCell: null,
     drawMode: null,
     cellDragMode: null,
-    mobileDragTarget: null,
     desktopMarkDrag: false,
     movedToDraw: false,
     pendingTap: null,
@@ -154,7 +154,6 @@ export default function KurarinBoard({
     () => (hasEdited ? validateKurarin(grid, loopEdges, clues, width, height) : null),
     [clues, grid, hasEdited, height, loopEdges, width]
   );
-  const badClueSet = useMemo(() => new Set(validation?.badClueIndices ?? []), [validation?.badClueIndices]);
 
   useEffect(() => {
     const updateSize = () => {
@@ -181,7 +180,6 @@ export default function KurarinBoard({
       lastCell: null,
       drawMode: null,
       cellDragMode: null,
-      mobileDragTarget: null,
       desktopMarkDrag: false,
       movedToDraw: false,
       pendingTap: null,
@@ -233,19 +231,21 @@ export default function KurarinBoard({
     }, { coalesce: true });
   }, [applyChange, currentTrialLevel, height, removeIncidentLoopEdges, trialActive, width]);
 
-  const toggleCellShade = useCallback((row: number, col: number) => {
-    replaceCellState(row, col, grid[row][col] === 1 ? 0 : 1);
-  }, [grid, replaceCellState]);
-
   const toggleCellMark = useCallback((row: number, col: number) => {
     replaceCellState(row, col, grid[row][col] === 2 ? 0 : 2);
   }, [grid, replaceCellState]);
 
-  const cycleMobileCell = useCallback((row: number, col: number) => {
-    const currentCell = grid[row][col];
-    const nextState = currentCell === 0 ? 1 : currentCell === 1 ? 2 : 0;
-    replaceCellState(row, col, nextState);
-  }, [grid, replaceCellState]);
+  const placeCellBlack = useCallback((row: number, col: number) => {
+    replaceCellState(row, col, 1);
+  }, [replaceCellState]);
+
+  const placeCellMark = useCallback((row: number, col: number) => {
+    replaceCellState(row, col, 2);
+  }, [replaceCellState]);
+
+  const clearCell = useCallback((row: number, col: number) => {
+    replaceCellState(row, col, 0);
+  }, [replaceCellState]);
 
   const toggleEdgeCross = useCallback((edgeKey: string) => {
     applyChange((currentSnapshot) => {
@@ -303,19 +303,6 @@ export default function KurarinBoard({
     current.lastCell = to;
   }, [applyChange, canUseLoopEdge, currentTrialLevel, loopEdges, trialActive]);
 
-  const applyShadeDrag = useCallback((row: number, col: number) => {
-    const current = pointerState.current;
-    if (current.drawMode === null) {
-      current.drawMode = grid[row][col] === 1 ? 'remove' : 'add';
-    }
-
-    const nextState = current.drawMode === 'add' ? 1 : 0;
-    replaceCellState(row, col, nextState);
-    current.pendingTap = null;
-    current.movedToDraw = true;
-    current.lastCell = { row, col };
-  }, [grid, replaceCellState]);
-
   const applyCellMarkDrag = useCallback((row: number, col: number) => {
     const current = pointerState.current;
     if (current.drawMode === null) {
@@ -349,33 +336,17 @@ export default function KurarinBoard({
   const finishPointer = useCallback(() => {
     const current = pointerState.current;
     if (current.pendingTap?.kind === 'desktop-left-cell') {
-      toggleCellShade(current.pendingTap.row, current.pendingTap.col);
+      placeCellBlack(current.pendingTap.row, current.pendingTap.col);
     } else if (current.pendingTap?.kind === 'desktop-right-cell') {
       toggleCellMark(current.pendingTap.row, current.pendingTap.col);
-    } else if (current.pendingTap?.kind === 'mobile-cell') {
-      cycleMobileCell(current.pendingTap.row, current.pendingTap.col);
+    } else if (current.pendingTap?.kind === 'mobile-place-black-cell') {
+      placeCellBlack(current.pendingTap.row, current.pendingTap.col);
+    } else if (current.pendingTap?.kind === 'mobile-clear-mark-cell') {
+      clearCell(current.pendingTap.row, current.pendingTap.col);
+    } else if (current.pendingTap?.kind === 'mobile-mark-cell') {
+      placeCellMark(current.pendingTap.row, current.pendingTap.col);
     } else if (current.pendingTap?.kind === 'mobile-edge') {
-      applyChange((currentSnapshot) => {
-        const nextLoopEdges = new Set(currentSnapshot.loopEdges);
-        const nextCrossedEdges = new Set(currentSnapshot.crossedEdges);
-        const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
-        const nextCrossedEdgeLevels = { ...currentSnapshot.crossedEdgeLevels };
-        const key = current.pendingTap!.key;
-        if (!canUseLoopEdge(key)) return currentSnapshot;
-        if (nextLoopEdges.has(key)) nextLoopEdges.delete(key);
-        else nextLoopEdges.add(key);
-        nextCrossedEdges.delete(key);
-        if (nextLoopEdges.has(key)) nextLoopEdgeLevels[key] = trialActive ? currentTrialLevel : 0;
-        else delete nextLoopEdgeLevels[key];
-        delete nextCrossedEdgeLevels[key];
-        return {
-          ...currentSnapshot,
-          loopEdges: Array.from(nextLoopEdges).sort(),
-          crossedEdges: Array.from(nextCrossedEdges).sort(),
-          loopEdgeLevels: nextLoopEdgeLevels,
-          crossedEdgeLevels: nextCrossedEdgeLevels,
-        };
-      });
+      toggleEdgeCross(current.pendingTap.key);
     }
 
     pointerState.current = {
@@ -385,13 +356,12 @@ export default function KurarinBoard({
       lastCell: null,
       drawMode: null,
       cellDragMode: null,
-      mobileDragTarget: null,
       desktopMarkDrag: false,
       movedToDraw: false,
       pendingTap: null,
     };
     finishBatch();
-  }, [applyChange, canUseLoopEdge, currentTrialLevel, cycleMobileCell, finishBatch, toggleCellMark, toggleCellShade, trialActive]);
+  }, [clearCell, finishBatch, placeCellBlack, placeCellMark, toggleCellMark, toggleEdgeCross]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const point = getRelativePoint(event.clientX, event.clientY);
@@ -419,7 +389,6 @@ export default function KurarinBoard({
         current.lastCell = { row: hitTarget.row, col: hitTarget.col };
         current.drawMode = null;
         current.cellDragMode = 'mark';
-        current.mobileDragTarget = null;
         current.desktopMarkDrag = true;
         current.movedToDraw = false;
         current.pendingTap = { kind: 'desktop-right-cell', row: hitTarget.row, col: hitTarget.col };
@@ -434,7 +403,6 @@ export default function KurarinBoard({
     current.pointerId = event.pointerId;
     current.isTouch = isTouchPointer;
     current.drawMode = null;
-    current.mobileDragTarget = null;
     current.desktopMarkDrag = false;
     current.movedToDraw = false;
     current.pendingTap = null;
@@ -458,10 +426,18 @@ export default function KurarinBoard({
     current.lastCell = { row: hitTarget.row, col: hitTarget.col };
 
     if (isTouchPointer) {
-      current.cellDragMode = 'mobile-cycle';
-      current.pendingTap = { kind: 'mobile-cell', row: hitTarget.row, col: hitTarget.col };
+      const state = grid[hitTarget.row][hitTarget.col];
+      if (state === 1) {
+        current.cellDragMode = 'mobile-mark';
+        current.pendingTap = { kind: 'mobile-mark-cell', row: hitTarget.row, col: hitTarget.col };
+      } else {
+        current.cellDragMode = null;
+        current.pendingTap = state === 2
+          ? { kind: 'mobile-clear-mark-cell', row: hitTarget.row, col: hitTarget.col }
+          : { kind: 'mobile-place-black-cell', row: hitTarget.row, col: hitTarget.col };
+      }
     } else {
-      current.cellDragMode = 'shade';
+      current.cellDragMode = null;
       current.pendingTap = { kind: 'desktop-left-cell', row: hitTarget.row, col: hitTarget.col };
     }
   };
@@ -478,31 +454,23 @@ export default function KurarinBoard({
     if (current.desktopMarkDrag) {
       const sameCell = current.lastCell?.row === cell.row && current.lastCell?.col === cell.col;
       if (sameCell) return;
+      if (!current.movedToDraw && current.startCell) {
+        applyCellMarkDrag(current.startCell.row, current.startCell.col);
+      }
       applyCellMarkDrag(cell.row, cell.col);
       return;
     }
 
-    if (current.isTouch && current.cellDragMode === 'mobile-cycle') {
+    if (current.isTouch && current.cellDragMode === 'mobile-mark') {
       const sameCell = current.lastCell?.row === cell.row && current.lastCell?.col === cell.col;
       if (sameCell) return;
-      if (Math.abs((current.lastCell?.row ?? -99) - cell.row) + Math.abs((current.lastCell?.col ?? -99) - cell.col) !== 1) return;
-
-      if (current.mobileDragTarget === null) {
-        const startState = grid[current.startCell.row][current.startCell.col];
-        current.mobileDragTarget = startState === 0 ? 1 : startState === 1 ? 2 : 0;
-        replaceCellState(current.startCell.row, current.startCell.col, current.mobileDragTarget);
+      if (!current.movedToDraw && current.startCell) {
+        placeCellMark(current.startCell.row, current.startCell.col);
       }
-      replaceCellState(cell.row, cell.col, current.mobileDragTarget);
+      placeCellMark(cell.row, cell.col);
       current.movedToDraw = true;
       current.pendingTap = null;
       current.lastCell = cell;
-      return;
-    }
-
-    if (current.cellDragMode === 'shade') {
-      const sameCell = current.lastCell?.row === cell.row && current.lastCell?.col === cell.col;
-      if (sameCell) return;
-      applyShadeDrag(cell.row, cell.col);
       return;
     }
 
@@ -649,16 +617,25 @@ export default function KurarinBoard({
             const clueStyle = getClueStyle(clue.color);
             const x = BOARD_PADDING + (clue.col * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
             const y = BOARD_PADDING + (clue.row * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
+            const clueRadius = Math.max(8, Math.floor(cellSize * 0.16));
+            const clueStrokeWidth = Math.max(2, Math.floor(cellSize * 0.05));
             return (
-              <circle
-                key={`clue-${clue.row}-${clue.col}-${index}`}
-                cx={x}
-                cy={y}
-                r={Math.max(8, Math.floor(cellSize * 0.26))}
-                fill={clueStyle.fill}
-                stroke={badClueSet.has(index) ? woodBoardTheme.invalidText : clueStyle.stroke}
-                strokeWidth={Math.max(2, Math.floor(cellSize * 0.05))}
-              />
+              <g key={`clue-${clue.row}-${clue.col}-${index}`}>
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={clueRadius + Math.max(1.5, Math.floor(cellSize * 0.03))}
+                  fill={getBoardCellColors('cell').background}
+                />
+                <circle
+                  cx={x}
+                  cy={y}
+                  r={clueRadius}
+                  fill={clueStyle.fill}
+                  stroke={clueStyle.stroke}
+                  strokeWidth={clueStrokeWidth}
+                />
+              </g>
             );
           })}
         </svg>

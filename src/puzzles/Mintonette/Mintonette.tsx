@@ -123,8 +123,8 @@ export default function MintonetteBoard({
   const crossedEdgeLevels = normalizedSnapshot.crossedEdgeLevels;
   const lineEdgeSet = useMemo(() => new Set(lineEdges), [lineEdges]);
   const clueMap = useMemo(() => {
-    const map = new Map<string, { value: number | null; index: number }>();
-    clues.forEach((clue, index) => map.set(`${clue.row},${clue.col}`, { value: clue.value, index }));
+    const map = new Map<string, { value: number | null }>();
+    clues.forEach((clue) => map.set(`${clue.row},${clue.col}`, { value: clue.value }));
     return map;
   }, [clues]);
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
@@ -136,7 +136,6 @@ export default function MintonetteBoard({
     () => new Set((validation?.badCells ?? []).map((cell) => `${cell.r},${cell.c}`)),
     [validation]
   );
-  const invalidClueSet = useMemo(() => new Set(validation?.badClues ?? []), [validation]);
 
   const cellSize = useMemo(() => getResponsiveCellSize({
     fixedCellSize,
@@ -353,9 +352,7 @@ export default function MintonetteBoard({
         >
           {Array.from({ length: height }, (_, row) =>
             Array.from({ length: width }, (_, col) => {
-              const clueInfo = clueMap.get(`${row},${col}`);
               const isInvalid = showValidationMessage && invalidCellSet.has(`${row},${col}`);
-              const isInvalidClue = clueInfo ? invalidClueSet.has(clueInfo.index) : false;
               return (
                 <div
                   key={`${row}-${col}`}
@@ -368,24 +365,6 @@ export default function MintonetteBoard({
                     ...(isInvalid ? { background: woodBoardTheme.invalidSoft } : {}),
                   }}
                 >
-                  {clueInfo ? (
-                    <div
-                      className="flex items-center justify-center rounded-full font-semibold tabular-nums"
-                      style={{
-                        width: `${clueCircleDiameter}px`,
-                        height: `${clueCircleDiameter}px`,
-                        border: `${clueCircleStrokeWidth}px solid ${isInvalidClue ? woodBoardTheme.invalidText : woodBoardTheme.border}`,
-                        color: isInvalidClue ? woodBoardTheme.invalidText : woodBoardTheme.border,
-                        background: getBoardCellColors('cell').background,
-                        fontSize: `${clueNumberFontSize}px`,
-                        lineHeight: 1,
-                        position: 'relative',
-                        zIndex: 2,
-                      }}
-                    >
-                      {clueInfo.value ?? ''}
-                    </div>
-                  ) : null}
                 </div>
               );
             })
@@ -445,6 +424,45 @@ export default function MintonetteBoard({
             );
           })}
         </svg>
+
+        <div
+          style={{
+            position: 'absolute',
+            top: `${BOARD_PADDING}px`,
+            left: `${BOARD_PADDING}px`,
+            width: `${boardWidth}px`,
+            height: `${boardHeight}px`,
+            pointerEvents: 'none',
+            zIndex: 3,
+          }}
+        >
+          {Array.from({ length: height }, (_, row) =>
+            Array.from({ length: width }, (_, col) => {
+              const clueInfo = clueMap.get(`${row},${col}`);
+              if (!clueInfo) return null;
+
+              return (
+                <div
+                  key={`clue-${row}-${col}`}
+                  className="absolute flex items-center justify-center rounded-full font-semibold tabular-nums"
+                  style={{
+                    width: `${clueCircleDiameter}px`,
+                    height: `${clueCircleDiameter}px`,
+                    top: `${row * cellSize + (cellSize - clueCircleDiameter) / 2}px`,
+                    left: `${col * cellSize + (cellSize - clueCircleDiameter) / 2}px`,
+                    border: `${clueCircleStrokeWidth}px solid ${woodBoardTheme.border}`,
+                    color: woodBoardTheme.border,
+                    background: getBoardCellColors('cell').background,
+                    fontSize: `${clueNumberFontSize}px`,
+                    lineHeight: 1,
+                  }}
+                >
+                  {clueInfo.value ?? ''}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       <PuzzleAssistToolbar
