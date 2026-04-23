@@ -159,6 +159,10 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '极难',
   },
 
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kurarin/5/5/k4g81ncg2p313k2h',
+    difficulty: 'é¥ä¼´æ¯¦',
+  },
 ];
 
 

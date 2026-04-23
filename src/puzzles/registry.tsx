@@ -8,6 +8,7 @@ import AqreBoard from './Aqre/Aqre';
 import MintonetteBoard from './Mintonette/Mintonette';
 import NikojiBoard from './Nikoji/Nikoji';
 import AkariBoard from './Akari/Akari';
+import KurarinBoard from './Kurarin/Kurarin';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
@@ -17,6 +18,7 @@ import AqreExample from '../components/examples/AqreExample';
 import MintonetteExample from '../components/examples/MintonetteExample';
 import NikojiExample from '../components/examples/NikojiExample';
 import AkariExample from '../components/examples/AkariExample';
+import KurarinExample from '../components/examples/KurarinExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
@@ -26,6 +28,7 @@ import { parseAqreLink } from './Aqre/utils';
 import { parseMintonetteLink } from './Mintonette/utils';
 import { parseNikojiLink } from './Nikoji/utils';
 import { parseAkariLink } from './Akari/utils';
+import { parseKurarinLink } from './Kurarin/utils';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
@@ -39,6 +42,7 @@ import type {
   PuzzleTemplate,
   PuzzleType,
   StarbattlePuzzleData,
+  KurarinPuzzleData,
   YajilinPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
@@ -69,6 +73,7 @@ type PuzzleRegistry = {
   mintonette: PuzzleRegistryEntry<MintonettePuzzleData>;
   nikoji: PuzzleRegistryEntry<NikojiPuzzleData>;
   akari: PuzzleRegistryEntry<AkariPuzzleData>;
+  kurarin: PuzzleRegistryEntry<KurarinPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -887,6 +892,122 @@ export const puzzleRegistry: PuzzleRegistry = {
           height={example.height}
           cells={example.cells}
           bulbCells={example.bulbCells}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  kurarin: {
+    parsePuzzLink: parseKurarinLink,
+    template: {
+      type: 'kurarin',
+      name: {
+        'zh-CN': '黑暗回路',
+        en: 'Kurarin',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在棋盘中涂黑一部分格子，并在所有未涂黑格子上画出一条单一回路。',
+          '回路不能分叉，也不能自交。',
+          '黑色圆圈重叠的涂黑格数量要多于未涂黑格。',
+          '白色圆圈重叠的未涂黑格数量要多于涂黑格。',
+          '灰色圆圈重叠的涂黑格与未涂黑格数量必须相等。',
+        ],
+        en: [
+          'Shade some cells and draw a single loop through all remaining unshaded cells.',
+          'The loop cannot branch or cross itself.',
+          'A black circle overlaps more shaded cells than unshaded cells.',
+          'A white circle overlaps more unshaded cells than shaded cells.',
+          'A gray circle overlaps the same number of shaded and unshaded cells.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩示例',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'kurarin',
+        width: 5,
+        height: 5,
+        clues: [
+          { row: 0, col: 0, color: 'black' },
+          { row: 0, col: 2, color: 'white' },
+          { row: 0, col: 4, color: 'black' },
+          { row: 1, col: 3, color: 'gray' },
+          { row: 2, col: 1, color: 'white' },
+          { row: 3, col: 0, color: 'black' },
+          { row: 3, col: 1, color: 'gray' },
+          { row: 3, col: 3, color: 'gray' },
+          { row: 4, col: 2, color: 'white' },
+        ],
+        shadedCells: [
+          { row: 0, col: 0 },
+          { row: 0, col: 1 },
+          { row: 0, col: 2 },
+          { row: 0, col: 3 },
+          { row: 0, col: 4 },
+          { row: 1, col: 0 },
+          { row: 1, col: 4 },
+          { row: 2, col: 0 },
+          { row: 2, col: 2 },
+          { row: 3, col: 0 },
+          { row: 4, col: 0 },
+          { row: 4, col: 3 },
+          { row: 4, col: 4 },
+        ],
+        loopEdges: [
+          { r1: 1, c1: 1, r2: 1, c2: 2 },
+          { r1: 1, c1: 2, r2: 1, c2: 3 },
+          { r1: 2, c1: 3, r2: 2, c2: 4 },
+          { r1: 3, c1: 2, r2: 3, c2: 3 },
+          { r1: 3, c1: 3, r2: 3, c2: 4 },
+          { r1: 4, c1: 1, r2: 4, c2: 2 },
+          { r1: 1, c1: 1, r2: 2, c2: 1 },
+          { r1: 1, c1: 3, r2: 2, c2: 3 },
+          { r1: 2, c1: 1, r2: 3, c2: 1 },
+          { r1: 2, c1: 4, r2: 3, c2: 4 },
+          { r1: 3, c1: 1, r2: 4, c2: 1 },
+          { r1: 3, c1: 2, r2: 4, c2: 2 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <KurarinBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'kurarin') {
+        throw new Error('Kurarin template example type mismatch.');
+      }
+
+      return (
+        <KurarinExample
+          width={example.width}
+          height={example.height}
+          clues={example.clues}
+          shadedCells={example.shadedCells}
+          loopEdges={example.loopEdges}
+          crossedEdges={example.crossedEdges}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
         />

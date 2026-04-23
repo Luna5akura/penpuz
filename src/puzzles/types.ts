@@ -116,6 +116,21 @@ export interface AkariPuzzleData {
   cells: AkariCell[][];
 }
 
+export type KurarinClueColor = 'black' | 'white' | 'gray';
+
+export interface KurarinClue {
+  row: number;
+  col: number;
+  color: KurarinClueColor;
+}
+
+export interface KurarinPuzzleData {
+  type: 'kurarin';
+  width: number;
+  height: number;
+  clues: KurarinClue[];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -125,7 +140,8 @@ export type PuzzleData =
   | AqrePuzzleData
   | MintonettePuzzleData
   | NikojiPuzzleData
-  | AkariPuzzleData;
+  | AkariPuzzleData
+  | KurarinPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -218,6 +234,15 @@ export type PuzzleExample =
       height: number;
       cells: AkariCell[][];
       bulbCells: { row: number; col: number }[];
+    }
+  | {
+      puzzleType: 'kurarin';
+      width: number;
+      height: number;
+      clues: KurarinClue[];
+      shadedCells: { row: number; col: number }[];
+      loopEdges: YajilinSolutionEdge[];
+      crossedEdges?: YajilinSolutionEdge[];
     };
 
 export interface PuzzleTemplate {

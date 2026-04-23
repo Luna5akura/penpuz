@@ -247,3 +247,117 @@ pnpm exec eslint src/puzzles/Slitherlink/ src/components/examples/SlitherlinkExa
 - 补一层题型接入自检文档或测试样例
 
 这些都不是新增题型的硬前置，所以如果题型集合已经稳定，可以先不动。
+---
+
+## 新增题型详细流程（以 Kurarin / 黑暗回路为例）
+
+下面是目前仓库里“从 0 到可上线”新增一个题型的完整执行顺序。  
+建议严格按顺序做，避免出现“能渲染但不能入库”或“能玩但不能保存进度”这类断层。
+
+### 1. 先定义类型（`src/puzzles/types.ts`）
+
+必须补齐三类类型：
+
+1. 题面数据类型（例如 `KurarinPuzzleData`）
+2. 题目元素类型（例如 `KurarinClue`、`KurarinClueColor`）
+3. 规则示例联合类型（`PuzzleExample` 新增 `kurarin` 分支）
+
+同时把新题型加入：
+
+1. `PuzzleData` 联合类型
+2. `PuzzleType`（自动来自 `PuzzleData['type']`）
+3. 所有依赖题型联合的地方（例如 `CompletionModal` 的 `puzzleType`）
+
+### 2. 实现 parser + 核心工具（`src/puzzles/Kurarin/utils.ts`）
+
+这一步至少要有：
+
+1. `parseKurarinLink(link)`：把 `p?kurarin/...` 链接转成 `KurarinPuzzleData`
+2. 网格状态初始化（如 `createEmptyKurarinGrid`）
+3. 边 key 工具（`getEdgeKey` / `parseEdgeKey` / `createEdgeSet`）
+4. 命中检测（`detectKurarinHitTarget`，用于区分点到的是格子还是边）
+5. 校验函数（`validateKurarin`）
+
+Kurarin 的校验建议拆成三层：
+
+1. 回路合法性：不分叉、不自交、所有未涂黑格都在同一回路中
+2. 黑格与边冲突：黑格不能带线段
+3. 圆圈约束：黑/白/灰三色分别满足“黑多/白多/相等”
+
+### 3. 实现交互棋盘（`src/puzzles/Kurarin/Kurarin.tsx`）
+
+推荐直接复用现有题型（如 Yajilin）的历史与试填框架：
+
+1. `usePuzzleHistory` 快照（含 `grid`、`loopEdges`、`crossedEdges`、trial level）
+2. `startBatch` / `finishBatch` 保证拖动过程合并历史
+3. 统一 `onSnapshotChange` 让每日进度可持久化
+
+Kurarin 交互规范（本项目约定）：
+
+1. 桌面端
+2. 左键拖动格子：连续涂黑或取消涂黑
+3. 右键拖动/点击格子：放置或取消叉格
+4. 右键点击边：在边上放置或取消叉号
+5. 手机端
+6. 空白格点击/拖动 -> 涂黑
+7. 涂黑格点击/拖动 -> 叉格
+8. 叉格点击/拖动 -> 空白
+
+### 4. 统一样式与绘制规则
+
+不要在题型文件里硬编码重复样式，优先使用 `src/puzzles/boardTheme.ts`：
+
+1. 棋盘外框：`getBoardFrameStyle`
+2. 格子底色：`getBoardCellColors`
+3. 叉号字号/样式：`getBoardCrossFontSize` + `getCrossMarkStyle`
+4. 响应式格宽：`getResponsiveCellSize`
+
+Kurarin 的三色圆圈建议用 SVG 叠加绘制（便于后续高亮、动画、invalid 态扩展）。
+
+### 5. 接示例组件（`src/components/examples/KurarinExample.tsx`）
+
+示例区需要两块：
+
+1. 左侧可游玩示例（直接复用真实 `KurarinBoard`）
+2. 右侧答案展示（带遮罩、点击确认后揭晓）
+
+并确保示例答案里可同时显示：
+
+1. 黑格
+2. 回路线
+3. 边叉
+4. 三色圆圈
+
+### 6. 在注册中心接入（`src/puzzles/registry.tsx`）
+
+这是最关键的接线步骤，必须一次接全：
+
+1. import 新题型 Board / Example / parser
+2. `PuzzleRegistry` 类型新增 `kurarin`
+3. `puzzleRegistry.kurarin` 新增完整 entry
+4. `template` 填题型名、规则、示例题面
+5. `renderBoard` / `renderExample` 正确返回组件
+
+只要这里接通，`RulesSection`、首页渲染、历史回放都会自动走通。
+
+### 7. 加入题库轮换（`src/puzzles/database.ts`）
+
+在 `allPuzzles` 里加一条 `p?kurarin/...` 即可参与每日轮换。  
+若 parser 返回 `null`，这一天会无法出题，所以加库前要先本地验证 parser。
+
+### 8. 回归检查（必须执行）
+
+至少跑：
+
+```bash
+pnpm build
+pnpm exec eslint src/puzzles/Kurarin src/components/examples/KurarinExample.tsx src/puzzles/registry.tsx src/puzzles/types.ts src/puzzles/database.ts
+```
+
+并手测以下场景：
+
+1. 新题型当天题面是否可正常打开
+2. Undo / Redo / 试填存档是否正常
+3. 刷新页面后进度是否恢复
+4. 完成后是否正确触发计时结束与完成弹窗
+5. 历史记录中加载该题型是否正常
