@@ -50,12 +50,6 @@ export default function KurarinExample({
     () => ({ type: 'kurarin', width, height, clues }),
     [clues, height, width]
   );
-  const clueMap = useMemo(() => {
-    const map = new Map<string, KurarinClue>();
-    clues.forEach((clue) => map.set(`${clue.row},${clue.col}`, clue));
-    return map;
-  }, [clues]);
-
   const shadedSet = useMemo(() => new Set(shadedCells.map((cell) => `${cell.row},${cell.col}`)), [shadedCells]);
   const loopSet = useMemo(() => createKurarinEdgeSet(loopEdges), [loopEdges]);
   const crossedSet = useMemo(() => createKurarinEdgeSet(crossedEdges), [crossedEdges]);
@@ -134,7 +128,6 @@ export default function KurarinExample({
               >
                 {Array.from({ length: height }).flatMap((_, r) =>
                   Array.from({ length: width }).map((__, c) => {
-                    const clue = clueMap.get(`${r},${c}`);
                     const isShaded = shadedSet.has(`${r},${c}`);
                     return (
                       <div
@@ -145,20 +138,7 @@ export default function KurarinExample({
                           height: `${CELL_SIZE}px`,
                           ...getBoardCellColors(isShaded ? 'playerShaded' : 'cell'),
                         }}
-                      >
-                        {clue ? (
-                          <svg className="absolute inset-0 pointer-events-none" width={CELL_SIZE} height={CELL_SIZE}>
-                            <circle
-                              cx={CELL_SIZE / 2}
-                              cy={CELL_SIZE / 2}
-                              r={Math.max(8, Math.floor(CELL_SIZE * 0.26))}
-                              fill={getClueStyle(clue.color).fill}
-                              stroke={getClueStyle(clue.color).stroke}
-                              strokeWidth={Math.max(2, Math.floor(CELL_SIZE * 0.05))}
-                            />
-                          </svg>
-                        ) : null}
-                      </div>
+                      />
                     );
                   })
                 )}
@@ -196,6 +176,23 @@ export default function KurarinExample({
                       <line x1={centerX - 3} y1={centerY - 3} x2={centerX + 3} y2={centerY + 3} />
                       <line x1={centerX - 3} y1={centerY + 3} x2={centerX + 3} y2={centerY - 3} />
                     </g>
+                  );
+                })}
+
+                {clues.map((clue, index) => {
+                  const clueStyle = getClueStyle(clue.color);
+                  const x = PADDING + (clue.col * (CELL_SIZE + GAP)) / 2 + CELL_SIZE / 2;
+                  const y = PADDING + (clue.row * (CELL_SIZE + GAP)) / 2 + CELL_SIZE / 2;
+                  return (
+                    <circle
+                      key={`clue-${clue.row}-${clue.col}-${index}`}
+                      cx={x}
+                      cy={y}
+                      r={Math.max(8, Math.floor(CELL_SIZE * 0.26))}
+                      fill={clueStyle.fill}
+                      stroke={clueStyle.stroke}
+                      strokeWidth={Math.max(2, Math.floor(CELL_SIZE * 0.05))}
+                    />
                   );
                 })}
               </svg>

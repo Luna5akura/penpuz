@@ -140,14 +140,6 @@ export default function KurarinBoard({
   const crossedEdgeLevels = snapshot.crossedEdgeLevels;
   const hasEdited = canUndo || canRedo || trialCheckpointCount > 0 || trialActive;
 
-  const clueMap = useMemo(() => {
-    const map = new Map<string, (typeof clues)[number] & { index: number }>();
-    clues.forEach((clue, index) => {
-      map.set(`${clue.row},${clue.col}`, { ...clue, index });
-    });
-    return map;
-  }, [clues]);
-
   const isMobile = viewportWidth < 640;
   const cellSize = useMemo(() => {
     return getResponsiveCellSize({
@@ -572,11 +564,9 @@ export default function KurarinBoard({
         >
           {grid.flatMap((row, r) =>
             row.map((state, c) => {
-              const clue = clueMap.get(`${r},${c}`);
               const isShaded = state === 1;
               const isMarked = state === 2;
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
-              const clueStyle = clue ? getClueStyle(clue.color) : null;
               const cellStyle = trialColors
                 ? isShaded
                   ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
@@ -597,22 +587,6 @@ export default function KurarinBoard({
                 >
                   {isMarked ? (
                     <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
-                  ) : null}
-                  {clue && clueStyle ? (
-                    <svg
-                      className="absolute inset-0 pointer-events-none"
-                      width={cellSize}
-                      height={cellSize}
-                    >
-                      <circle
-                        cx={cellSize / 2}
-                        cy={cellSize / 2}
-                        r={Math.max(8, Math.floor(cellSize * 0.26))}
-                        fill={clueStyle.fill}
-                        stroke={badClueSet.has(clue.index) ? woodBoardTheme.invalidText : clueStyle.stroke}
-                        strokeWidth={Math.max(2, Math.floor(cellSize * 0.05))}
-                      />
-                    </svg>
                   ) : null}
                 </div>
               );
@@ -668,6 +642,23 @@ export default function KurarinBoard({
                 <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
                 <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
               </g>
+            );
+          })}
+
+          {clues.map((clue, index) => {
+            const clueStyle = getClueStyle(clue.color);
+            const x = BOARD_PADDING + (clue.col * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
+            const y = BOARD_PADDING + (clue.row * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
+            return (
+              <circle
+                key={`clue-${clue.row}-${clue.col}-${index}`}
+                cx={x}
+                cy={y}
+                r={Math.max(8, Math.floor(cellSize * 0.26))}
+                fill={clueStyle.fill}
+                stroke={badClueSet.has(index) ? woodBoardTheme.invalidText : clueStyle.stroke}
+                strokeWidth={Math.max(2, Math.floor(cellSize * 0.05))}
+              />
             );
           })}
         </svg>

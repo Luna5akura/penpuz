@@ -361,3 +361,73 @@ pnpm exec eslint src/puzzles/Kurarin src/components/examples/KurarinExample.tsx 
 3. 刷新页面后进度是否恢复
 4. 完成后是否正确触发计时结束与完成弹窗
 5. 历史记录中加载该题型是否正常
+---
+
+## 新增题型实施流程（2026-04 更新版）
+
+以下流程是按当前仓库结构整理的标准 SOP，建议每次新增题型都完整执行一遍，避免出现“能打开但规则/示例/存档不一致”的隐性问题。
+
+### 1. 明确题型数据模型（`src/puzzles/types.ts`）
+
+1. 新增题型基础数据接口（如 `KurarinPuzzleData`），至少包含 `type`、`width`、`height`、线索结构。
+2. 若线索有多种形态（颜色、方向、数字、点阵坐标），单独定义 `Clue` 类型与枚举/联合类型。
+3. 将新题型加入 `PuzzleData` 联合类型。
+4. 将新题型加入 `PuzzleType`。
+5. 将题型加入 `PuzzleTemplate` 的 `example` 联合类型。
+6. 若有完成弹窗或统计面板的类型约束（如 `CompletionModal`），同步扩展 `puzzleType`。
+
+### 2. 实现链接解析与规则工具（`src/puzzles/<Type>/utils.ts`）
+
+1. 实现 `parse<Type>Link(link)`，兼容 `p?type/...` 与纯数据串。
+2. 如果是 pzpr 系链接，优先按官方源码或编码文档实现，不要靠样例反推。
+3. 补齐核心规则校验函数（如 `validate<Type>`），保证返回可用于 UI 高亮的详细错误信息（坏格、坏线索索引等）。
+4. 若题型涉及线段/边状态，统一实现边 key 工具：`getEdgeKey`、`parseEdgeKey`、`createEdgeSet`、`getIncidentEdgeKeys`。
+5. 若题型需要复杂命中判定（格子/边/点），抽离 `detect<Type>HitTarget`，避免组件里写大量坐标分支。
+
+### 3. 实现主棋盘组件（`src/puzzles/<Type>/<Type>.tsx`）
+
+1. 使用 `usePuzzleHistory` 接入 Undo/Redo 与试填。
+2. 统一支持 `initialSnapshot` 和 `onSnapshotChange`，保证日历与会话恢复可用。
+3. 操作与样式优先复用共用函数（`boardTheme.ts`）：`getBoardFrameStyle`、`getBoardCellColors`、`getCrossMarkStyle`、`getResponsiveCellSize`。
+4. 鼠标与触屏交互分开设计并保持一致语义（点击、拖动、右键、边上打叉）。
+5. 校验结果用于局部高亮，而不是只给 toast 文案。
+6. 完成条件必须以规则校验通过为准，再触发 `onComplete`。
+
+### 4. 实现示例组件（`src/components/examples/<Type>Example.tsx`）
+
+1. 左侧可玩示例复用主棋盘组件，避免双实现逻辑漂移。
+2. 右侧答案面板按题型真实元素绘制（格、边、点、圈、叉），不要简化成近似图。
+3. 示例答案坐标系统必须与解析器一致（例如点阵题型不能按 cell 坐标画线索）。
+4. 保留遮罩和确认弹窗（防剧透）。
+
+### 5. 注册题型（`src/puzzles/registry.tsx`）
+
+1. import 新增的 `Board`、`Example`、`parse<Type>Link`。
+2. 在 `PuzzleRegistry` 类型里加入新题型 entry。
+3. 在 `puzzleRegistry` 新增完整配置：`parsePuzzLink`、`template`、`renderBoard`、`renderExample`。
+4. `template.example` 的数据要可直接驱动示例组件，不要依赖运行时推导。
+
+### 6. 加入题库数据（`src/puzzles/database.ts`）
+
+1. 在 `allPuzzles` 增加至少一条新题型数据（优先使用官方可验证链接）。
+2. 若有多来源数据（链接/内联 puzzle），都要跑通 `resolvePuzzleEntry()`。
+
+### 7. 文案与规则说明同步
+
+1. `template.rules` 中英文同时补齐。
+2. 若题型有特殊交互（如边上打叉、移动端三态循环），写进规则说明或帮助文案。
+
+### 8. 必做验证清单
+
+1. `pnpm build`
+2. `pnpm exec eslint src/puzzles/<Type> src/components/examples/<Type>Example.tsx src/puzzles/registry.tsx src/puzzles/database.ts src/puzzles/types.ts`
+3. 手工验证：左键/右键/拖动、触屏操作、撤销重做、试填、重置、完成判定、示例展示、链接解析、会话恢复。
+
+### 9. Kurarin 特殊注意事项（本次踩坑总结）
+
+1. Kurarin 圆圈坐标是点阵坐标，不是格子坐标。
+2. 点阵尺寸为 `(2*height-1) x (2*width-1)`。
+3. 圆圈可位于：格中心（覆盖 1 格）、边中心（覆盖 2 格）、顶点（覆盖 4 格）。
+4. 颜色映射按官方实现：`1=black, 2=gray, 3=white`。
+5. 圆圈判定应按覆盖区域内黑白格数量比较，而不是固定邻域。
+6. 绘制时应使用独立 SVG 覆盖层，按点阵坐标换算到像素位置，不要塞在单元格内部渲染。

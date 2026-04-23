@@ -14,56 +14,68 @@ export type KurarinHitTarget =
   | { kind: 'edge'; key: string; cells: [{ row: number; col: number }, { row: number; col: number }] }
   | null;
 
-const KNOWN_KURARIN_SAMPLE = {
-  width: 5,
-  height: 5,
-  encoded: 'k4g81ncg2p313k2h',
-  clues: [
-    { row: 0, col: 0, color: 'black' },
-    { row: 0, col: 2, color: 'white' },
-    { row: 0, col: 4, color: 'black' },
-    { row: 1, col: 3, color: 'gray' },
-    { row: 2, col: 1, color: 'white' },
-    { row: 3, col: 0, color: 'black' },
-    { row: 3, col: 1, color: 'gray' },
-    { row: 3, col: 3, color: 'gray' },
-    { row: 4, col: 2, color: 'white' },
-  ] as KurarinClue[],
-};
-
-function mapColorToken(token: string): KurarinClueColor | null {
-  if (token === '1') return 'black';
-  if (token === '2') return 'white';
-  if (token === '3') return 'gray';
+function mapColorToken(token: number): KurarinClueColor | null {
+  if (token === 1) return 'black';
+  if (token === 2) return 'gray';
+  if (token === 3) return 'white';
   return null;
 }
 
-function tryParseSimpleKurarinData(dataStr: string, width: number, height: number): KurarinClue[] {
-  const totalCells = width * height;
-  const clues: KurarinClue[] = [];
-  let index = 0;
+function readNumber16(source: string, index: number): [number, number] {
+  if (index >= source.length) return [-1, 0];
+  const ch = source[index];
+  if (/[0-9a-f]/.test(ch)) return [parseInt(ch, 16), 1];
+  if (ch === '-') return index + 3 <= source.length ? [parseInt(source.slice(index + 1, index + 3), 16), 3] : [-1, 0];
+  if (ch === '+') return index + 4 <= source.length ? [parseInt(source.slice(index + 1, index + 4), 16), 4] : [-1, 0];
+  if (ch === '=') return index + 4 <= source.length ? [parseInt(source.slice(index + 1, index + 4), 16) + 4096, 4] : [-1, 0];
+  if (ch === '%') return index + 4 <= source.length ? [parseInt(source.slice(index + 1, index + 4), 16) + 8192, 4] : [-1, 0];
+  return [-1, 0];
+}
 
-  for (let strIndex = 0; strIndex < dataStr.length && index < totalCells; strIndex += 1) {
+function decodeKurarinDots(dataStr: string, width: number, height: number): KurarinClue[] {
+  const dotWidth = width * 2 - 1;
+  const dotHeight = height * 2 - 1;
+  const dotCount = dotWidth * dotHeight;
+  const pairCount = Math.floor((dotCount + 1) / 2);
+  const dotValues = Array(dotCount).fill(0);
+
+  let pairIndex = 0;
+  let strIndex = 0;
+  while (strIndex < dataStr.length && pairIndex < pairCount) {
     const token = dataStr[strIndex];
-    const color = mapColorToken(token);
-    if (color) {
-      clues.push({
-        row: Math.floor(index / width),
-        col: index % width,
-        color,
-      });
-      index += 1;
-      continue;
-    }
-
     if (token >= 'g' && token <= 'z') {
-      index += parseInt(token, 36) - 15;
+      pairIndex += parseInt(token, 36) - 15;
+      strIndex += 1;
       continue;
     }
 
-    index += 1;
+    const [value, consumed] = readNumber16(dataStr, strIndex);
+    if (consumed <= 0 || value < 0) {
+      strIndex += 1;
+      continue;
+    }
+
+    const firstDot = pairIndex * 2;
+    const secondDot = firstDot + 1;
+    dotValues[firstDot] = (value >> 2) & 3;
+    if (secondDot < dotCount) {
+      dotValues[secondDot] = value & 3;
+    }
+
+    pairIndex += 1;
+    strIndex += consumed;
   }
 
+  const clues: KurarinClue[] = [];
+  for (let index = 0; index < dotCount; index += 1) {
+    const color = mapColorToken(dotValues[index]);
+    if (!color) continue;
+    clues.push({
+      row: Math.floor(index / dotWidth),
+      col: index % dotWidth,
+      color,
+    });
+  }
   return clues;
 }
 
@@ -82,24 +94,11 @@ export function parseKurarinLink(link: string): KurarinPuzzleData | null {
       return null;
     }
 
-    if (
-      width === KNOWN_KURARIN_SAMPLE.width &&
-      height === KNOWN_KURARIN_SAMPLE.height &&
-      dataStr === KNOWN_KURARIN_SAMPLE.encoded
-    ) {
-      return {
-        type: 'kurarin',
-        width,
-        height,
-        clues: KNOWN_KURARIN_SAMPLE.clues,
-      };
-    }
-
     return {
       type: 'kurarin',
       width,
       height,
-      clues: tryParseSimpleKurarinData(dataStr, width, height),
+      clues: decodeKurarinDots(dataStr, width, height),
     };
   } catch {
     return null;
@@ -165,21 +164,19 @@ export function getIncidentKurarinEdgeKeys(
   });
 }
 
-function getOverlappedCells(row: number, col: number, width: number, height: number) {
-  const candidates = [
-    { row, col },
-    { row: row - 1, col },
-    { row: row + 1, col },
-    { row, col: col - 1 },
-    { row, col: col + 1 },
-  ];
+function getOverlappedCells(dotRow: number, dotCol: number, width: number, height: number) {
+  const rows = dotRow % 2 === 0 ? [dotRow / 2] : [(dotRow - 1) / 2, (dotRow + 1) / 2];
+  const cols = dotCol % 2 === 0 ? [dotCol / 2] : [(dotCol - 1) / 2, (dotCol + 1) / 2];
+  const cells: Array<{ row: number; col: number }> = [];
 
-  return candidates.filter((cell) => (
-    cell.row >= 0 &&
-    cell.row < height &&
-    cell.col >= 0 &&
-    cell.col < width
-  ));
+  rows.forEach((row) => {
+    cols.forEach((col) => {
+      if (row < 0 || row >= height || col < 0 || col >= width) return;
+      cells.push({ row, col });
+    });
+  });
+
+  return cells;
 }
 
 function clueKey(row: number, col: number) {
