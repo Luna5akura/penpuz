@@ -115,10 +115,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?mintonette/10/10/g..n0l0.o.i0h0m77n69m0h0i.o.0l0n..g',
-    difficulty: '极难',
-  },
-  {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/j1i1g1j.g.i.m.n1h.p1h1h.k.j11p.h.i.l1i1',
     difficulty: '简单',
   },
