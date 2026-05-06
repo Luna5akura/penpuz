@@ -168,6 +168,18 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?aqre/10/10/lbaml80000002ldaql0000vv000000vv0000205053g061502',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/akl9ail5aakl9ail5a6cpj6cpj6cpj6cpj6c0g0i2h0h00k0h002h',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?mintonette/10/10/.n.r.j.k.h.m56n14m2h3k.j.r.n./',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/1h1h1h1g14g34g32h3l3g1h1h1h1g3h43h4h4h54h2g1h1h1h1g2l2h54g15g13g1h1h1h1',
     difficulty: '困难',
   },
 ];
