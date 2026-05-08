@@ -159,10 +159,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '极难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/i2j2h2j2m1j2h2j2h2j2m2j1h1j2m2j2h2j2h2j2j',
-    difficulty: '极难',
-  },
-  {
     puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/gocnvvvvvvvvspc711dmla00000000ladifq',
     difficulty: '困难',
   },
