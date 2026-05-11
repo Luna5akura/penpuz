@@ -182,7 +182,20 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/h33a23k22d31p1140h3021p43d13k13a41h',
     difficulty: '简单',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kurarin/10/10/p4m4qcg4g4gcucucgcgcg4qcg4i4g4q8g4g8gcucu8g4g8g4q4mcp',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/akl9ail5aakl9ail5a6c1jpg6cpj6c63pj0c101g111111111111g11g1g10',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/s2m2t2m2t2j2r.h2x2',
+    difficulty: '困难',
+  },
 ];
+
 
 
 const START_DATE = '2026-04-09';
