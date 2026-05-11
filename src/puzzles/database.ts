@@ -151,8 +151,8 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?kurarin/5/5/k4g81ncg2p313k2h',
-    difficulty: '困难',
+    puzzLink: 'https://pzprxs.vercel.app/p?kurarin/10/10/p8i8i8h2i3zh3g888882s8i8r8g8g4g8g8r8i8r2g888882zh2i3i8i4i8p',
+    difficulty: '极难',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/58agl1c0o18agl1a2k0000sf30vv30vv00001121222g2g1021',
