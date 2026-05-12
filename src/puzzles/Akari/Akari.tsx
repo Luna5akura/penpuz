@@ -22,6 +22,7 @@ import {
   type AkariCellState,
   validateAkari,
 } from './utils';
+import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
   puzzle: AkariPuzzleData;
@@ -58,23 +59,15 @@ function normalizeAkariSnapshot(
   const fallbackGrid = createEmptyAkariGrid(width, height);
   const fallbackLevels = Array.from({ length: height }, () => Array(width).fill(0));
   const source = snapshot as Partial<AkariSnapshot> | null | undefined;
-
-  const grid = Array.from({ length: height }, (_, row) =>
-    Array.from({ length: width }, (_, col) => {
-      const value = source?.grid?.[row]?.[col];
-      return value === 1 || value === 2 ? value : 0;
-    })
+  const grid = sanitizeMatrix(source?.grid, fallbackGrid, (value) =>
+    value === 1 || value === 2 ? value : 0
   ) as AkariCellState[][];
-
-  const levels = Array.from({ length: height }, (_, row) =>
-    Array.from({ length: width }, (_, col) => {
-      const value = source?.levels?.[row]?.[col];
-      return typeof value === 'number' ? value : fallbackLevels[row][col];
-    })
+  const levels = sanitizeMatrix(source?.levels, fallbackLevels, (value, fallbackCell) =>
+    typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
   );
 
   return {
-    grid: source?.grid ? grid : fallbackGrid,
+    grid,
     levels,
   };
 }

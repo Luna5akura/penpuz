@@ -12,6 +12,7 @@ import {
 } from '../boardTheme';
 import { getTrialLevelColors } from '../trialStyles';
 import { getNikojiEdgeKey, validateNikoji } from './utils';
+import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 type LineMode = 'deepLine' | 'thinLine';
 
@@ -38,14 +39,10 @@ const BOARD_PADDING = commonBoardChrome.padding;
 function normalizeNikojiSnapshot(snapshot: unknown): NikojiSnapshot {
   const source = snapshot as Partial<NikojiSnapshot> | null | undefined;
   return {
-    deepLines: Array.isArray(source?.deepLines) ? [...source.deepLines] : [],
-    thinLines: Array.isArray(source?.thinLines) ? [...source.thinLines] : [],
-    deepLineLevels: source?.deepLineLevels && typeof source.deepLineLevels === 'object'
-      ? { ...source.deepLineLevels }
-      : {},
-    thinLineLevels: source?.thinLineLevels && typeof source.thinLineLevels === 'object'
-      ? { ...source.thinLineLevels }
-      : {},
+    deepLines: sanitizeStringArray(source?.deepLines),
+    thinLines: sanitizeStringArray(source?.thinLines),
+    deepLineLevels: sanitizeNumberRecord(source?.deepLineLevels),
+    thinLineLevels: sanitizeNumberRecord(source?.thinLineLevels),
   };
 }
 

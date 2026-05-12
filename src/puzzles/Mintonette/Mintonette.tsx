@@ -20,6 +20,7 @@ import {
   parseMintonetteEdgeKey,
   validateMintonette,
 } from './utils';
+import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
   puzzle: MintonettePuzzleData;
@@ -44,14 +45,10 @@ const BOARD_PADDING = commonBoardChrome.padding;
 function normalizeMintonetteSnapshot(snapshot: unknown): MintonetteSnapshot {
   const source = snapshot as Partial<MintonetteSnapshot> | null | undefined;
   return {
-    lineEdges: Array.isArray(source?.lineEdges) ? [...source.lineEdges] : [],
-    crossedEdges: Array.isArray(source?.crossedEdges) ? [...source.crossedEdges] : [],
-    lineEdgeLevels: source?.lineEdgeLevels && typeof source.lineEdgeLevels === 'object'
-      ? { ...source.lineEdgeLevels }
-      : {},
-    crossedEdgeLevels: source?.crossedEdgeLevels && typeof source.crossedEdgeLevels === 'object'
-      ? { ...source.crossedEdgeLevels }
-      : {},
+    lineEdges: sanitizeStringArray(source?.lineEdges),
+    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    lineEdgeLevels: sanitizeNumberRecord(source?.lineEdgeLevels),
+    crossedEdgeLevels: sanitizeNumberRecord(source?.crossedEdgeLevels),
   };
 }
 

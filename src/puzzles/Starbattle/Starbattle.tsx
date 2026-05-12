@@ -25,6 +25,7 @@ import {
   type StarbattleCellState,
   validateStarbattle,
 } from './utils';
+import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
   puzzle: StarbattlePuzzleData;
@@ -56,6 +57,31 @@ type StarbattleSnapshot = {
 
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
+
+function normalizeStarbattleSnapshot(snapshot: unknown, width: number, height: number): StarbattleSnapshot {
+  const fallback = {
+    grid: createEmptyStarbattleGrid(width, height),
+    edgeDots: [],
+    vertexDots: [],
+    cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
+    edgeDotLevels: {},
+    vertexDotLevels: {},
+  };
+  const source = snapshot as Partial<StarbattleSnapshot> | null | undefined;
+
+  return {
+    grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
+      value === 0 || value === 1 || value === 2 ? value : 0
+    ) as StarbattleCellState[][],
+    edgeDots: sanitizeStringArray(source?.edgeDots),
+    vertexDots: sanitizeStringArray(source?.vertexDots),
+    cellLevels: sanitizeMatrix(source?.cellLevels, fallback.cellLevels, (value, fallbackCell) =>
+      typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
+    ),
+    edgeDotLevels: sanitizeNumberRecord(source?.edgeDotLevels),
+    vertexDotLevels: sanitizeNumberRecord(source?.vertexDotLevels),
+  };
+}
 
 export default function StarbattleBoard({
   puzzle,
@@ -99,13 +125,13 @@ export default function StarbattleBoard({
     vertexDotLevels: {},
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as StarbattleSnapshot | null) ?? createInitialSnapshot();
-  }, [createInitialSnapshot, initialSnapshot]);
+    return normalizeStarbattleSnapshot(initialSnapshot, width, height);
+  }, [height, initialSnapshot, width]);
 
   const history = usePuzzleHistory<StarbattleSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...trialSnapshot,
-      cellLevels: trialSnapshot.cellLevels.map((row) => row.map(() => 0)),
+      ...normalizeStarbattleSnapshot(trialSnapshot, width, height),
+      cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
       edgeDotLevels: {},
       vertexDotLevels: {},
     }),
@@ -133,12 +159,16 @@ export default function StarbattleBoard({
     finishBatch,
   } = history;
 
-  const grid = snapshot.grid;
-  const cellLevels = snapshot.cellLevels;
-  const edgeDots = useMemo(() => new Set(snapshot.edgeDots), [snapshot.edgeDots]);
-  const vertexDots = useMemo(() => new Set(snapshot.vertexDots), [snapshot.vertexDots]);
-  const edgeDotLevels = snapshot.edgeDotLevels;
-  const vertexDotLevels = snapshot.vertexDotLevels;
+  const normalizedSnapshot = useMemo(
+    () => normalizeStarbattleSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
+  const grid = normalizedSnapshot.grid;
+  const cellLevels = normalizedSnapshot.cellLevels;
+  const edgeDots = useMemo(() => new Set(normalizedSnapshot.edgeDots), [normalizedSnapshot.edgeDots]);
+  const vertexDots = useMemo(() => new Set(normalizedSnapshot.vertexDots), [normalizedSnapshot.vertexDots]);
+  const edgeDotLevels = normalizedSnapshot.edgeDotLevels;
+  const vertexDotLevels = normalizedSnapshot.vertexDotLevels;
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
 
   const cellSize = useMemo(() => {

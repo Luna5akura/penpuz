@@ -16,6 +16,7 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
   puzzle: PuzzleData;
@@ -31,6 +32,23 @@ type NurikabeSnapshot = {
   grid: CellState[][];
   levels: number[][];
 };
+
+function normalizeNurikabeSnapshot(snapshot: unknown, width: number, height: number): NurikabeSnapshot {
+  const fallback = {
+    grid: Array.from({ length: height }, () => Array(width).fill(0) as CellState[]),
+    levels: Array.from({ length: height }, () => Array(width).fill(0)),
+  };
+  const source = snapshot as Partial<NurikabeSnapshot> | null | undefined;
+
+  return {
+    grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
+      value === 0 || value === 1 || value === 2 ? value : 0
+    ) as CellState[][],
+    levels: sanitizeMatrix(source?.levels, fallback.levels, (value, fallbackCell) =>
+      typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
+    ),
+  };
+}
 
 export default function NurikabeBoard({
   puzzle,
@@ -57,13 +75,13 @@ export default function NurikabeBoard({
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as NurikabeSnapshot | null) ?? createInitialSnapshot();
-  }, [createInitialSnapshot, initialSnapshot]);
+    return normalizeNurikabeSnapshot(initialSnapshot, width, height);
+  }, [height, initialSnapshot, width]);
 
   const history = usePuzzleHistory<NurikabeSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...trialSnapshot,
-      levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
+      ...normalizeNurikabeSnapshot(trialSnapshot, width, height),
+      levels: Array.from({ length: height }, () => Array(width).fill(0)),
     }),
     onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
   });
@@ -87,8 +105,12 @@ export default function NurikabeBoard({
     startBatch,
     finishBatch,
   } = history;
-  const grid = snapshot.grid;
-  const levels = snapshot.levels;
+  const normalizedSnapshot = useMemo(
+    () => normalizeNurikabeSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
+  const grid = normalizedSnapshot.grid;
+  const levels = normalizedSnapshot.levels;
 
   // 响应式尺寸 + 手机端检测
   const isMobile = viewportWidth < commonBoardChrome.mobileBreakpoint;

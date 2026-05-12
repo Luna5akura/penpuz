@@ -22,6 +22,7 @@ import {
   type AqreCellState,
   validateAqre,
 } from './utils';
+import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
   puzzle: AqrePuzzleData;
@@ -74,15 +75,17 @@ function sanitizeAqreSnapshot(
   height: number,
   fallback: AqreSnapshot
 ): AqreSnapshot {
-  if (!snapshot || typeof snapshot !== 'object') return fallback;
-
-  const candidate = snapshot as Partial<AqreSnapshot>;
-  if (!isValidAqreGrid(candidate.grid, width, height)) return fallback;
-  if (!isValidAqreLevels(candidate.levels, width, height)) return fallback;
-
   return {
-    grid: candidate.grid.map((row) => [...row]),
-    levels: candidate.levels.map((row) => [...row]),
+    grid: isValidAqreGrid((snapshot as Partial<AqreSnapshot> | null)?.grid, width, height)
+      ? sanitizeMatrix((snapshot as Partial<AqreSnapshot>).grid, fallback.grid, (value) =>
+        value === 0 || value === 1 || value === 2 ? value : 0
+      )
+      : fallback.grid.map((row) => [...row]),
+    levels: isValidAqreLevels((snapshot as Partial<AqreSnapshot> | null)?.levels, width, height)
+      ? sanitizeMatrix((snapshot as Partial<AqreSnapshot>).levels, fallback.levels, (value) =>
+        typeof value === 'number' && Number.isFinite(value) ? value : 0
+      )
+      : fallback.levels.map((row) => [...row]),
   };
 }
 

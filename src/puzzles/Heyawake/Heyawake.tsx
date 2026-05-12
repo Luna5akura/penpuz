@@ -22,6 +22,7 @@ import {
   type HeyawakeCellState,
   validateHeyawake,
 } from './utils';
+import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
   puzzle: HeyawakePuzzleData;
@@ -50,6 +51,23 @@ type DragMode =
 
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
+
+function normalizeHeyawakeSnapshot(snapshot: unknown, width: number, height: number): HeyawakeSnapshot {
+  const fallback = {
+    grid: createEmptyHeyawakeGrid(width, height),
+    levels: Array.from({ length: height }, () => Array(width).fill(0)),
+  };
+  const source = snapshot as Partial<HeyawakeSnapshot> | null | undefined;
+
+  return {
+    grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
+      value === 0 || value === 1 || value === 2 ? value : 0
+    ) as HeyawakeCellState[][],
+    levels: sanitizeMatrix(source?.levels, fallback.levels, (value, fallbackCell) =>
+      typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
+    ),
+  };
+}
 
 export default function HeyawakeBoard({
   puzzle,
@@ -92,13 +110,13 @@ export default function HeyawakeBoard({
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as HeyawakeSnapshot | null) ?? createInitialSnapshot();
-  }, [createInitialSnapshot, initialSnapshot]);
+    return normalizeHeyawakeSnapshot(initialSnapshot, width, height);
+  }, [height, initialSnapshot, width]);
 
   const history = usePuzzleHistory<HeyawakeSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...trialSnapshot,
-      levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
+      ...normalizeHeyawakeSnapshot(trialSnapshot, width, height),
+      levels: Array.from({ length: height }, () => Array(width).fill(0)),
     }),
     onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
   });
@@ -124,8 +142,12 @@ export default function HeyawakeBoard({
     finishBatch,
   } = history;
 
-  const grid = snapshot.grid;
-  const levels = snapshot.levels;
+  const normalizedSnapshot = useMemo(
+    () => normalizeHeyawakeSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
+  const grid = normalizedSnapshot.grid;
+  const levels = normalizedSnapshot.levels;
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
   const isMobile = viewportWidth < 640;
   const validation = useMemo(

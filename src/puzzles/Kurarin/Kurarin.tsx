@@ -22,6 +22,7 @@ import {
   validateKurarin,
 } from './utils';
 import { getTrialLevelColors } from '../trialStyles';
+import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
   puzzle: KurarinPuzzleData;
@@ -54,6 +55,31 @@ type KurarinSnapshot = {
   loopEdgeLevels: Record<string, number>;
   crossedEdgeLevels: Record<string, number>;
 };
+
+function normalizeKurarinSnapshot(snapshot: unknown, width: number, height: number): KurarinSnapshot {
+  const fallback = {
+    grid: createEmptyKurarinGrid(width, height),
+    loopEdges: [],
+    crossedEdges: [],
+    cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
+    loopEdgeLevels: {},
+    crossedEdgeLevels: {},
+  };
+  const source = snapshot as Partial<KurarinSnapshot> | null | undefined;
+
+  return {
+    grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
+      value === 0 || value === 1 || value === 2 ? value : 0
+    ) as KurarinCellState[][],
+    loopEdges: sanitizeStringArray(source?.loopEdges),
+    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    cellLevels: sanitizeMatrix(source?.cellLevels, fallback.cellLevels, (value, fallbackCell) =>
+      typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
+    ),
+    loopEdgeLevels: sanitizeNumberRecord(source?.loopEdgeLevels),
+    crossedEdgeLevels: sanitizeNumberRecord(source?.crossedEdgeLevels),
+  };
+}
 
 export default function KurarinBoard({
   puzzle,
@@ -101,12 +127,12 @@ export default function KurarinBoard({
     crossedEdgeLevels: {},
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as KurarinSnapshot | null) ?? createInitialSnapshot();
-  }, [createInitialSnapshot, initialSnapshot]);
+    return normalizeKurarinSnapshot(initialSnapshot, width, height);
+  }, [height, initialSnapshot, width]);
   const history = usePuzzleHistory<KurarinSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...trialSnapshot,
-      cellLevels: trialSnapshot.cellLevels.map((row) => row.map(() => 0)),
+      ...normalizeKurarinSnapshot(trialSnapshot, width, height),
+      cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
       loopEdgeLevels: {},
       crossedEdgeLevels: {},
     }),
@@ -132,12 +158,16 @@ export default function KurarinBoard({
     startBatch,
     finishBatch,
   } = history;
-  const grid = snapshot.grid;
-  const loopEdges = useMemo(() => new Set(snapshot.loopEdges), [snapshot.loopEdges]);
-  const crossedEdges = useMemo(() => new Set(snapshot.crossedEdges), [snapshot.crossedEdges]);
-  const cellLevels = snapshot.cellLevels;
-  const loopEdgeLevels = snapshot.loopEdgeLevels;
-  const crossedEdgeLevels = snapshot.crossedEdgeLevels;
+  const normalizedSnapshot = useMemo(
+    () => normalizeKurarinSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
+  const grid = normalizedSnapshot.grid;
+  const loopEdges = useMemo(() => new Set(normalizedSnapshot.loopEdges), [normalizedSnapshot.loopEdges]);
+  const crossedEdges = useMemo(() => new Set(normalizedSnapshot.crossedEdges), [normalizedSnapshot.crossedEdges]);
+  const cellLevels = normalizedSnapshot.cellLevels;
+  const loopEdgeLevels = normalizedSnapshot.loopEdgeLevels;
+  const crossedEdgeLevels = normalizedSnapshot.crossedEdgeLevels;
   const hasEdited = canUndo || canRedo || trialCheckpointCount > 0 || trialActive;
 
   const isMobile = viewportWidth < 640;

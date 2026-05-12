@@ -14,6 +14,7 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
   puzzle: FillominoPuzzleData;
@@ -36,6 +37,23 @@ type FillominoSnapshot = {
 };
 
 const BOARD_PADDING = commonBoardChrome.padding;
+
+function normalizeFillominoSnapshot(snapshot: unknown, fallback: FillominoSnapshot): FillominoSnapshot {
+  const source = snapshot as Partial<FillominoSnapshot> | null | undefined;
+
+  return {
+    grid: sanitizeMatrix(source?.grid, fallback.grid, (value, fallbackCell) =>
+      value === null || (typeof value === 'number' && Number.isFinite(value)) ? value : fallbackCell
+    ),
+    thinLines: sanitizeStringArray(source?.thinLines),
+    deepLines: sanitizeStringArray(source?.deepLines),
+    gridLevels: sanitizeMatrix(source?.gridLevels, fallback.gridLevels, (value, fallbackCell) =>
+      typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
+    ),
+    thinLineLevels: sanitizeNumberRecord(source?.thinLineLevels),
+    deepLineLevels: sanitizeNumberRecord(source?.deepLineLevels),
+  };
+}
 
 export default function FillominoBoard({
   puzzle,
@@ -98,12 +116,12 @@ export default function FillominoBoard({
     deepLineLevels: {},
   }), [clues]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as FillominoSnapshot | null) ?? createInitialSnapshot();
+    return normalizeFillominoSnapshot(initialSnapshot, createInitialSnapshot());
   }, [createInitialSnapshot, initialSnapshot]);
   const history = usePuzzleHistory<FillominoSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...trialSnapshot,
-      gridLevels: trialSnapshot.gridLevels.map((row) => row.map(() => 0)),
+      ...normalizeFillominoSnapshot(trialSnapshot, createInitialSnapshot()),
+      gridLevels: createInitialSnapshot().gridLevels.map((row) => row.map(() => 0)),
       thinLineLevels: {},
       deepLineLevels: {},
     }),
@@ -129,12 +147,16 @@ export default function FillominoBoard({
     startBatch,
     finishBatch,
   } = history;
-  const grid = snapshot.grid;
-  const thinLines = snapshot.thinLines;
-  const deepLines = snapshot.deepLines;
-  const gridLevels = snapshot.gridLevels;
-  const thinLineLevels = snapshot.thinLineLevels;
-  const deepLineLevels = snapshot.deepLineLevels;
+  const normalizedSnapshot = useMemo(
+    () => normalizeFillominoSnapshot(snapshot, createInitialSnapshot()),
+    [createInitialSnapshot, snapshot]
+  );
+  const grid = normalizedSnapshot.grid;
+  const thinLines = normalizedSnapshot.thinLines;
+  const deepLines = normalizedSnapshot.deepLines;
+  const gridLevels = normalizedSnapshot.gridLevels;
+  const thinLineLevels = normalizedSnapshot.thinLineLevels;
+  const deepLineLevels = normalizedSnapshot.deepLineLevels;
   const thinLineSet = useMemo(() => new Set(thinLines), [thinLines]);
   const deepLineSet = useMemo(() => new Set(deepLines), [deepLines]);
 
