@@ -50,6 +50,42 @@ type DragMode =
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
+function isValidAqreGrid(grid: unknown, width: number, height: number): grid is AqreCellState[][] {
+  if (!Array.isArray(grid) || grid.length !== height) return false;
+  return grid.every((row) =>
+    Array.isArray(row) &&
+    row.length === width &&
+    row.every((cell) => cell === 0 || cell === 1 || cell === 2)
+  );
+}
+
+function isValidAqreLevels(levels: unknown, width: number, height: number): levels is number[][] {
+  if (!Array.isArray(levels) || levels.length !== height) return false;
+  return levels.every((row) =>
+    Array.isArray(row) &&
+    row.length === width &&
+    row.every((cell) => typeof cell === 'number' && Number.isFinite(cell))
+  );
+}
+
+function sanitizeAqreSnapshot(
+  snapshot: unknown,
+  width: number,
+  height: number,
+  fallback: AqreSnapshot
+): AqreSnapshot {
+  if (!snapshot || typeof snapshot !== 'object') return fallback;
+
+  const candidate = snapshot as Partial<AqreSnapshot>;
+  if (!isValidAqreGrid(candidate.grid, width, height)) return fallback;
+  if (!isValidAqreLevels(candidate.levels, width, height)) return fallback;
+
+  return {
+    grid: candidate.grid.map((row) => [...row]),
+    levels: candidate.levels.map((row) => [...row]),
+  };
+}
+
 export default function AqreBoard({
   puzzle,
   startTime,
@@ -85,8 +121,8 @@ export default function AqreBoard({
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(() => {
-    return (initialSnapshot as AqreSnapshot | null) ?? createInitialSnapshot();
-  }, [createInitialSnapshot, initialSnapshot]);
+    return sanitizeAqreSnapshot(initialSnapshot, width, height, createInitialSnapshot());
+  }, [createInitialSnapshot, height, initialSnapshot, width]);
 
   const history = usePuzzleHistory<AqreSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
