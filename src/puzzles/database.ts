@@ -171,10 +171,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?mintonette/10/10/.n.r.j.k.h.m56n14m2h3k.j.r.n./',
-    difficulty: '困难',
-  },
-  {
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/1h1h1h1g14g34g32h3l3g1h1h1h1g3h43h4h4h54h2g1h1h1h1g2l2h54g15g13g1h1h1h1',
     difficulty: '困难',
   },
