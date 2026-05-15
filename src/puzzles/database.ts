@@ -175,7 +175,7 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/h33a23k22d31p1140h3021p43d13k13a41h',
+    puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/h33a21k22d32p1142h3121p42d12k11a41h',
     difficulty: '简单',
   },
   {
