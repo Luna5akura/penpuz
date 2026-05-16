@@ -4,6 +4,7 @@ import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
 import { commonBoardChrome, getBoardCellColors, getBoardFrameStyle, woodBoardTheme } from '../../puzzles/boardTheme';
+import { getLoopCrossStrokeWidth, getLoopLineStrokeWidth } from '../../puzzles/boardTheme';
 import { ClueArrow } from '../../puzzles/Yajilin/ClueArrow';
 import { getClueNumberFontSize } from '../../puzzles/Yajilin/clueSizing';
 import { createYajilinEdgeSet, parseYajilinEdgeKey } from '../../puzzles/Yajilin/utils';
@@ -189,7 +190,7 @@ export default function YajilinExample({
                       x2={x2}
                       y2={y2}
                       stroke={woodBoardTheme.ink}
-                      strokeWidth="3"
+                      strokeWidth={getLoopLineStrokeWidth(CELL_SIZE)}
                       strokeLinecap="round"
                     />
                   );
@@ -201,7 +202,7 @@ export default function YajilinExample({
                   const centerX = PADDING + ((edge.c1 + edge.c2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   const centerY = PADDING + ((edge.r1 + edge.r2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   return (
-                    <g key={`cross-${edgeKey}`} stroke={woodBoardTheme.border} strokeWidth="1.6" strokeLinecap="round">
+                    <g key={`cross-${edgeKey}`} stroke={woodBoardTheme.border} strokeWidth={getLoopCrossStrokeWidth()} strokeLinecap="round">
                       <line x1={centerX - 3} y1={centerY - 3} x2={centerX + 3} y2={centerY + 3} />
                       <line x1={centerX - 3} y1={centerY + 3} x2={centerX + 3} y2={centerY - 3} />
                     </g>

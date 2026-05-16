@@ -9,7 +9,7 @@ interface Props {
   isOpen: boolean;
   time: number;
   onClose: () => void;
-  puzzleType: 'nurikabe' | 'fillomino' | 'yajilin' | 'starbattle' | 'heyawake' | 'aqre' | 'mintonette' | 'nikoji' | 'akari' | 'kurarin';
+  puzzleType: 'nurikabe' | 'fillomino' | 'yajilin' | 'starbattle' | 'heyawake' | 'aqre' | 'mintonette' | 'nikoji' | 'akari' | 'kurarin' | 'walkwalk';
   dateStr: string;
 }
 
@@ -21,7 +21,6 @@ export default function CompletionModal({
   dateStr,
 }: Props) {
   const { locale, copy } = useI18n();
-  const hiddenCopyRef = useRef<HTMLTextAreaElement | null>(null);
   const manualCopyRef = useRef<HTMLTextAreaElement | null>(null);
   const minutes = Math.floor(time / 60);
   const seconds = time % 60;
@@ -46,30 +45,48 @@ export default function CompletionModal({
   }, [showManualCopy]);
 
   const fallbackCopyText = useCallback((text: string) => {
-    const textArea = hiddenCopyRef.current;
-    if (!textArea) return false;
-
     const activeElement = document.activeElement as HTMLElement | null;
     const selection = window.getSelection();
     const previousRange =
       selection && selection.rangeCount > 0 ? selection.getRangeAt(0).cloneRange() : null;
+    const textArea = document.createElement('textarea');
 
     textArea.value = text;
-    textArea.removeAttribute('readonly');
-    textArea.focus({ preventScroll: true });
-    textArea.select();
-    textArea.setSelectionRange(0, textArea.value.length);
+    textArea.setAttribute('readonly', '');
+    textArea.setAttribute('aria-hidden', 'true');
+    textArea.style.position = 'fixed';
+    textArea.style.top = '0';
+    textArea.style.left = '0';
+    textArea.style.width = '1px';
+    textArea.style.height = '1px';
+    textArea.style.padding = '0';
+    textArea.style.border = '0';
+    textArea.style.outline = '0';
+    textArea.style.boxShadow = 'none';
+    textArea.style.background = 'transparent';
+    textArea.style.opacity = '0.01';
+    textArea.style.fontSize = '16px';
+    textArea.style.pointerEvents = 'none';
+    textArea.style.zIndex = '-1';
+    document.body.appendChild(textArea);
+
+    if (/iphone|ipad|ipod/i.test(window.navigator.userAgent)) {
+      textArea.removeAttribute('readonly');
+      textArea.contentEditable = 'true';
+    }
 
     let success = false;
 
     try {
+      textArea.focus({ preventScroll: true });
+      textArea.select();
+      textArea.setSelectionRange(0, textArea.value.length);
       success = document.execCommand('copy');
     } catch (fallbackErr) {
       console.error('execCommand("copy") 执行失败:', fallbackErr);
     } finally {
       textArea.blur();
-      textArea.value = '';
-      textArea.setAttribute('readonly', '');
+      document.body.removeChild(textArea);
 
       if (selection) {
         selection.removeAllRanges();
@@ -84,19 +101,37 @@ export default function CompletionModal({
 
   const copyToClipboard = useCallback(async () => {
     let success = false;
+    let shareCancelled = false;
 
-    // 优先尝试现代 Clipboard API
     try {
-      if (navigator.clipboard?.writeText && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareText);
+      if (navigator.share) {
+        await navigator.share({
+          title: copy.app.siteTitle,
+          text: shareText,
+          url: 'https://penpuz.today',
+        });
         success = true;
       }
     } catch (err) {
-      console.warn('Clipboard API 失败，尝试 fallback:', err);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        shareCancelled = true;
+      } else {
+        console.warn('Web Share API 失败，尝试复制:', err);
+      }
     }
 
-    // 如果 Clipboard API 失败或不可用，回退到 execCommand 方案
-    if (!success) {
+    if (!success && !shareCancelled) {
+      try {
+        if (navigator.clipboard?.writeText && window.isSecureContext) {
+          await navigator.clipboard.writeText(shareText);
+          success = true;
+        }
+      } catch (err) {
+        console.warn('Clipboard API 失败，尝试 fallback:', err);
+      }
+    }
+
+    if (!success && !shareCancelled) {
       success = fallbackCopyText(shareText);
     }
 
@@ -104,12 +139,11 @@ export default function CompletionModal({
       setCopied(true);
       setShowManualCopy(false);
       setTimeout(() => setCopied(false), 2000);
-    } else {
-      // 完全失败时显示手动复制面板
+    } else if (!shareCancelled) {
       setShowManualCopy(true);
       console.error('复制操作完全失败，已提供手动复制方案');
     }
-  }, [fallbackCopyText, shareText]);
+  }, [copy.app.siteTitle, fallbackCopyText, shareText]);
 
   return (
     <Dialog
@@ -119,15 +153,6 @@ export default function CompletionModal({
       }}
     >
       <DialogContent className="max-w-md border-[#d7c7b4] bg-[#fffdf9] p-4 dark:border-gray-700 dark:bg-gray-900">
-        {/* Keep the fallback textarea inside the dialog so Radix focus trapping doesn't block selection/copy. */}
-        <textarea
-          ref={hiddenCopyRef}
-          readOnly
-          aria-hidden="true"
-          tabIndex={-1}
-          className="pointer-events-none absolute left-4 top-4 h-px w-px opacity-0"
-        />
-
         <DialogHeader>
           <DialogTitle className="text-center text-2xl text-[#2f241a] dark:text-gray-100">
             {copy.completionModal.title}

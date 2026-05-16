@@ -85,6 +85,22 @@ export function getBoardNumberFontSize(cellSize: number, ratio = 0.68, min = 22)
   return Math.max(min, Math.floor(cellSize * ratio));
 }
 
+export function getLoopLineStrokeWidth(cellSize: number, ratio = 0.08, min = 2.5) {
+  return Math.max(min, Math.floor(cellSize * ratio));
+}
+
+export function getLoopCrossSize(cellSize: number, ratio = 0.07, min = 3) {
+  return Math.max(min, Math.floor(cellSize * ratio));
+}
+
+export function getLoopCrossStrokeWidth() {
+  return 1.6;
+}
+
+export function getRoomBoundaryStrokeWidth() {
+  return 3;
+}
+
 export function getBoardCircleClueDiameter(cellSize: number, ratio = 0.76, min = 28) {
   return Math.max(min, Math.floor(cellSize * ratio));
 }

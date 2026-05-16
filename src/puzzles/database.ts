@@ -179,6 +179,10 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/10/10/8gh14i94ia4l1a244800vv000s70of007g003q1h1g3i4g2j4i3j6l3g3j3l1k2l3g1k4h3h3q5h',
+    difficulty: '简单',
+  },
+  {
     puzzLink: 'https://pzprxs.vercel.app/p?kurarin/10/10/p4m4qcg4g4gcucucgcgcg4qcg4i4g4q8g4g8gcucu8g4g8g4q4mcp',
     difficulty: '困难',
   },
@@ -199,9 +203,14 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/10/10/58agl1224488gl1a2k0000vv00s700vv00005h5h2h7r1j2h2i4j3l4l4l6j4i5h2j2r5h2h3h5',
+    difficulty: '困难',
+  },
+  {
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/k21f32c22d31f21k41f11k31f42d11c42f11k',
     difficulty: '困难',
   },
+  
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/4g90i1224488g90i1400003vs00007vo0000534523551',
     difficulty: '简单',
@@ -218,6 +227,7 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/h2j2g11j2m2j1h2j2m1j2h2j2h2j1m2j1h2j2m2j2',
     difficulty: '困难',
   },
+
 ];
 
 

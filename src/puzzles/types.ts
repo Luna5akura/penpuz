@@ -131,6 +131,20 @@ export interface KurarinPuzzleData {
   clues: KurarinClue[];
 }
 
+export interface WalkwalkClue {
+  row: number;
+  col: number;
+  value: number;
+}
+
+export interface WalkwalkPuzzleData {
+  type: 'walkwalk';
+  width: number;
+  height: number;
+  regionIds: number[][];
+  clues: WalkwalkClue[];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -141,7 +155,8 @@ export type PuzzleData =
   | MintonettePuzzleData
   | NikojiPuzzleData
   | AkariPuzzleData
-  | KurarinPuzzleData;
+  | KurarinPuzzleData
+  | WalkwalkPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -242,6 +257,15 @@ export type PuzzleExample =
       clues: KurarinClue[];
       shadedCells: { row: number; col: number }[];
       loopEdges: YajilinSolutionEdge[];
+      crossedEdges?: YajilinSolutionEdge[];
+    }
+  | {
+      puzzleType: 'walkwalk';
+      width: number;
+      height: number;
+      regionIds: number[][];
+      clues: WalkwalkClue[];
+      solutionEdges: YajilinSolutionEdge[];
       crossedEdges?: YajilinSolutionEdge[];
     };
 

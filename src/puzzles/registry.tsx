@@ -9,6 +9,7 @@ import MintonetteBoard from './Mintonette/Mintonette';
 import NikojiBoard from './Nikoji/Nikoji';
 import AkariBoard from './Akari/Akari';
 import KurarinBoard from './Kurarin/Kurarin';
+import WalkwalkBoard from './Walkwalk/Walkwalk';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
@@ -19,6 +20,7 @@ import MintonetteExample from '../components/examples/MintonetteExample';
 import NikojiExample from '../components/examples/NikojiExample';
 import AkariExample from '../components/examples/AkariExample';
 import KurarinExample from '../components/examples/KurarinExample';
+import WalkwalkExample from '../components/examples/WalkwalkExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
@@ -29,6 +31,7 @@ import { parseMintonetteLink } from './Mintonette/utils';
 import { parseNikojiLink } from './Nikoji/utils';
 import { parseAkariLink } from './Akari/utils';
 import { parseKurarinLink } from './Kurarin/utils';
+import { parseWalkwalkLink } from './Walkwalk/utils';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
@@ -43,9 +46,17 @@ import type {
   PuzzleType,
   StarbattlePuzzleData,
   KurarinPuzzleData,
+  WalkwalkPuzzleData,
   YajilinPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
+
+const WALKWALK_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/5/5/8gh20v00l1g6m7l3g';
+const walkwalkExamplePuzzle = parseWalkwalkLink(WALKWALK_EXAMPLE_LINK);
+
+if (!walkwalkExamplePuzzle) {
+  throw new Error('Failed to parse the built-in Walkwalk example puzzle.');
+}
 
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
@@ -74,6 +85,7 @@ type PuzzleRegistry = {
   nikoji: PuzzleRegistryEntry<NikojiPuzzleData>;
   akari: PuzzleRegistryEntry<AkariPuzzleData>;
   kurarin: PuzzleRegistryEntry<KurarinPuzzleData>;
+  walkwalk: PuzzleRegistryEntry<WalkwalkPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -1007,6 +1019,104 @@ export const puzzleRegistry: PuzzleRegistry = {
           clues={example.clues}
           shadedCells={example.shadedCells}
           loopEdges={example.loopEdges}
+          crossedEdges={example.crossedEdges}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  walkwalk: {
+    parsePuzzLink: parseWalkwalkLink,
+    template: {
+      type: 'walkwalk',
+      name: {
+        'zh-CN': '数行',
+        en: 'Walkwalk',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '画出一条经过所有数字的单一回路。',
+          '回路不能分叉，也不能自交；没有数字的格子可以经过，也可以不经过。',
+          '数字表示经过该数字的那一段回路，在所属区域内连续经过的格子数量。',
+        ],
+        en: [
+          'Draw a single loop that passes through every number.',
+          'The loop cannot branch or cross itself. Non-numbered cells may be used or left unused.',
+          'A number gives the amount of consecutive loop cells in that region on the segment passing through the clue.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '可游玩例题',
+        en: 'Playable example',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'walkwalk',
+        width: walkwalkExamplePuzzle.width,
+        height: walkwalkExamplePuzzle.height,
+        regionIds: walkwalkExamplePuzzle.regionIds,
+        clues: walkwalkExamplePuzzle.clues,
+        solutionEdges: [
+          { r1: 0, c1: 0, r2: 0, c2: 1 },
+          { r1: 0, c1: 1, r2: 0, c2: 2 },
+          { r1: 0, c1: 2, r2: 0, c2: 3 },
+          { r1: 0, c1: 3, r2: 0, c2: 4 },
+          { r1: 1, c1: 1, r2: 1, c2: 2 },
+          { r1: 1, c1: 2, r2: 1, c2: 3 },
+          { r1: 1, c1: 3, r2: 1, c2: 4 },
+          { r1: 2, c1: 1, r2: 2, c2: 2 },
+          { r1: 2, c1: 2, r2: 2, c2: 3 },
+          { r1: 3, c1: 1, r2: 3, c2: 2 },
+          { r1: 4, c1: 0, r2: 4, c2: 1 },
+          { r1: 4, c1: 2, r2: 4, c2: 3 },
+          { r1: 0, c1: 0, r2: 1, c2: 0 },
+          { r1: 0, c1: 4, r2: 1, c2: 4 },
+          { r1: 1, c1: 0, r2: 2, c2: 0 },
+          { r1: 1, c1: 1, r2: 2, c2: 1 },
+          { r1: 2, c1: 0, r2: 3, c2: 0 },
+          { r1: 2, c1: 3, r2: 3, c2: 3 },
+          { r1: 3, c1: 0, r2: 4, c2: 0 },
+          { r1: 3, c1: 1, r2: 4, c2: 1 },
+          { r1: 3, c1: 2, r2: 4, c2: 2 },
+          { r1: 3, c1: 3, r2: 4, c2: 3 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <WalkwalkBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'walkwalk') {
+        throw new Error('Walkwalk template example type mismatch.');
+      }
+
+      return (
+        <WalkwalkExample
+          width={example.width}
+          height={example.height}
+          regionIds={example.regionIds}
+          clues={example.clues}
+          solutionEdges={example.solutionEdges}
           crossedEdges={example.crossedEdges}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}

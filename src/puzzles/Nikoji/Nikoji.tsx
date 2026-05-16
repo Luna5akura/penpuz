@@ -10,6 +10,7 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import { safeSetPointerCapture } from '@/lib/pointer';
 import { getTrialLevelColors } from '../trialStyles';
 import { getNikojiEdgeKey, validateNikoji } from './utils';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
@@ -62,7 +63,6 @@ export default function NikojiBoard({
   );
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
-  const pointerUpHandlerRef = useRef<(() => void) | null>(null);
   const dragModeRef = useRef<LineMode | null>(null);
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
   const lastVertexRef = useRef<{ rowLine: number; colLine: number } | null>(null);
@@ -265,15 +265,7 @@ export default function NikojiBoard({
     lastVertexRef.current = null;
     operationRef.current = null;
     finishBatch();
-    document.removeEventListener('pointermove', handleDocumentPointerMove);
-    if (pointerUpHandlerRef.current) {
-      document.removeEventListener('pointerup', pointerUpHandlerRef.current);
-    }
-  }, [finishBatch, handleDocumentPointerMove]);
-
-  useEffect(() => {
-    pointerUpHandlerRef.current = finishPointer;
-  }, [finishPointer]);
+  }, [finishBatch]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (pointerIdRef.current !== null) return;
@@ -303,6 +295,7 @@ export default function NikojiBoard({
     if (!mode) return;
 
     event.preventDefault();
+    safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
     pointerIdRef.current = event.pointerId;
     dragModeRef.current = mode;
     operationRef.current = null;
@@ -316,9 +309,16 @@ export default function NikojiBoard({
       lastVertexRef.current = null;
     }
 
-    document.addEventListener('pointermove', handleDocumentPointerMove, { passive: true });
-    pointerUpHandlerRef.current = finishPointer;
-    document.addEventListener('pointerup', finishPointer, { passive: true });
+  };
+
+  const handleBoardPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) return;
+    handleDocumentPointerMove(event.nativeEvent);
+  };
+
+  const handleBoardPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) return;
+    finishPointer();
   };
 
   const getDeepLineStyle = useCallback((key: string) => {
@@ -345,6 +345,9 @@ export default function NikojiBoard({
           ...getBoardFrameStyle(),
         }}
         onPointerDown={handlePointerDown}
+        onPointerMove={handleBoardPointerMove}
+        onPointerUp={handleBoardPointerEnd}
+        onPointerCancel={handleBoardPointerEnd}
         onContextMenu={(event) => event.preventDefault()}
       >
         <div

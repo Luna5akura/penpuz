@@ -14,6 +14,7 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
@@ -489,9 +490,7 @@ export default function FillominoBoard({
     boundaryOperationRef.current = null;
     suppressTapRef.current = false;
     finishBatch();
-    document.removeEventListener('pointermove', handleDocumentPointerMove);
-    document.removeEventListener('pointerup', onDocumentPointerUp);
-  }, [changeNumber, finishBatch, grid, handleDocumentPointerMove]);
+  }, [changeNumber, finishBatch, grid]);
 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current) {           // ← 新增
@@ -502,7 +501,7 @@ export default function FillominoBoard({
     if (e.button === 2) e.preventDefault();
     const board = boardRef.current;
     if (board) {
-      board.setPointerCapture(e.pointerId);
+      safeSetPointerCapture(board, e.pointerId);
       pointerIdRef.current = e.pointerId;
     }
     isDragging.current = true;
@@ -573,8 +572,16 @@ export default function FillominoBoard({
         lastVertexRef.current = getNearestVertex(mouseX, mouseY);
       }
     }
-    document.addEventListener('pointermove', handleDocumentPointerMove, { passive: true });
-    document.addEventListener('pointerup', handleDocumentPointerUp, { passive: true });
+  };
+
+  const handleBoardPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) return;
+    handleDocumentPointerMove(event.nativeEvent);
+  };
+
+  const handleBoardPointerEnd = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) return;
+    handleDocumentPointerUp();
   };
 
   const svgWidth = width * cellSize;
@@ -646,6 +653,9 @@ export default function FillominoBoard({
           touchAction: 'none',
           ...getBoardFrameStyle(),
         }}
+        onPointerMove={handleBoardPointerMove}
+        onPointerUp={handleBoardPointerEnd}
+        onPointerCancel={handleBoardPointerEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
       {/* 单元格网格 */}

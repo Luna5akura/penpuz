@@ -4,6 +4,7 @@ import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { KurarinClue, KurarinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import KurarinBoard from '../../puzzles/Kurarin/Kurarin';
 import { commonBoardChrome, getBoardCellColors, getBoardFrameStyle, woodBoardTheme } from '../../puzzles/boardTheme';
+import { getLoopCrossStrokeWidth, getLoopLineStrokeWidth } from '../../puzzles/boardTheme';
 import { createKurarinEdgeSet, parseKurarinEdgeKey } from '../../puzzles/Kurarin/utils';
 
 interface Props {
@@ -160,7 +161,7 @@ export default function KurarinExample({
                       x2={x2}
                       y2={y2}
                       stroke={woodBoardTheme.ink}
-                      strokeWidth="3"
+                      strokeWidth={getLoopLineStrokeWidth(CELL_SIZE)}
                       strokeLinecap="round"
                     />
                   );
@@ -172,7 +173,7 @@ export default function KurarinExample({
                   const centerX = PADDING + ((edge.c1 + edge.c2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   const centerY = PADDING + ((edge.r1 + edge.r2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   return (
-                    <g key={`cross-${edgeKey}`} stroke={woodBoardTheme.border} strokeWidth="1.6" strokeLinecap="round">
+                    <g key={`cross-${edgeKey}`} stroke={woodBoardTheme.border} strokeWidth={getLoopCrossStrokeWidth()} strokeLinecap="round">
                       <line x1={centerX - 3} y1={centerY - 3} x2={centerX + 3} y2={centerY + 3} />
                       <line x1={centerX - 3} y1={centerY + 3} x2={centerX + 3} y2={centerY - 3} />
                     </g>

@@ -25,6 +25,7 @@ import {
   type StarbattleCellState,
   validateStarbattle,
 } from './utils';
+import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
@@ -402,7 +403,7 @@ export default function StarbattleBoard({
     const isTouchPointer = event.pointerType === 'touch' || (button === 0 && isMobile);
 
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
 
     if (!isTouchPointer && button === 2) {
       if (hitTarget.kind === 'edge') {
@@ -536,6 +537,7 @@ export default function StarbattleBoard({
         onPointerMove={handlePointerMove}
         onPointerUp={finishPointer}
         onPointerLeave={finishPointer}
+        onPointerCancel={finishPointer}
         onContextMenu={(event) => event.preventDefault()}
       >
         <div

@@ -9,6 +9,9 @@ import {
   getBoardCrossFontSize,
   getBoardFrameStyle,
   getCrossMarkStyle,
+  getLoopCrossSize,
+  getLoopCrossStrokeWidth,
+  getLoopLineStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -22,6 +25,7 @@ import {
   validateKurarin,
 } from './utils';
 import { getTrialLevelColors } from '../trialStyles';
+import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 
 interface Props {
@@ -404,7 +408,7 @@ export default function KurarinBoard({
     if (!hitTarget) return;
 
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
 
     if (!isTouchPointer && button === 2) {
       if (hitTarget.kind === 'edge') {
@@ -550,6 +554,7 @@ export default function KurarinBoard({
         onPointerMove={handlePointerMove}
         onPointerUp={finishPointer}
         onPointerLeave={finishPointer}
+        onPointerCancel={finishPointer}
         onContextMenu={(event) => event.preventDefault()}
       >
         <div
@@ -615,7 +620,7 @@ export default function KurarinBoard({
                 x2={x2}
                 y2={y2}
                 stroke={trialColors?.line ?? woodBoardTheme.ink}
-                strokeWidth={Math.max(2.5, Math.floor(cellSize * 0.08))}
+                strokeWidth={getLoopLineStrokeWidth(cellSize)}
                 strokeLinecap="round"
               />
             );
@@ -628,13 +633,13 @@ export default function KurarinBoard({
 
             const centerX = BOARD_PADDING + ((edge.c1 + edge.c2) / 2) * (cellSize + BOARD_GAP) + cellSize / 2;
             const centerY = BOARD_PADDING + ((edge.r1 + edge.r2) / 2) * (cellSize + BOARD_GAP) + cellSize / 2;
-            const size = Math.max(3, Math.floor(cellSize * 0.07));
+            const size = getLoopCrossSize(cellSize);
 
             return (
               <g
                 key={`cross-${edgeKey}`}
                 stroke={trialColors?.text ?? woodBoardTheme.border}
-                strokeWidth="1.6"
+                strokeWidth={getLoopCrossStrokeWidth()}
                 strokeLinecap="round"
               >
                 <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />

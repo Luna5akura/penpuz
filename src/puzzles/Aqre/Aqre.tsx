@@ -22,6 +22,7 @@ import {
   type AqreCellState,
   validateAqre,
 } from './utils';
+import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
@@ -317,7 +318,7 @@ export default function AqreBoard({
     if (!nextDragMode) return;
 
     event.preventDefault();
-    event.currentTarget.setPointerCapture(event.pointerId);
+    safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
 
     pointerState.current = {
       pointerId: event.pointerId,

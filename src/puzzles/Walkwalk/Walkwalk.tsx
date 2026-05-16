@@ -1,30 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
-import type { MintonettePuzzleData } from '../types';
+import type { WalkwalkPuzzleData } from '../types';
 import {
   commonBoardChrome,
   getBoardCellColors,
-  getBoardCircleClueDiameter,
-  getBoardCircleClueStrokeWidth,
   getBoardFrameStyle,
   getBoardNumberFontSize,
   getCellDividerStyle,
+  getInvalidBoardCellColors,
+  getLoopCrossSize,
+  getLoopCrossStrokeWidth,
+  getLoopLineStrokeWidth,
+  getOutlinedBorderStrokeWidth,
   getResponsiveCellSize,
+  getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '../boardTheme';
 import { getTrialLevelColors } from '../trialStyles';
-import {
-  detectMintonetteHitTarget,
-  getMintonetteEdgeKey,
-  parseMintonetteEdgeKey,
-  validateMintonette,
-} from './utils';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import {
+  detectWalkwalkHitTarget,
+  getWalkwalkBoundarySegments,
+  getWalkwalkEdgeKey,
+  parseWalkwalkEdgeKey,
+  validateWalkwalk,
+} from './utils';
 
 interface Props {
-  puzzle: MintonettePuzzleData;
+  puzzle: WalkwalkPuzzleData;
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
@@ -34,7 +39,7 @@ interface Props {
   showValidationMessage?: boolean;
 }
 
-type MintonetteSnapshot = {
+type WalkwalkSnapshot = {
   lineEdges: string[];
   crossedEdges: string[];
   lineEdgeLevels: Record<string, number>;
@@ -43,8 +48,8 @@ type MintonetteSnapshot = {
 
 const BOARD_PADDING = commonBoardChrome.padding;
 
-function normalizeMintonetteSnapshot(snapshot: unknown): MintonetteSnapshot {
-  const source = snapshot as Partial<MintonetteSnapshot> | null | undefined;
+function normalizeWalkwalkSnapshot(snapshot: unknown): WalkwalkSnapshot {
+  const source = snapshot as Partial<WalkwalkSnapshot> | null | undefined;
   return {
     lineEdges: sanitizeStringArray(source?.lineEdges),
     crossedEdges: sanitizeStringArray(source?.crossedEdges),
@@ -53,7 +58,7 @@ function normalizeMintonetteSnapshot(snapshot: unknown): MintonetteSnapshot {
   };
 }
 
-export default function MintonetteBoard({
+export default function WalkwalkBoard({
   puzzle,
   startTime,
   resetToken,
@@ -63,7 +68,7 @@ export default function MintonetteBoard({
   fixedCellSize,
   showValidationMessage = false,
 }: Props) {
-  const { width, height, clues } = puzzle;
+  const { width, height, clues, regionIds } = puzzle;
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window === 'undefined' ? 1024 : window.innerWidth
   );
@@ -73,18 +78,18 @@ export default function MintonetteBoard({
   const operationRef = useRef<'add' | 'delete' | null>(null);
   const hasCompleted = useRef(false);
 
-  const createInitialSnapshot = useCallback<MintonetteSnapshot>(() => ({
+  const createInitialSnapshot = useCallback<() => WalkwalkSnapshot>(() => ({
     lineEdges: [],
     crossedEdges: [],
     lineEdgeLevels: {},
     crossedEdgeLevels: {},
   }), []);
 
-  const history = usePuzzleHistory<MintonetteSnapshot>(
-    initialSnapshot ? normalizeMintonetteSnapshot(initialSnapshot) : createInitialSnapshot(),
+  const history = usePuzzleHistory<WalkwalkSnapshot>(
+    initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot) : createInitialSnapshot(),
     {
       normalizeTrialSnapshot: (trialSnapshot) => ({
-        ...normalizeMintonetteSnapshot(trialSnapshot),
+        ...normalizeWalkwalkSnapshot(trialSnapshot),
         lineEdgeLevels: {},
         crossedEdgeLevels: {},
       }),
@@ -113,20 +118,24 @@ export default function MintonetteBoard({
     finishBatch,
   } = history;
 
-  const normalizedSnapshot = useMemo(() => normalizeMintonetteSnapshot(snapshot), [snapshot]);
+  const normalizedSnapshot = useMemo(() => normalizeWalkwalkSnapshot(snapshot), [snapshot]);
   const lineEdges = normalizedSnapshot.lineEdges;
   const crossedEdges = normalizedSnapshot.crossedEdges;
   const lineEdgeLevels = normalizedSnapshot.lineEdgeLevels;
   const crossedEdgeLevels = normalizedSnapshot.crossedEdgeLevels;
   const lineEdgeSet = useMemo(() => new Set(lineEdges), [lineEdges]);
   const clueMap = useMemo(() => {
-    const map = new Map<string, { value: number | null }>();
-    clues.forEach((clue) => map.set(`${clue.row},${clue.col}`, { value: clue.value }));
+    const map = new Map<string, number>();
+    clues.forEach((clue) => map.set(`${clue.row},${clue.col}`, clue.value));
     return map;
   }, [clues]);
+  const boundaries = useMemo(
+    () => getWalkwalkBoundarySegments(regionIds, width, height),
+    [height, regionIds, width]
+  );
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
   const validation = useMemo(
-    () => (hasEdited ? validateMintonette(lineEdgeSet, puzzle) : null),
+    () => (hasEdited ? validateWalkwalk(lineEdgeSet, puzzle) : null),
     [hasEdited, lineEdgeSet, puzzle]
   );
   const invalidCellSet = useMemo(
@@ -139,10 +148,12 @@ export default function MintonetteBoard({
     viewportWidth,
     width,
   }), [fixedCellSize, viewportWidth, width]);
-
-  const clueNumberFontSize = useMemo(() => getBoardNumberFontSize(cellSize, 0.58, 18), [cellSize]);
-  const clueCircleDiameter = useMemo(() => getBoardCircleClueDiameter(cellSize), [cellSize]);
-  const clueCircleStrokeWidth = useMemo(() => getBoardCircleClueStrokeWidth(cellSize), [cellSize]);
+  const clueFontSize = useMemo(() => getBoardNumberFontSize(cellSize), [cellSize]);
+  const boundaryStroke = getRoomBoundaryStrokeWidth();
+  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const loopLineStrokeWidth = useMemo(() => getLoopLineStrokeWidth(cellSize), [cellSize]);
+  const loopCrossSize = useMemo(() => getLoopCrossSize(cellSize), [cellSize]);
+  const loopCrossStrokeWidth = getLoopCrossStrokeWidth();
 
   useEffect(() => {
     const updateSize = () => setViewportWidth(window.innerWidth);
@@ -152,7 +163,7 @@ export default function MintonetteBoard({
   }, []);
 
   useEffect(() => {
-    reset(initialSnapshot ? normalizeMintonetteSnapshot(initialSnapshot) : createInitialSnapshot());
+    reset(initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot) : createInitialSnapshot());
     hasCompleted.current = false;
     pointerIdRef.current = null;
     lastCellRef.current = null;
@@ -168,7 +179,6 @@ export default function MintonetteBoard({
   const getBoardPosition = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
-
     const x = clientX - rect.left - BOARD_PADDING;
     const y = clientY - rect.top - BOARD_PADDING;
     if (x < 0 || y < 0 || x > width * cellSize || y > height * cellSize) return null;
@@ -187,7 +197,7 @@ export default function MintonetteBoard({
 
   const toggleCrossEdge = useCallback((key: string) => {
     applyChange((currentSnapshot) => {
-      const nextSnapshot = normalizeMintonetteSnapshot(currentSnapshot);
+      const nextSnapshot = normalizeWalkwalkSnapshot(currentSnapshot);
       const nextLineEdges = new Set(nextSnapshot.lineEdges);
       const nextCrossedEdges = new Set(nextSnapshot.crossedEdges);
       const nextLineLevels = { ...nextSnapshot.lineEdgeLevels };
@@ -221,7 +231,7 @@ export default function MintonetteBoard({
 
     const op = operationRef.current;
     applyChange((currentSnapshot) => {
-      const nextSnapshot = normalizeMintonetteSnapshot(currentSnapshot);
+      const nextSnapshot = normalizeWalkwalkSnapshot(currentSnapshot);
       const nextLineEdges = new Set(nextSnapshot.lineEdges);
       const nextCrossedEdges = new Set(nextSnapshot.crossedEdges);
       const nextLineLevels = { ...nextSnapshot.lineEdgeLevels };
@@ -259,7 +269,7 @@ export default function MintonetteBoard({
       return;
     }
 
-    const edgeKey = getMintonetteEdgeKey(lastCell.row, lastCell.col, currentCell.row, currentCell.col);
+    const edgeKey = getWalkwalkEdgeKey(lastCell.row, lastCell.col, currentCell.row, currentCell.col);
     if (edgeKey) {
       commitLineEdge(edgeKey);
       lastCellRef.current = currentCell;
@@ -286,7 +296,7 @@ export default function MintonetteBoard({
     const position = getBoardPosition(event.clientX, event.clientY);
     if (!position) return;
 
-    const hitTarget = detectMintonetteHitTarget(position.x, position.y, width, height, cellSize);
+    const hitTarget = detectWalkwalkHitTarget(position.x, position.y, width, height, cellSize);
     if (!hitTarget) return;
 
     const isTouchPointer = event.pointerType === 'touch';
@@ -345,27 +355,27 @@ export default function MintonetteBoard({
         onPointerCancel={handleBoardPointerEnd}
         onContextMenu={(event) => event.preventDefault()}
       >
-        <div
-          className="grid"
-          style={{
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
-        >
+        <div className="grid" style={{ gridTemplateColumns: `repeat(${width}, ${cellSize}px)` }}>
           {Array.from({ length: height }, (_, row) =>
             Array.from({ length: width }, (_, col) => {
+              const clueValue = clueMap.get(`${row},${col}`);
               const isInvalid = showValidationMessage && invalidCellSet.has(`${row},${col}`);
               return (
                 <div
                   key={`${row}-${col}`}
-                  className="relative flex items-center justify-center"
+                  className="relative flex items-center justify-center font-semibold tabular-nums"
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     ...getBoardCellColors('cell'),
                     ...getCellDividerStyle(),
-                    ...(isInvalid ? { background: woodBoardTheme.invalidSoft } : {}),
+                    ...(isInvalid ? getInvalidBoardCellColors('soft') : {}),
+                    fontSize: `${clueFontSize}px`,
+                    lineHeight: 1,
+                    zIndex: 1,
                   }}
                 >
+                  {clueValue ?? ''}
                 </div>
               );
             })
@@ -384,8 +394,76 @@ export default function MintonetteBoard({
             zIndex: 2,
           }}
         >
+          {boundaries.horizontal.map((segment) => {
+            const x1 = segment.col * cellSize;
+            const y = segment.row * cellSize;
+            const x2 = x1 + cellSize;
+            return (
+              <line
+                key={`h-outline-${segment.row}-${segment.col}`}
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={woodBoardTheme.cell}
+                strokeWidth={boundaryOutlineStroke}
+              />
+            );
+          })}
+
+          {boundaries.vertical.map((segment) => {
+            const x = segment.col * cellSize;
+            const y1 = segment.row * cellSize;
+            const y2 = y1 + cellSize;
+            return (
+              <line
+                key={`v-outline-${segment.row}-${segment.col}`}
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={woodBoardTheme.cell}
+                strokeWidth={boundaryOutlineStroke}
+              />
+            );
+          })}
+
+          {boundaries.horizontal.map((segment) => {
+            const x1 = segment.col * cellSize;
+            const y = segment.row * cellSize;
+            const x2 = x1 + cellSize;
+            return (
+              <line
+                key={`h-border-${segment.row}-${segment.col}`}
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={woodBoardTheme.border}
+                strokeWidth={boundaryStroke}
+              />
+            );
+          })}
+
+          {boundaries.vertical.map((segment) => {
+            const x = segment.col * cellSize;
+            const y1 = segment.row * cellSize;
+            const y2 = y1 + cellSize;
+            return (
+              <line
+                key={`v-border-${segment.row}-${segment.col}`}
+                x1={x}
+                y1={y1}
+                x2={x}
+                y2={y2}
+                stroke={woodBoardTheme.border}
+                strokeWidth={boundaryStroke}
+              />
+            );
+          })}
+
           {lineEdges.map((edgeKey) => {
-            const edge = parseMintonetteEdgeKey(edgeKey);
+            const edge = parseWalkwalkEdgeKey(edgeKey);
             if (!edge) return null;
             const from = getCenter(edge.r1, edge.c1);
             const to = getCenter(edge.r2, edge.c2);
@@ -399,71 +477,31 @@ export default function MintonetteBoard({
                 x2={to.x}
                 y2={to.y}
                 stroke={trialColors?.line ?? woodBoardTheme.ink}
-                strokeWidth={Math.max(4, Math.floor(cellSize * 0.11))}
+                strokeWidth={loopLineStrokeWidth}
                 strokeLinecap="round"
               />
             );
           })}
 
           {crossedEdges.map((edgeKey) => {
-            const edge = parseMintonetteEdgeKey(edgeKey);
+            const edge = parseWalkwalkEdgeKey(edgeKey);
             if (!edge) return null;
             const centerX = (getCenter(edge.r1, edge.c1).x + getCenter(edge.r2, edge.c2).x) / 2;
             const centerY = (getCenter(edge.r1, edge.c1).y + getCenter(edge.r2, edge.c2).y) / 2;
-            const size = Math.max(4, Math.floor(cellSize * 0.12));
             const trialColors = getTrialLevelColors(crossedEdgeLevels[edgeKey] ?? 0);
             return (
               <g
                 key={`cross-${edgeKey}`}
                 stroke={trialColors?.text ?? woodBoardTheme.border}
-                strokeWidth="1.7"
+                strokeWidth={loopCrossStrokeWidth}
                 strokeLinecap="round"
               >
-                <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
-                <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
+                <line x1={centerX - loopCrossSize} y1={centerY - loopCrossSize} x2={centerX + loopCrossSize} y2={centerY + loopCrossSize} />
+                <line x1={centerX - loopCrossSize} y1={centerY + loopCrossSize} x2={centerX + loopCrossSize} y2={centerY - loopCrossSize} />
               </g>
             );
           })}
         </svg>
-
-        <div
-          style={{
-            position: 'absolute',
-            top: `${BOARD_PADDING}px`,
-            left: `${BOARD_PADDING}px`,
-            width: `${boardWidth}px`,
-            height: `${boardHeight}px`,
-            pointerEvents: 'none',
-            zIndex: 3,
-          }}
-        >
-          {Array.from({ length: height }, (_, row) =>
-            Array.from({ length: width }, (_, col) => {
-              const clueInfo = clueMap.get(`${row},${col}`);
-              if (!clueInfo) return null;
-
-              return (
-                <div
-                  key={`clue-${row}-${col}`}
-                  className="absolute flex items-center justify-center rounded-full font-semibold tabular-nums"
-                  style={{
-                    width: `${clueCircleDiameter}px`,
-                    height: `${clueCircleDiameter}px`,
-                    top: `${row * cellSize + (cellSize - clueCircleDiameter) / 2}px`,
-                    left: `${col * cellSize + (cellSize - clueCircleDiameter) / 2}px`,
-                    border: `${clueCircleStrokeWidth}px solid ${woodBoardTheme.border}`,
-                    color: woodBoardTheme.border,
-                    background: getBoardCellColors('cell').background,
-                    fontSize: `${clueNumberFontSize}px`,
-                    lineHeight: 1,
-                  }}
-                >
-                  {clueInfo.value ?? ''}
-                </div>
-              );
-            })
-          )}
-        </div>
       </div>
 
       <PuzzleAssistToolbar
@@ -482,7 +520,7 @@ export default function MintonetteBoard({
       />
 
       {showValidationMessage && validation?.message ? (
-        <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
+        <div className="text-center text-sm text-muted-foreground dark:text-gray-400">
           {validation.message}
         </div>
       ) : null}

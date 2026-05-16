@@ -16,6 +16,7 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
@@ -196,8 +197,7 @@ export default function NurikabeBoard({
     e.preventDefault();
     e.nativeEvent.stopImmediatePropagation();
 
-    const target = e.currentTarget as HTMLElement;
-    target.setPointerCapture(e.pointerId);
+    safeSetPointerCapture(boardRef.current ?? e.currentTarget, e.pointerId);
 
     isDragging.current = true;
     hasDragged.current = false;
