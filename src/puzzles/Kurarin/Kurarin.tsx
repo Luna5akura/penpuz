@@ -251,10 +251,12 @@ export default function KurarinBoard({
       const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
       nextGrid[row][col] = nextState;
       nextCellLevels[row][col] = nextState === 0 ? 0 : trialActive ? currentTrialLevel : 0;
-      removeIncidentLoopEdges(nextLoopEdges, row, col);
-      getIncidentKurarinEdgeKeys(row, col, width, height).forEach((key) => {
-        delete nextLoopEdgeLevels[key];
-      });
+      if (nextState === 1) {
+        removeIncidentLoopEdges(nextLoopEdges, row, col);
+        getIncidentKurarinEdgeKeys(row, col, width, height).forEach((key) => {
+          delete nextLoopEdgeLevels[key];
+        });
+      }
       return {
         ...currentSnapshot,
         grid: nextGrid,
@@ -284,21 +286,15 @@ export default function KurarinBoard({
   const toggleEdgeCross = useCallback((edgeKey: string) => {
     applyChange((currentSnapshot) => {
       const nextCrossedEdges = new Set(currentSnapshot.crossedEdges);
-      const nextLoopEdges = new Set(currentSnapshot.loopEdges);
       const nextCrossedEdgeLevels = { ...currentSnapshot.crossedEdgeLevels };
-      const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
       if (nextCrossedEdges.has(edgeKey)) nextCrossedEdges.delete(edgeKey);
       else nextCrossedEdges.add(edgeKey);
-      nextLoopEdges.delete(edgeKey);
       if (nextCrossedEdges.has(edgeKey)) nextCrossedEdgeLevels[edgeKey] = trialActive ? currentTrialLevel : 0;
       else delete nextCrossedEdgeLevels[edgeKey];
-      delete nextLoopEdgeLevels[edgeKey];
       return {
         ...currentSnapshot,
         crossedEdges: Array.from(nextCrossedEdges).sort(),
-        loopEdges: Array.from(nextLoopEdges).sort(),
         crossedEdgeLevels: nextCrossedEdgeLevels,
-        loopEdgeLevels: nextLoopEdgeLevels,
       };
     }, { coalesce: true });
   }, [applyChange, currentTrialLevel, trialActive]);
@@ -314,21 +310,15 @@ export default function KurarinBoard({
 
     applyChange((currentSnapshot) => {
       const nextLoopEdges = new Set(currentSnapshot.loopEdges);
-      const nextCrossedEdges = new Set(currentSnapshot.crossedEdges);
       const nextLoopEdgeLevels = { ...currentSnapshot.loopEdgeLevels };
-      const nextCrossedEdgeLevels = { ...currentSnapshot.crossedEdgeLevels };
       if (current.drawMode === 'add') nextLoopEdges.add(edgeKey);
       else nextLoopEdges.delete(edgeKey);
-      if (current.drawMode === 'add') nextCrossedEdges.delete(edgeKey);
       if (current.drawMode === 'add') nextLoopEdgeLevels[edgeKey] = trialActive ? currentTrialLevel : 0;
       else delete nextLoopEdgeLevels[edgeKey];
-      if (current.drawMode === 'add') delete nextCrossedEdgeLevels[edgeKey];
       return {
         ...currentSnapshot,
         loopEdges: Array.from(nextLoopEdges).sort(),
-        crossedEdges: Array.from(nextCrossedEdges).sort(),
         loopEdgeLevels: nextLoopEdgeLevels,
-        crossedEdgeLevels: nextCrossedEdgeLevels,
       };
     }, { coalesce: true });
 

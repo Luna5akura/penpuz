@@ -301,46 +301,44 @@ function cellKey(row: number, col: number) {
   return `${row},${col}`;
 }
 
-function getRegionComponent(
-  start: { row: number; col: number },
-  usedCells: boolean[][],
+function parseCellKey(key: string) {
+  const [row, col] = key.split(',').map(Number);
+  return { row, col };
+}
+
+function getWalkwalkClueSegment(
+  clue: WalkwalkClue,
+  adjacency: Map<string, Set<string>>,
   regionIds: number[][]
 ) {
-  const targetRegion = regionIds[start.row][start.col];
-  const visited = new Set<string>();
-  const stack = [start];
-  const cells: Array<{ row: number; col: number }> = [];
+  const startKey = cellKey(clue.row, clue.col);
+  const targetRegion = regionIds[clue.row][clue.col];
+  const segmentKeys = new Set<string>([startKey]);
+  const neighbors = Array.from(adjacency.get(startKey) ?? []);
 
-  while (stack.length > 0) {
-    const current = stack.pop()!;
-    const key = cellKey(current.row, current.col);
-    if (visited.has(key)) continue;
-    visited.add(key);
-    cells.push(current);
+  const extend = (previousKey: string, currentKey: string | undefined) => {
+    let prev = previousKey;
+    let current = currentKey;
 
-    const neighbors = [
-      { row: current.row - 1, col: current.col },
-      { row: current.row + 1, col: current.col },
-      { row: current.row, col: current.col - 1 },
-      { row: current.row, col: current.col + 1 },
-    ];
+    while (current) {
+      const currentCell = parseCellKey(current);
+      if (regionIds[currentCell.row][currentCell.col] !== targetRegion) break;
+      if (segmentKeys.has(current)) break;
 
-    neighbors.forEach((next) => {
-      if (
-        next.row < 0 ||
-        next.row >= regionIds.length ||
-        next.col < 0 ||
-        next.col >= regionIds[0].length ||
-        !usedCells[next.row][next.col] ||
-        regionIds[next.row][next.col] !== targetRegion
-      ) {
-        return;
-      }
-      stack.push(next);
-    });
-  }
+      segmentKeys.add(current);
 
-  return cells;
+      const nextCandidates = Array.from(adjacency.get(current) ?? []).filter((key) => key !== prev);
+      if (nextCandidates.length !== 1) break;
+      prev = current;
+      current = nextCandidates[0];
+    }
+  };
+
+  neighbors.forEach((neighborKey) => {
+    extend(startKey, neighborKey);
+  });
+
+  return Array.from(segmentKeys).map(parseCellKey);
 }
 
 export function validateWalkwalk(
@@ -437,10 +435,10 @@ export function validateWalkwalk(
 
   clues.forEach((clue, index) => {
     if (!usedCells[clue.row][clue.col]) return;
-    const component = getRegionComponent({ row: clue.row, col: clue.col }, usedCells, regionIds);
-    if (component.length === clue.value) return;
+    const segment = getWalkwalkClueSegment(clue, adjacency, regionIds);
+    if (segment.length === clue.value) return;
 
-    component.forEach((cell) => badCells.add(cellKey(cell.row, cell.col)));
+    segment.forEach((cell) => badCells.add(cellKey(cell.row, cell.col)));
     badCells.add(cellKey(clue.row, clue.col));
     badClues.add(index);
     setMessage('数字表示回路在该区域内连续经过的格子数量');
