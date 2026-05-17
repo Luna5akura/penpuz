@@ -271,6 +271,10 @@ export default function KurarinBoard({
     replaceCellState(row, col, grid[row][col] === 2 ? 0 : 2);
   }, [grid, replaceCellState]);
 
+  const toggleCellBlack = useCallback((row: number, col: number) => {
+    replaceCellState(row, col, grid[row][col] === 1 ? 0 : 1);
+  }, [grid, replaceCellState]);
+
   const placeCellBlack = useCallback((row: number, col: number) => {
     replaceCellState(row, col, 1);
   }, [replaceCellState]);
@@ -360,7 +364,7 @@ export default function KurarinBoard({
   const finishPointer = useCallback(() => {
     const current = pointerState.current;
     if (current.pendingTap?.kind === 'desktop-left-cell') {
-      placeCellBlack(current.pendingTap.row, current.pendingTap.col);
+      toggleCellBlack(current.pendingTap.row, current.pendingTap.col);
     } else if (current.pendingTap?.kind === 'desktop-right-cell') {
       toggleCellMark(current.pendingTap.row, current.pendingTap.col);
     } else if (current.pendingTap?.kind === 'mobile-place-black-cell') {
@@ -385,7 +389,7 @@ export default function KurarinBoard({
       pendingTap: null,
     };
     finishBatch();
-  }, [clearCell, finishBatch, placeCellBlack, placeCellMark, toggleCellMark, toggleEdgeCross]);
+  }, [clearCell, finishBatch, placeCellBlack, placeCellMark, toggleCellBlack, toggleCellMark, toggleEdgeCross]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const point = getRelativePoint(event.clientX, event.clientY);
