@@ -23,6 +23,7 @@ const HISTORY_PAGE_SIZE = 5;
 function App() {
   const [historyPage, setHistoryPage] = useState(1);
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+  const [copiedHistoryDate, setCopiedHistoryDate] = useState<string | null>(null);
   const { locale, copy, toggleLocale } = useI18n();
   const {
     todayDaily,
@@ -48,6 +49,7 @@ function App() {
     openHistory,
     closeHistory,
     loadHistoryPuzzle,
+    buildHistoryShareUrl,
   } = useDailyPuzzleSession();
 
   const todayStr = getBeijingDateStr();
@@ -66,6 +68,50 @@ function App() {
     handleRestartResetTime();
     setRestartDialogOpen(false);
   }, [handleRestartResetTime]);
+
+  const copyHistoryLink = useCallback(async (url: string, dateStr: string) => {
+    let copied = false;
+
+    try {
+      if (navigator.clipboard?.writeText && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      }
+    } catch {
+      copied = false;
+    }
+
+    if (!copied) {
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      textArea.setAttribute('readonly', '');
+      textArea.setAttribute('aria-hidden', 'true');
+      textArea.style.position = 'fixed';
+      textArea.style.top = '0';
+      textArea.style.left = '0';
+      textArea.style.width = '1px';
+      textArea.style.height = '1px';
+      textArea.style.opacity = '0.01';
+      document.body.appendChild(textArea);
+
+      try {
+        textArea.focus({ preventScroll: true });
+        textArea.select();
+        textArea.setSelectionRange(0, textArea.value.length);
+        copied = document.execCommand('copy');
+      } finally {
+        textArea.blur();
+        document.body.removeChild(textArea);
+      }
+    }
+
+    if (copied) {
+      setCopiedHistoryDate(dateStr);
+      window.setTimeout(() => {
+        setCopiedHistoryDate((current) => (current === dateStr ? null : current));
+      }, 2000);
+    }
+  }, []);
 
   const renderBoard = useCallback(() => {
     if (!daily || !startTime) return null;
@@ -303,11 +349,18 @@ function App() {
                           : null;
 
                       return (
-                        <button
+                        <div
                           key={item.dateStr}
-                          type="button"
+                          role="button"
+                          tabIndex={0}
                           className="w-full border-b px-2 py-3 text-left transition-colors hover:bg-muted/70 focus:outline-none focus:ring-2 focus:ring-ring/50 dark:border-gray-700 dark:hover:bg-muted/70"
                           onClick={() => loadHistoryPuzzle(item)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              loadHistoryPuzzle(item);
+                            }
+                          }}
                         >
                           <div className="flex items-start gap-3">
                             <span className={`mt-1 h-2.5 w-2.5 shrink-0 ${markerTone}`} />
@@ -344,15 +397,30 @@ function App() {
                                     </span>
                                   </div>
                                 </div>
-                                {duration && (
-                                  <div className="shrink-0 text-right font-mono text-sm text-muted-foreground dark:text-gray-300">
-                                    {duration}
-                                  </div>
-                                )}
+                                <div className="shrink-0 text-right">
+                                  {duration && (
+                                    <div className="font-mono text-sm text-muted-foreground dark:text-gray-300">
+                                      {duration}
+                                    </div>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      copyHistoryLink(buildHistoryShareUrl(item), item.dateStr);
+                                    }}
+                                  >
+                                    {copiedHistoryDate === item.dateStr
+                                      ? copy.app.historyLinkCopied
+                                      : copy.app.shareHistoryLink}
+                                  </Button>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </button>
+                        </div>
                       );
                     })}
                     {Array.from({ length: historyPlaceholderCount }, (_, index) => (
@@ -375,7 +443,10 @@ function App() {
                                   <span className="font-medium tracking-wide">placeholder</span>
                                 </div>
                               </div>
-                              <div className="shrink-0 text-right font-mono text-sm">00:00</div>
+                              <div className="shrink-0 text-right">
+                                <div className="font-mono text-sm">00:00</div>
+                                <div className="mt-2 h-9 w-24 rounded-md border" />
+                              </div>
                             </div>
                           </div>
                         </div>

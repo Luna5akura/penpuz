@@ -191,15 +191,19 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/10/10/58agl1224488gl1a2k0000vv00s700vv00005h5h2h7r1j2h2i4j3l4l4l6j4i5h2j2r5h2h3h5',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/h2j2g11j2m2j1h2j2m1j2h2j2h2j1m2j1h2j2m2j2',
+    difficulty: '困难',
+  },
+  {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/s2m2t2m2t2j2r.h2x2',
     difficulty: '困难',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/i5g4h2g5g4g3g3j2g1g1g5g3h2g5i3h5j3h12h3j5h4i5g3h3g5g3g1g1j1g2g4g5g3h2g5i',
-    difficulty: '困难',
-  },
-  {
-    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/10/10/58agl1224488gl1a2k0000vv00s700vv00005h5h2h7r1j2h2i4j3l4l4l6j4i5h2j2r5h2h3h5',
     difficulty: '困难',
   },
   {
@@ -222,11 +226,6 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/m42b22n11f31f31h31f21f12n42b31m',
     difficulty: '极难',
   },
-  {
-    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/h2j2g11j2m2j1h2j2m1j2h2j2h2j1m2j1h2j2m2j2',
-    difficulty: '困难',
-  },
-
 ];
 
 
@@ -240,15 +239,20 @@ export function getPuzzleDateStr(daysSinceStart: number): string {
   return formatBeijingDate(targetDate);
 }
 
-export function getDailyPuzzle(): DailyPuzzleData | null {
-  const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
+function getDaysSinceStartFromDateStr(dateStr: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
 
-  // 开始日期也按北京时间解释
-  const start = new Date(START_DATE + 'T00:00:00+08:00');
-  const today = new Date(todayStr + 'T00:00:00+08:00');
+  const start = new Date(`${START_DATE}T00:00:00+08:00`);
+  const target = new Date(`${dateStr}T00:00:00+08:00`);
+  if (Number.isNaN(target.getTime())) return null;
 
-  let daysSinceStart = Math.floor((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-  if (daysSinceStart < 0) daysSinceStart = 0;
+  const daysSinceStart = Math.floor((target.getTime() - start.getTime()) / MILLISECONDS_PER_DAY);
+  return daysSinceStart >= 0 ? daysSinceStart : null;
+}
+
+export function getPuzzleByDateStr(dateStr: string): DailyPuzzleData | null {
+  const daysSinceStart = getDaysSinceStartFromDateStr(dateStr);
+  if (daysSinceStart === null) return null;
 
   const index = daysSinceStart % allPuzzles.length;
   const entry = allPuzzles[index];
@@ -261,8 +265,13 @@ export function getDailyPuzzle(): DailyPuzzleData | null {
     difficulty: entry.difficulty,
     index,
     daysSinceStart,
-    dateStr: todayStr,
+    dateStr,
   };
+}
+
+export function getDailyPuzzle(): DailyPuzzleData | null {
+  const todayStr = getBeijingDateStr(); // ← 使用统一北京时间函数
+  return getPuzzleByDateStr(todayStr);
 }
 
 export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {

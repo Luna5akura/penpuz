@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getDailyPuzzle, getHistoryPuzzles } from '../puzzles/database';
+import { getDailyPuzzle, getHistoryPuzzles, getPuzzleByDateStr } from '../puzzles/database';
 import type { DailyPuzzleData, HistoryPuzzleData } from '../puzzles/types';
 
 export interface SavedCompletion {
@@ -24,6 +24,8 @@ interface DailyPuzzleSessionState {
   savedCompletion: SavedCompletion | null;
   savedProgress: SavedPuzzleProgress | null;
 }
+
+type SelectablePuzzleData = DailyPuzzleData | HistoryPuzzleData;
 
 function getStorageKey(dateStr: string) {
   return `puzzle-completion-${dateStr}`;
@@ -72,9 +74,46 @@ function clearSavedProgress(dateStr: string) {
   localStorage.removeItem(getProgressStorageKey(dateStr));
 }
 
+function readSharedPuzzleDateParam() {
+  if (typeof window === 'undefined') return null;
+  const dateParam = new URLSearchParams(window.location.search).get('date');
+  return dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
+}
+
+function buildDailyFromSelectable(item: SelectablePuzzleData): DailyPuzzleData {
+  return {
+    puzzle: item.puzzle,
+    template: item.template,
+    difficulty: item.difficulty,
+    index: item.index,
+    daysSinceStart: item.daysSinceStart,
+    dateStr: item.dateStr,
+  };
+}
+
+function buildDirectPuzzleUrl(dateStr: string, todayDateStr: string) {
+  if (typeof window === 'undefined') return '';
+  const url = new URL(window.location.href);
+  if (dateStr === todayDateStr) {
+    url.searchParams.delete('date');
+  } else {
+    url.searchParams.set('date', dateStr);
+  }
+  return url.toString();
+}
+
+function syncDirectPuzzleUrl(dateStr: string, todayDateStr: string, mode: 'push' | 'replace') {
+  if (typeof window === 'undefined') return;
+  const nextUrl = buildDirectPuzzleUrl(dateStr, todayDateStr);
+  const method = mode === 'push' ? 'pushState' : 'replaceState';
+  window.history[method](null, '', nextUrl);
+}
+
 function createInitialSessionState(): DailyPuzzleSessionState {
   const todayDaily = getDailyPuzzle();
-  const daily = todayDaily;
+  const sharedDateStr = readSharedPuzzleDateParam();
+  const sharedDaily = sharedDateStr ? getPuzzleByDateStr(sharedDateStr) : null;
+  const daily = sharedDaily ?? todayDaily;
   const history = todayDaily ? getHistoryPuzzles(todayDaily.daysSinceStart) : [];
   const savedCompletion = daily ? readSavedCompletion(daily.dateStr) : null;
   const savedProgress = !savedCompletion && daily ? readSavedProgress(daily.dateStr) : null;
@@ -116,6 +155,30 @@ export function useDailyPuzzleSession() {
   const [savedProgress, setSavedProgress] = useState<SavedPuzzleProgress | null>(initialState.savedProgress);
   const [boardSnapshot, setBoardSnapshot] = useState<unknown>(initialState.savedProgress?.snapshot ?? null);
   const [showHistory, setShowHistory] = useState(false);
+
+  const applySelectedPuzzle = useCallback((item: SelectablePuzzleData) => {
+    const nextDaily = buildDailyFromSelectable(item);
+    const nextSavedCompletion = readSavedCompletion(item.dateStr);
+    const nextSavedProgress = !nextSavedCompletion ? readSavedProgress(item.dateStr) : null;
+    const nextElapsedTime = nextSavedCompletion?.time ?? nextSavedProgress?.elapsedTime ?? 0;
+    const nextStartTime = nextSavedCompletion
+      ? Date.now()
+      : nextSavedProgress
+        ? Date.now() - nextSavedProgress.elapsedTime * 1000
+        : null;
+
+    setDaily(nextDaily);
+    setStarted(!!nextSavedCompletion || !!nextSavedProgress);
+    setStartTime(nextStartTime);
+    setElapsedTime(nextElapsedTime);
+    setAttemptCompleted(!!nextSavedCompletion);
+    setResultTime(nextSavedCompletion?.time ?? nextElapsedTime);
+    setResultOpen(false);
+    setSavedCompletion(nextSavedCompletion);
+    setSavedProgress(nextSavedProgress);
+    setBoardSnapshot(nextSavedProgress?.snapshot ?? null);
+    setBoardInstance((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!started || !startTime || attemptCompleted) return;
@@ -231,35 +294,32 @@ export function useDailyPuzzleSession() {
   }, []);
 
   const loadHistoryPuzzle = useCallback((item: HistoryPuzzleData) => {
-    const nextSavedCompletion = readSavedCompletion(item.dateStr);
-    const nextSavedProgress = !nextSavedCompletion ? readSavedProgress(item.dateStr) : null;
-    const nextElapsedTime = nextSavedCompletion?.time ?? nextSavedProgress?.elapsedTime ?? 0;
-    const nextStartTime = nextSavedCompletion
-      ? Date.now()
-      : nextSavedProgress
-        ? Date.now() - nextSavedProgress.elapsedTime * 1000
-        : null;
-
-    setDaily({
-      puzzle: item.puzzle,
-      template: item.template,
-      difficulty: item.difficulty,
-      index: item.index,
-      daysSinceStart: item.daysSinceStart,
-      dateStr: item.dateStr,
-    });
-    setStarted(!!nextSavedCompletion || !!nextSavedProgress);
-    setStartTime(nextStartTime);
-    setElapsedTime(nextElapsedTime);
-    setAttemptCompleted(!!nextSavedCompletion);
-    setResultTime(nextSavedCompletion?.time ?? nextElapsedTime);
-    setResultOpen(false);
-    setSavedCompletion(nextSavedCompletion);
-    setSavedProgress(nextSavedProgress);
-    setBoardSnapshot(nextSavedProgress?.snapshot ?? null);
-    setBoardInstance((value) => value + 1);
+    applySelectedPuzzle(item);
+    if (todayDaily) {
+      syncDirectPuzzleUrl(item.dateStr, todayDaily.dateStr, 'push');
+    }
     setShowHistory(false);
-  }, []);
+  }, [applySelectedPuzzle, todayDaily]);
+
+  useEffect(() => {
+    if (!todayDaily) return;
+
+    syncDirectPuzzleUrl(daily?.dateStr ?? todayDaily.dateStr, todayDaily.dateStr, 'replace');
+  }, [daily?.dateStr, todayDaily]);
+
+  useEffect(() => {
+    if (!todayDaily) return;
+
+    const handlePopState = () => {
+      const sharedDateStr = readSharedPuzzleDateParam();
+      const targetPuzzle = sharedDateStr ? getPuzzleByDateStr(sharedDateStr) : todayDaily;
+      if (!targetPuzzle) return;
+      applySelectedPuzzle(targetPuzzle);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [applySelectedPuzzle, todayDaily]);
 
   return {
     todayDaily,
@@ -286,5 +346,8 @@ export function useDailyPuzzleSession() {
     openHistory,
     closeHistory,
     loadHistoryPuzzle,
+    buildHistoryShareUrl: useCallback((item: HistoryPuzzleData) => {
+      return todayDaily ? buildDirectPuzzleUrl(item.dateStr, todayDaily.dateStr) : '';
+    }, [todayDaily]),
   };
 }
