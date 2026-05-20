@@ -453,8 +453,10 @@ export default function YajilinBoard({
     return { row, col };
   }, [cellSize, height, width]);
 
-  const finishPointer = useCallback(() => {
+  const finishPointer = useCallback((pointerId?: number) => {
     const current = pointerState.current;
+    if (typeof pointerId === 'number' && current.pointerId !== pointerId) return;
+
     if (current.pendingTap?.kind === 'desktop-left-cell') {
       toggleCellShade(current.pendingTap.row, current.pendingTap.col);
     } else if (current.pendingTap?.kind === 'desktop-right-cell') {
@@ -472,6 +474,7 @@ export default function YajilinBoard({
       lastCell: null,
       drawMode: null,
       cellDragMode: null,
+      desktopMarkDrag: false,
       movedToDraw: false,
       pendingTap: null,
     };
@@ -550,11 +553,11 @@ export default function YajilinBoard({
       : { kind: 'desktop-left-cell', row: hitTarget.row, col: hitTarget.col };
   };
 
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handlePointerMoveAt = useCallback((pointerId: number, clientX: number, clientY: number) => {
     const current = pointerState.current;
-    if (current.pointerId !== event.pointerId || !current.startCell) return;
+    if (current.pointerId !== pointerId || !current.startCell) return;
 
-    const point = getRelativePoint(event.clientX, event.clientY);
+    const point = getRelativePoint(clientX, clientY);
     if (!point) return;
     const cell = getCellFromPoint(point.x, point.y);
     if (!cell) return;
@@ -596,7 +599,58 @@ export default function YajilinBoard({
     if (Math.abs(current.lastCell.row - cell.row) + Math.abs(current.lastCell.col - cell.col) !== 1) return;
 
     applyLoopSegment(current.lastCell, cell);
+  }, [applyCellMarkDrag, applyLoopSegment, getCellFromPoint, getRelativePoint, grid, isClueCell, replaceCellState]);
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const current = pointerState.current;
+    if (current.pointerId === event.pointerId && current.isTouch && event.cancelable) {
+      event.preventDefault();
+    }
+    handlePointerMoveAt(event.pointerId, event.clientX, event.clientY);
   };
+
+  const handlePointerLeave = (event: React.PointerEvent<HTMLDivElement>) => {
+    const current = pointerState.current;
+    if (current.pointerId !== event.pointerId || current.isTouch) return;
+    const rect = boardRef.current?.getBoundingClientRect();
+    if (
+      rect &&
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom
+    ) {
+      return;
+    }
+    finishPointer(event.pointerId);
+  };
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const handleDocumentPointerMove = (event: PointerEvent) => {
+      const current = pointerState.current;
+      if (current.pointerId !== event.pointerId) return;
+      if (current.isTouch && event.cancelable) {
+        event.preventDefault();
+      }
+      handlePointerMoveAt(event.pointerId, event.clientX, event.clientY);
+    };
+
+    const handleDocumentPointerEnd = (event: PointerEvent) => {
+      finishPointer(event.pointerId);
+    };
+
+    document.addEventListener('pointermove', handleDocumentPointerMove, { passive: false });
+    document.addEventListener('pointerup', handleDocumentPointerEnd);
+    document.addEventListener('pointercancel', handleDocumentPointerEnd);
+
+    return () => {
+      document.removeEventListener('pointermove', handleDocumentPointerMove);
+      document.removeEventListener('pointerup', handleDocumentPointerEnd);
+      document.removeEventListener('pointercancel', handleDocumentPointerEnd);
+    };
+  }, [finishPointer, handlePointerMoveAt]);
 
   const boardWidthPx = width * cellSize + (width - 1) * BOARD_GAP + BOARD_PADDING * 2;
   const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
@@ -609,13 +663,14 @@ export default function YajilinBoard({
           width: `${boardWidthPx + BOARD_BORDER * 2}px`,
           height: `${boardHeightPx + BOARD_BORDER * 2}px`,
           padding: `${BOARD_PADDING}px`,
+          touchAction: 'none',
           ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
-        onPointerUp={finishPointer}
-        onPointerLeave={finishPointer}
-        onPointerCancel={finishPointer}
+        onPointerUp={(event) => finishPointer(event.pointerId)}
+        onPointerLeave={handlePointerLeave}
+        onPointerCancel={(event) => finishPointer(event.pointerId)}
         onContextMenu={(event) => event.preventDefault()}
       >
         <div
