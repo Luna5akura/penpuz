@@ -199,12 +199,12 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '极难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/0060a0qg35fdesmep6100g0n143ota1hem7d0s',
-    difficulty: '极难',
-  },
-  {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/h2j2g11j2m2j1h2j2m1j2h2j2h2j1m2j1h2j2m2j2',
     difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/0060a0qg35fdesmep6100g0n143ota1hem7d0s',
+    difficulty: '极难',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/s2m2t2m2t2j2r.h2x2',
