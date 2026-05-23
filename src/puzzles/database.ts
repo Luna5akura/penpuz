@@ -211,10 +211,17 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/.h.q1.g.i.g.hb.hb.g.i.g.p.g.i.g.hb.hb.g.i.g.bo.h./',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kurarin/10/10/x8q8h8g88q8i888r8i88t8888g88r8g8w88v88g8g888p8x',
+    difficulty: '极难',
+  },
+  {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/s2m2t2m2t2j2r.h2x2',
     difficulty: '困难',
   },
-
   {
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/k21f32c22d31f21k41f11k31f42d11c42f11k',
     difficulty: '困难',
