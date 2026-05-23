@@ -208,10 +208,10 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/10/10/i5g4h2g5g4g3g3j2g1g1g5g3h2g5i3h5j3h12h3j5h4i5g3h3g5g3g1g1j1g2g4g5g3h2g5i',
-    difficulty: '困难',
+    difficulty: '极难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/.h.q1.g.i.g.hb.hb.g.i.g.p.g.i.g.hb.hb.g.i.g.bo.h./',
+    puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/.hbp.g.i.g.hbcb.g.i.g.p.g.i.g.hccc.g.i.g.rb./',
     difficulty: '困难',
   },
   {
