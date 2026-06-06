@@ -26,6 +26,8 @@ interface DailyPuzzleSessionState {
 }
 
 type SelectablePuzzleData = DailyPuzzleData | HistoryPuzzleData;
+const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+const BEIJING_UTC_OFFSET_MILLISECONDS = 8 * 60 * 60 * 1000;
 
 function getStorageKey(dateStr: string) {
   return `puzzle-completion-${dateStr}`;
@@ -109,6 +111,17 @@ function syncDirectPuzzleUrl(dateStr: string, todayDateStr: string, mode: 'push'
   window.history[method](null, '', nextUrl);
 }
 
+function getMillisecondsUntilNextBeijingDate() {
+  const now = Date.now();
+  const beijingNow = now + BEIJING_UTC_OFFSET_MILLISECONDS;
+  const nextBeijingMidnight =
+    Math.floor(beijingNow / MILLISECONDS_PER_DAY) * MILLISECONDS_PER_DAY +
+    MILLISECONDS_PER_DAY -
+    BEIJING_UTC_OFFSET_MILLISECONDS;
+
+  return nextBeijingMidnight - now + 1;
+}
+
 function createInitialSessionState(): DailyPuzzleSessionState {
   const todayDaily = getDailyPuzzle();
   const sharedDateStr = readSharedPuzzleDateParam();
@@ -141,9 +154,9 @@ function createInitialSessionState(): DailyPuzzleSessionState {
 
 export function useDailyPuzzleSession() {
   const [initialState] = useState<DailyPuzzleSessionState>(() => createInitialSessionState());
-  const [todayDaily] = useState<DailyPuzzleData | null>(initialState.todayDaily);
+  const [todayDaily, setTodayDaily] = useState<DailyPuzzleData | null>(initialState.todayDaily);
   const [daily, setDaily] = useState<DailyPuzzleData | null>(initialState.daily);
-  const [history] = useState<HistoryPuzzleData[]>(initialState.history);
+  const [history, setHistory] = useState<HistoryPuzzleData[]>(initialState.history);
   const [boardInstance, setBoardInstance] = useState(0);
   const [started, setStarted] = useState(initialState.started);
   const [startTime, setStartTime] = useState<number | null>(initialState.startTime);
@@ -179,6 +192,55 @@ export function useDailyPuzzleSession() {
     setBoardSnapshot(nextSavedProgress?.snapshot ?? null);
     setBoardInstance((value) => value + 1);
   }, []);
+
+  const refreshDailyDate = useCallback(() => {
+    const nextTodayDaily = getDailyPuzzle();
+    if (!nextTodayDaily || nextTodayDaily.dateStr === todayDaily?.dateStr) return;
+
+    const sharedDateStr = readSharedPuzzleDateParam();
+    const isViewingImplicitToday = !sharedDateStr && (!daily || daily.dateStr === todayDaily?.dateStr);
+    const canSwitchPuzzle = isViewingImplicitToday && (!started || attemptCompleted);
+
+    setTodayDaily(nextTodayDaily);
+    setHistory(getHistoryPuzzles(nextTodayDaily.daysSinceStart));
+
+    if (canSwitchPuzzle) {
+      applySelectedPuzzle(nextTodayDaily);
+    }
+  }, [applySelectedPuzzle, attemptCompleted, daily, started, todayDaily]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let timeoutId: number;
+    const scheduleNextDateCheck = () => {
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => {
+        refreshDailyDate();
+        scheduleNextDateCheck();
+      }, getMillisecondsUntilNextBeijingDate());
+    };
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshDailyDate();
+        scheduleNextDateCheck();
+      }
+    };
+    const handleFocus = () => {
+      refreshDailyDate();
+      scheduleNextDateCheck();
+    };
+
+    scheduleNextDateCheck();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [refreshDailyDate]);
 
   useEffect(() => {
     if (!started || !startTime || attemptCompleted) return;

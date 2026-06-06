@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
-import { getBeijingDateStr } from './puzzles/database';
 import {
   readSavedCompletion,
   readSavedProgress,
@@ -52,7 +51,6 @@ function App() {
     buildHistoryShareUrl,
   } = useDailyPuzzleSession();
 
-  const todayStr = getBeijingDateStr();
   const handleOpenHistory = useCallback(() => {
     setHistoryPage(1);
     openHistory();
@@ -196,7 +194,7 @@ function App() {
   if (!daily) return <div className="text-center py-12">{copy.app.loadingDailyPuzzle}</div>;
 
   const { template } = daily;
-  const isTodayPuzzle = daily.dateStr === todayStr;
+  const isTodayPuzzle = daily.dateStr === todayDaily?.dateStr;
   const hasResult = attemptCompleted || !!savedCompletion;
   const puzzleName = template.name[locale];
   const difficultyText = puzzleDifficultyLabels[daily.difficulty][locale];

@@ -326,14 +326,10 @@ export function getDailyPuzzle(): DailyPuzzleData | null {
 export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {
   if (daysSinceStart <= 0) return [];
 
-  const seen = new Set<number>();
   const history: HistoryPuzzleData[] = [];
 
   for (let d = 0; d < daysSinceStart; d++) {
     const idx = d % allPuzzles.length;
-    if (seen.has(idx)) continue;
-    seen.add(idx);
-
     const entry = allPuzzles[idx];
     const puzzle = resolvePuzzleEntry(entry);
     if (!puzzle) continue;
