@@ -282,6 +282,10 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/picdj4rfpcp6cpuc9jaj6alcrleplaj7alpi.111111111111111111111111111',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/a43zl45zl34t',
+    difficulty: '困难',
+  },
 ];
 
 
