@@ -274,7 +274,14 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/gaoaaoaapag5aiaiazlaia',
     difficulty: '困难',
   },
-
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/picdj4rcpc16cpmc9jaj6alcplchl2j6akpi.000000000000000000000000',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/picdj4rfpcp6cpuc9jaj6alcrleplaj7alpi.111111111111111111111111111',
+    difficulty: '困难',
+  },
 ];
 
 
