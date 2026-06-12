@@ -280,11 +280,27 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/picdj4rfpcp6cpuc9jaj6alcrleplaj7alpi.111111111111111111111111111',
-    difficulty: '困难',
+    difficulty: '简单',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?yajilin/10/10/a43zl45zl34t',
     difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/9g8g7g6zr1y4y6y8',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/g.j.k6..g6.g7ch6.i.6bg.gb.g.h.g.h6.i61.i.gch67.g6..gbi.j.g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?mintonette/10/10/h.i.g.j1k.g.i.l.g1j..h.i.i.h.g.l4g.h1m.h..i.h1h.j.j',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/1/g0300u01g0004o0660gg0i82901001212848',
+    difficulty: '简单',
   },
 ];
 
