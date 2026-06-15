@@ -302,6 +302,14 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/1/g0300u01g0004o0660gg0i82901001212848',
     difficulty: '简单',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?aqre/10/10/dm07e4c2gphj1g30h9rcmh60jgbg00cg015g0g000000000000',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?fillomino/9/9/524242323p1g1g1g1p1g1g1g1g1p1g1g1g1p425232325',
+    difficulty: '简单',
+  },
 ];
 
 
