@@ -310,6 +310,17 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?fillomino/9/9/524242323p1g1g1g1p1g1g1g1g1p1g1g1g1p425232325',
     difficulty: '简单',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?akari/10/10/...g...g.......................g............g..................g.....g.g.......................g..../',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?nikoji/8/8/12345678t7n8h3g5j2g4z',
+    difficulty: '困难',
+  },
+
+
+
 ];
 
 
