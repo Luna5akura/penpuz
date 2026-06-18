@@ -318,6 +318,21 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?nikoji/8/8/12345678t7n8h3g5j2g4z',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/80m10i15aakg90g102106v001g001g00vs0066g606',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kurarin/10/10/ch2i2gck2j2h2w2h2h2g2h2i2i2i2h2r2h2j2h2h2m2h2h22q2i2i2l2j2g2k2j2g2p2ich2kc',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/071s7rvvvvvvrufjo0fkfoq0805001060kbq',
+    difficulty: '困难',
+  },
+
+
+
 
 
 
