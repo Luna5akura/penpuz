@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Edit3, Eye, FileDown, FileText, Link2, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
+import { cn } from '@/lib/utils';
 import { notePosts } from '@/notes/posts';
 import { getNotePuzzleTypeName, notePuzzleTypeOptions } from '@/notes/puzzleTypeOptions';
 import type {
@@ -75,6 +76,12 @@ const noteCopy = {
     height: '高',
     addTextBlock: '文字',
     addReplayBlock: '过程',
+    insertTextAbove: '上方文字',
+    insertReplayAbove: '上方过程',
+    insertTextBelow: '下方文字',
+    insertReplayBelow: '下方过程',
+    textBlock: '文字',
+    replayBlock: '过程',
     moveUp: '上移',
     moveDown: '下移',
     deleteBlock: '删除',
@@ -117,6 +124,12 @@ const noteCopy = {
     height: 'H',
     addTextBlock: 'Text',
     addReplayBlock: 'Process',
+    insertTextAbove: 'Text above',
+    insertReplayAbove: 'Process above',
+    insertTextBelow: 'Text below',
+    insertReplayBelow: 'Process below',
+    textBlock: 'Text',
+    replayBlock: 'Process',
     moveUp: 'Move up',
     moveDown: 'Move down',
     deleteBlock: 'Delete',
@@ -177,6 +190,10 @@ function makeReplayDraftBlock(): DraftReplayBlock {
     boardStartTime: Date.now(),
     steps: [],
   };
+}
+
+function makeDraftBlock(type: DraftBlock['type']) {
+  return type === 'text' ? makeTextDraftBlock() : makeReplayDraftBlock();
 }
 
 function getTodayIsoDate() {
@@ -570,7 +587,18 @@ function NotesPage() {
     updateBlock(id, (block) => (block.type === 'puzzle-replay' ? updater(block) : block));
   }, [updateBlock]);
   const addBlock = (type: DraftBlock['type']) => {
-    setDraftBlocks((current) => [...current, type === 'text' ? makeTextDraftBlock() : makeReplayDraftBlock()]);
+    setDraftBlocks((current) => [...current, makeDraftBlock(type)]);
+  };
+  const insertBlock = (targetIndex: number, placement: 'before' | 'after', type: DraftBlock['type']) => {
+    setDraftBlocks((current) => {
+      const insertIndex = placement === 'before' ? targetIndex : targetIndex + 1;
+      const safeIndex = Math.min(Math.max(insertIndex, 0), current.length);
+      return [
+        ...current.slice(0, safeIndex),
+        makeDraftBlock(type),
+        ...current.slice(safeIndex),
+      ];
+    });
   };
   const removeBlock = (id: string) => {
     setDraftBlocks((current) => current.filter((block) => block.id !== id));
@@ -857,59 +885,66 @@ function NotesPage() {
       {mode === 'edit' && (
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,0.9fr)]">
           <div className="space-y-4 border bg-card px-4 py-4 sm:px-5">
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" onClick={resetDraft}>
-                <Plus />
-                {labels.newNote}
-              </Button>
-              <Button asChild variant="outline">
-                <label>
-                  <Upload />
-                  {labels.openFile}
-                  <input
-                    type="file"
-                    accept=".json,.penpuz-note.json,application/json"
-                    className="sr-only"
-                    onChange={openNoteFile}
-                  />
-                </label>
-              </Button>
-              <Button onClick={() => downloadPostFile(draftPost)}>
-                <FileDown />
-                {labels.saveFile}
-              </Button>
+            <div className="-mx-4 -mt-4 border-b bg-muted/35 px-4 py-3 sm:-mx-5 sm:px-5">
+              <div className="flex flex-wrap justify-end gap-2">
+                <Button type="button" variant="outline" onClick={resetDraft}>
+                  <Plus />
+                  {labels.newNote}
+                </Button>
+                <Button asChild variant="outline">
+                  <label>
+                    <Upload />
+                    {labels.openFile}
+                    <input
+                      type="file"
+                      accept=".json,.penpuz-note.json,application/json"
+                      className="sr-only"
+                      onChange={openNoteFile}
+                    />
+                  </label>
+                </Button>
+                <Button onClick={() => downloadPostFile(draftPost)}>
+                  <FileDown />
+                  {labels.saveFile}
+                </Button>
+              </div>
             </div>
             {noteFileError ? <p className="text-sm text-destructive">{noteFileError}</p> : null}
 
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 border bg-background p-3 shadow-sm sm:grid-cols-2">
               <Input
                 aria-label={labels.titleZh}
                 placeholder={labels.titleZh}
                 value={draftTitleZh}
+                className="bg-card"
                 onChange={(event) => setDraftTitleZh(event.target.value)}
               />
               <Input
                 aria-label={labels.titleEn}
                 placeholder={labels.titleEn}
                 value={draftTitleEn}
+                className="bg-card"
                 onChange={(event) => setDraftTitleEn(event.target.value)}
               />
               <Input
                 aria-label={labels.summaryZh}
                 placeholder={labels.summaryZh}
                 value={draftSummaryZh}
+                className="bg-card"
                 onChange={(event) => setDraftSummaryZh(event.target.value)}
               />
               <Input
                 aria-label={labels.summaryEn}
                 placeholder={labels.summaryEn}
                 value={draftSummaryEn}
+                className="bg-card"
                 onChange={(event) => setDraftSummaryEn(event.target.value)}
               />
               <Input
                 aria-label={labels.author}
                 placeholder={labels.author}
                 value={draftAuthor}
+                className="bg-card"
                 onChange={(event) => setDraftAuthor(event.target.value)}
               />
               <Input
@@ -917,29 +952,57 @@ function NotesPage() {
                 placeholder={labels.date}
                 type="date"
                 value={draftDate}
+                className="bg-card"
                 onChange={(event) => setDraftDate(event.target.value)}
               />
             </div>
 
             <div className="space-y-3 border-t pt-4">
               <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => addBlock('text')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => addBlock('text')}
+                >
                   <FileText />
                   {labels.addTextBlock}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => addBlock('puzzle-replay')}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => addBlock('puzzle-replay')}
+                >
                   <Plus />
                   {labels.addReplayBlock}
                 </Button>
               </div>
 
               {draftBlocks.map((block, index) => {
+                const isReplayBlock = block.type === 'puzzle-replay';
+                const blockShellClass = isReplayBlock
+                  ? 'border-2 bg-muted/30'
+                  : 'border bg-background';
+                const blockHeaderClass = isReplayBlock
+                  ? 'bg-muted/60'
+                  : 'bg-muted/25';
+                const blockBadgeClass = isReplayBlock
+                  ? 'bg-muted text-foreground'
+                  : 'bg-card text-foreground';
+
                 return (
-                  <section key={block.id} className="space-y-3 border bg-muted/20 p-3">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <section key={block.id} className={cn('space-y-3 overflow-hidden border p-3', blockShellClass)}>
+                    <div
+                      className={cn(
+                        '-m-3 mb-3 flex flex-col gap-3 border-b px-3 py-3 sm:flex-row sm:items-start sm:justify-between',
+                        blockHeaderClass
+                      )}
+                    >
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge variant="outline">{index + 1}</Badge>
-                        {block.type === 'puzzle-replay' && (
+                        <Badge variant="outline" className={blockBadgeClass}>
+                          {isReplayBlock ? labels.replayBlock : labels.textBlock}
+                        </Badge>
+                        {isReplayBlock && (
                           <>
                             <Badge variant="outline">{getNotePuzzleTypeName(block.puzzleType, locale)}</Badge>
                             <Badge variant="outline">
@@ -948,39 +1011,83 @@ function NotesPage() {
                           </>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-1">
-                        <Button
-                          type="button"
-                          size="icon-sm"
-                          variant="ghost"
-                          disabled={index === 0}
-                          onClick={() => moveBlock(block.id, -1)}
-                          aria-label={labels.moveUp}
-                          title={labels.moveUp}
-                        >
-                          <ArrowUp />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon-sm"
-                          variant="ghost"
-                          disabled={index === draftBlocks.length - 1}
-                          onClick={() => moveBlock(block.id, 1)}
-                          aria-label={labels.moveDown}
-                          title={labels.moveDown}
-                        >
-                          <ArrowDown />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon-sm"
-                          variant="ghost"
-                          onClick={() => removeBlock(block.id)}
-                          aria-label={labels.deleteBlock}
-                          title={labels.deleteBlock}
-                        >
-                          <Trash2 />
-                        </Button>
+                      <div className="flex flex-col gap-2 sm:items-end">
+                        <div className="grid grid-cols-2 gap-1 sm:flex sm:flex-wrap sm:justify-end">
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant="outline"
+                            className="bg-background"
+                            onClick={() => insertBlock(index, 'before', 'text')}
+                          >
+                            <FileText />
+                            {labels.insertTextAbove}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant="outline"
+                            className="bg-muted/60 hover:bg-muted"
+                            onClick={() => insertBlock(index, 'before', 'puzzle-replay')}
+                          >
+                            <Plus />
+                            {labels.insertReplayAbove}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant="outline"
+                            className="bg-background"
+                            onClick={() => insertBlock(index, 'after', 'text')}
+                          >
+                            <FileText />
+                            {labels.insertTextBelow}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="xs"
+                            variant="outline"
+                            className="bg-muted/60 hover:bg-muted"
+                            onClick={() => insertBlock(index, 'after', 'puzzle-replay')}
+                          >
+                            <Plus />
+                            {labels.insertReplayBelow}
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap gap-1 sm:justify-end">
+                          <Button
+                            type="button"
+                            size="icon-sm"
+                            variant="ghost"
+                            disabled={index === 0}
+                            onClick={() => moveBlock(block.id, -1)}
+                            aria-label={labels.moveUp}
+                            title={labels.moveUp}
+                          >
+                            <ArrowUp />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon-sm"
+                            variant="ghost"
+                            disabled={index === draftBlocks.length - 1}
+                            onClick={() => moveBlock(block.id, 1)}
+                            aria-label={labels.moveDown}
+                            title={labels.moveDown}
+                          >
+                            <ArrowDown />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon-sm"
+                            variant="ghost"
+                            onClick={() => removeBlock(block.id)}
+                            aria-label={labels.deleteBlock}
+                            title={labels.deleteBlock}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </div>
                       </div>
                     </div>
 
@@ -991,14 +1098,14 @@ function NotesPage() {
                           placeholder={labels.bodyZh}
                           value={block.bodyZh}
                           onChange={(event) => updateTextBlock(block.id, { bodyZh: event.target.value })}
-                          className="min-h-32 w-full border-2 border-input bg-background px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                          className="min-h-32 w-full border-2 border-input bg-card px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                         <textarea
                           aria-label={labels.bodyEn}
                           placeholder={labels.bodyEn}
                           value={block.bodyEn}
                           onChange={(event) => updateTextBlock(block.id, { bodyEn: event.target.value })}
-                          className="min-h-32 w-full border-2 border-input bg-background px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                          className="min-h-32 w-full border-2 border-input bg-card px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                       </div>
                     ) : (
@@ -1008,6 +1115,7 @@ function NotesPage() {
                             aria-label={labels.replayTitleZh}
                             placeholder={labels.replayTitleZh}
                             value={block.titleZh}
+                            className="bg-card"
                             onChange={(event) =>
                               updateReplayBlock(block.id, (current) => ({ ...current, titleZh: event.target.value }))
                             }
@@ -1016,6 +1124,7 @@ function NotesPage() {
                             aria-label={labels.replayTitleEn}
                             placeholder={labels.replayTitleEn}
                             value={block.titleEn}
+                            className="bg-card"
                             onChange={(event) =>
                               updateReplayBlock(block.id, (current) => ({ ...current, titleEn: event.target.value }))
                             }
@@ -1024,7 +1133,7 @@ function NotesPage() {
                             aria-label={labels.puzzleType}
                             value={block.puzzleType}
                             onChange={(event) => updateReplayType(block.id, event.target.value as PuzzleType)}
-                            className="min-h-11 w-full border-2 border-input bg-background px-3 py-2 text-base"
+                            className="min-h-11 w-full border-2 border-input bg-card px-3 py-2 text-base"
                           >
                             {notePuzzleTypeOptions.map((option) => (
                               <option key={option.type} value={option.type}>
@@ -1040,6 +1149,7 @@ function NotesPage() {
                               min={3}
                               max={12}
                               value={block.width}
+                              className="bg-card"
                               onChange={(event) => updateReplaySize(block.id, 'width', Number(event.target.value))}
                             />
                             <Input
@@ -1049,6 +1159,7 @@ function NotesPage() {
                               min={3}
                               max={12}
                               value={block.height}
+                              className="bg-card"
                               onChange={(event) => updateReplaySize(block.id, 'height', Number(event.target.value))}
                             />
                           </div>
@@ -1059,6 +1170,7 @@ function NotesPage() {
                             aria-label={labels.puzzleLink}
                             placeholder={labels.puzzleLink}
                             value={block.puzzleLink}
+                            className="bg-card"
                             onChange={(event) => updateReplayPuzzleLink(block.id, event.target.value)}
                             onKeyDown={(event) => {
                               if (event.key !== 'Enter') return;
@@ -1085,7 +1197,7 @@ function NotesPage() {
                                 stepNoteZh: event.target.value,
                               }))
                             }
-                            className="min-h-24 w-full border-2 border-input bg-background px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            className="min-h-24 w-full border-2 border-input bg-card px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                           />
                           <textarea
                             aria-label={labels.stepNoteEn}
@@ -1097,7 +1209,7 @@ function NotesPage() {
                                 stepNoteEn: event.target.value,
                               }))
                             }
-                            className="min-h-24 w-full border-2 border-input bg-background px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                            className="min-h-24 w-full border-2 border-input bg-card px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                           />
                         </div>
 
@@ -1145,7 +1257,10 @@ function NotesPage() {
                               const stepNoteEn = getLocalizedValue(step.note, 'en');
 
                               return (
-                                <section key={`${block.id}-step-${stepIndex}`} className="grid gap-3 border bg-background p-3">
+                                <section
+                                  key={`${block.id}-step-${stepIndex}`}
+                                  className="grid gap-3 border bg-background p-3 shadow-sm"
+                                >
                                   <div className="flex flex-wrap items-center justify-between gap-2">
                                     <Badge variant="outline">{stepIndex + 1}</Badge>
                                     <div className="flex flex-wrap gap-1">
@@ -1212,7 +1327,7 @@ function NotesPage() {
                                       onChange={(event) =>
                                         updateReplayStepNote(block.id, stepIndex, 'zh-CN', event.target.value)
                                       }
-                                      className="min-h-24 w-full border-2 border-input bg-background px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                      className="min-h-24 w-full border-2 border-input bg-card px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                     />
                                     <textarea
                                       aria-label={labels.stepNoteEn}
@@ -1221,7 +1336,7 @@ function NotesPage() {
                                       onChange={(event) =>
                                         updateReplayStepNote(block.id, stepIndex, 'en', event.target.value)
                                       }
-                                      className="min-h-24 w-full border-2 border-input bg-background px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                                      className="min-h-24 w-full border-2 border-input bg-card px-3 py-2 text-base leading-7 outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                                     />
                                   </div>
 
@@ -1250,7 +1365,7 @@ function NotesPage() {
             </div>
           </div>
 
-          <div>
+          <div className="border bg-muted/25 p-3">
             {renderPost(draftPost, locale, labels)}
           </div>
         </section>

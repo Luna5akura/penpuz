@@ -350,6 +350,16 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?domino-search/8/8/16223121140h40013g5105065g35g4641426g66540h6262221355333440503',
     difficulty: '简单',
   },
+  {
+    puzzLink: 'http://localhost:8080/p.html?domino-search/8/8/201520154544g016065h0145641g6332233g235343i646642036015520112',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?domino-search/8/8/33422546266h26124g11350531h02054600g26130h1361053325144554406',
+    difficulty: '简单',
+  },
+
+
 
 
 
