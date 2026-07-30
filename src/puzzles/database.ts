@@ -328,7 +328,7 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8080/p.html?domino-search/8/8/14541112340g634523g0g1605511g223566g546326i3432000040261352456',
-    difficulty: '困难',
+    difficulty: '简单',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?lakes/8/8/3j3k2k3j3k3k2j33j1k3k3j3g',
@@ -346,6 +346,11 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?lits/9/9/4esnofk136fvnh8dogr0rnfee890d0',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'http://localhost:8080/p.html?domino-search/8/8/16223121140h40013g5105065g35g4641426g66540h6262221355333440503',
+    difficulty: '简单',
+  },
+
 
 
 

@@ -16,6 +16,13 @@
       {
         "type": "text",
         "body": {
+          "zh-CN": "题目链接：\nhttp://penpuz.today/?date=2026-06-23",
+          "en": "题目链接：\nhttp://penpuz.today/?date=2026-06-23"
+        }
+      },
+      {
+        "type": "text",
+        "body": {
           "zh-CN": "技巧：观察所有的某个数字，是否有唯一的与其相邻的数字。",
           "en": "观察所有的某个数字，是否有唯一的与其相邻的数字。"
         }
