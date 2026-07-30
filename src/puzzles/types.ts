@@ -145,6 +145,60 @@ export interface WalkwalkPuzzleData {
   clues: WalkwalkClue[];
 }
 
+export interface SlitherlinkPuzzleData {
+  type: 'slither';
+  width: number;
+  height: number;
+  clues: (number | null)[][];
+}
+
+export interface LitsPuzzleData {
+  type: 'lits';
+  width: number;
+  height: number;
+  regionIds: number[][];
+}
+
+export interface LakesPuzzleData {
+  type: 'lakes';
+  width: number;
+  height: number;
+  clues: NurikabeClue[];
+}
+
+export interface DominoSearchPuzzleData {
+  type: 'domino-search';
+  width: number;
+  height: number;
+  numbers: (number | null)[][];
+  dominoes: Array<[number, number]>;
+}
+
+export type MagicSnailCell = number | 'block' | null;
+
+export interface MagicSnailPuzzleData {
+  type: 'snail';
+  width: number;
+  height: number;
+  numbers: number[];
+  cells: MagicSnailCell[][];
+}
+
+export interface SlovakSumsClueCell {
+  sum: number;
+  count: number;
+}
+
+export type SlovakSumsCell = SlovakSumsClueCell | null;
+
+export interface SlovakSumsPuzzleData {
+  type: 'slovak-sums';
+  width: number;
+  height: number;
+  numbers: number[];
+  cells: SlovakSumsCell[][];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -156,7 +210,13 @@ export type PuzzleData =
   | NikojiPuzzleData
   | AkariPuzzleData
   | KurarinPuzzleData
-  | WalkwalkPuzzleData;
+  | WalkwalkPuzzleData
+  | SlitherlinkPuzzleData
+  | LitsPuzzleData
+  | LakesPuzzleData
+  | DominoSearchPuzzleData
+  | MagicSnailPuzzleData
+  | SlovakSumsPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -267,6 +327,52 @@ export type PuzzleExample =
       clues: WalkwalkClue[];
       solutionEdges: YajilinSolutionEdge[];
       crossedEdges?: YajilinSolutionEdge[];
+    }
+  | {
+      puzzleType: 'slither';
+      width: number;
+      height: number;
+      clues: (number | null)[][];
+      loopEdges: string[];
+      crossedEdges?: string[];
+    }
+  | {
+      puzzleType: 'lits';
+      width: number;
+      height: number;
+      regionIds: number[][];
+      correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'lakes';
+      width: number;
+      height: number;
+      clues: NurikabeClue[];
+      correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'domino-search';
+      width: number;
+      height: number;
+      numbers: number[][];
+      dominoes: Array<[number, number]>;
+      solutionEdges: YajilinSolutionEdge[];
+    }
+  | {
+      puzzleType: 'snail';
+      width: number;
+      height: number;
+      numbers: number[];
+      cells: MagicSnailCell[][];
+      correctGrid: (number | null)[][];
+    }
+  | {
+      puzzleType: 'slovak-sums';
+      width: number;
+      height: number;
+      numbers: number[];
+      cells: SlovakSumsCell[][];
+      correctGrid: (number | null)[][];
     };
 
 export interface PuzzleTemplate {

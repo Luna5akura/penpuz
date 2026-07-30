@@ -605,13 +605,6 @@ export default function FillominoBoard({
     closeNumpad();
   };
 
-  const mobileModeHint =
-    mobileMode === 'number'
-      ? copy.shared.touchModeHints.number
-      : mobileMode === 'boundary'
-        ? copy.shared.touchModeHints.boundary
-        : copy.shared.touchModeHints.mark;
-
   return (
     <div className="flex flex-col items-center gap-3">
       {isTouchDevice && (
@@ -637,9 +630,6 @@ export default function FillominoBoard({
               </button>
             ))}
           </div>
-          <p className="text-center text-xs dark:text-gray-300" style={{ color: woodBoardTheme.border }}>
-            {mobileModeHint}
-          </p>
         </>
       )}
 

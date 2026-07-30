@@ -10,6 +10,12 @@ import NikojiBoard from './Nikoji/Nikoji';
 import AkariBoard from './Akari/Akari';
 import KurarinBoard from './Kurarin/Kurarin';
 import WalkwalkBoard from './Walkwalk/Walkwalk';
+import SlitherlinkBoard from './Slitherlink/Slitherlink';
+import LitsBoard from './Lits/Lits';
+import LakesBoard from './Lakes/Lakes';
+import DominoSearchBoard from './DominoSearch/DominoSearch';
+import MagicSnailBoard from './MagicSnail/MagicSnail';
+import SlovakSumsBoard from './SlovakSums/SlovakSums';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
@@ -21,6 +27,7 @@ import NikojiExample from '../components/examples/NikojiExample';
 import AkariExample from '../components/examples/AkariExample';
 import KurarinExample from '../components/examples/KurarinExample';
 import WalkwalkExample from '../components/examples/WalkwalkExample';
+import AdditionalPuzzleExample from '../components/examples/AdditionalPuzzleExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
@@ -32,11 +39,21 @@ import { parseNikojiLink } from './Nikoji/utils';
 import { parseAkariLink } from './Akari/utils';
 import { parseKurarinLink } from './Kurarin/utils';
 import { parseWalkwalkLink } from './Walkwalk/utils';
+import { parseSlitherlinkLink } from './Slitherlink/utils';
+import { parseLitsLink } from './Lits/utils';
+import { parseLakesLink } from './Lakes/utils';
+import { parseDominoSearchLink } from './DominoSearch/utils';
+import { parseMagicSnailLink } from './MagicSnail/utils';
+import { parseSlovakSumsLink } from './SlovakSums/utils';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
+  DominoSearchPuzzleData,
   FillominoPuzzleData,
   HeyawakePuzzleData,
+  LakesPuzzleData,
+  LitsPuzzleData,
+  MagicSnailPuzzleData,
   MintonettePuzzleData,
   NikojiPuzzleData,
   NurikabePuzzleData,
@@ -46,6 +63,8 @@ import type {
   PuzzleType,
   StarbattlePuzzleData,
   KurarinPuzzleData,
+  SlitherlinkPuzzleData,
+  SlovakSumsPuzzleData,
   WalkwalkPuzzleData,
   YajilinPuzzleData,
 } from './types';
@@ -86,6 +105,12 @@ type PuzzleRegistry = {
   akari: PuzzleRegistryEntry<AkariPuzzleData>;
   kurarin: PuzzleRegistryEntry<KurarinPuzzleData>;
   walkwalk: PuzzleRegistryEntry<WalkwalkPuzzleData>;
+  slither: PuzzleRegistryEntry<SlitherlinkPuzzleData>;
+  lits: PuzzleRegistryEntry<LitsPuzzleData>;
+  lakes: PuzzleRegistryEntry<LakesPuzzleData>;
+  'domino-search': PuzzleRegistryEntry<DominoSearchPuzzleData>;
+  snail: PuzzleRegistryEntry<MagicSnailPuzzleData>;
+  'slovak-sums': PuzzleRegistryEntry<SlovakSumsPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -1124,13 +1149,486 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  slither: {
+    parsePuzzLink: parseSlitherlinkLink,
+    template: {
+      type: 'slither',
+      name: {
+        'zh-CN': '数回',
+        en: 'Slitherlink',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '沿格线画线，使所有线段连成一条单一回路。',
+          '回路不能分叉，也不能自交。',
+          '数字表示该格四条边中有多少条属于回路。',
+        ],
+        en: [
+          'Draw lines along cell edges to form one single loop.',
+          'The loop cannot branch or cross itself.',
+          'A number gives how many of the four edges around that cell are used by the loop.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（2×2）',
+        en: 'Example (2×2)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'slither',
+        width: 2,
+        height: 2,
+        clues: [
+          [2, 2],
+          [2, 2],
+        ],
+        loopEdges: ['h-0-0', 'h-0-1', 'h-2-0', 'h-2-1', 'v-0-0', 'v-1-0', 'v-0-2', 'v-1-2'],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <SlitherlinkBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'slither') {
+        throw new Error('Slitherlink template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  lits: {
+    parsePuzzLink: parseLitsLink,
+    template: {
+      type: 'lits',
+      name: {
+        'zh-CN': 'LITS',
+        en: 'LITS',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在每个粗边框区域内涂出一个由四个正交连通黑格组成的四连块。',
+          '所有黑格必须正交连成一片，且不能出现全黑的 2×2 方块。',
+          '两个共享边的四连块不能是相同形状；旋转或镜像后相同也算相同形状。',
+        ],
+        en: [
+          'Place one tetromino, a connected block of four shaded cells, in every outlined region.',
+          'All shaded cells must be orthogonally connected, and no 2×2 block may be fully shaded.',
+          'Two edge-adjacent tetrominoes cannot have the same shape, counting rotations and reflections as the same.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'lits',
+        width: 4,
+        height: 4,
+        regionIds: [
+          [0, 0, 1, 1],
+          [0, 0, 1, 2],
+          [0, 1, 1, 2],
+          [2, 2, 2, 2],
+        ],
+        correctSolution: [
+          [1, 0, 1, 1],
+          [1, 1, 1, 0],
+          [1, 0, 1, 0],
+          [1, 1, 1, 1],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <LitsBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'lits') {
+        throw new Error('LITS template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  lakes: {
+    parsePuzzLink: parseLakesLink,
+    template: {
+      type: 'lakes',
+      name: {
+        'zh-CN': '湖泊',
+        en: 'Lakes',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '涂黑一些格子，把其余白格分成若干个正交连通的湖区。',
+          '每个湖区必须恰好包含一个线索格。',
+          '数字表示其所在湖区的格数；问号表示大小未知。',
+        ],
+        en: [
+          'Shade some cells so that the remaining white cells form orthogonally connected lake areas.',
+          'Each lake area must contain exactly one clue cell.',
+          'A number gives the size of its lake area; a question mark leaves the size unspecified.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'lakes',
+        width: 5,
+        height: 5,
+        clues: [
+          { row: 0, col: 0, value: 3 },
+          { row: 2, col: 4, value: 6 },
+          { row: 4, col: 0, value: 4 },
+          { row: 4, col: 4, value: 1 },
+        ],
+        correctSolution: [
+          [0, 0, 1, 0, 0],
+          [0, 1, 1, 1, 0],
+          [1, 1, 0, 0, 0],
+          [0, 1, 1, 1, 1],
+          [0, 0, 0, 1, 0],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <LakesBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'lakes') {
+        throw new Error('Lakes template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  'domino-search': {
+    parsePuzzLink: parseDominoSearchLink,
+    template: {
+      type: 'domino-search',
+      name: {
+        'zh-CN': '多米诺搜寻',
+        en: 'Domino Search',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '把盘面划分成若干个 1×2 或 2×1 的骨牌。',
+          '每个格子必须恰好属于一张骨牌。',
+          '每张骨牌覆盖的两个数字，必须与目标骨牌列表中的一个组合对应，且每个组合恰好使用一次。',
+        ],
+        en: [
+          'Divide the grid into 1×2 or 2×1 dominoes.',
+          'Every cell must belong to exactly one domino.',
+          'The two numbers covered by each domino must match one target pair, and every target pair must be used exactly once.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'domino-search',
+        width: 4,
+        height: 4,
+        numbers: [
+          [0, 1, 2, 3],
+          [0, 0, 1, 2],
+          [3, 3, 0, 2],
+          [1, 1, 0, 3],
+        ],
+        dominoes: [[0, 1], [2, 3], [0, 0], [1, 2], [3, 3], [0, 2], [1, 1], [0, 3]],
+        solutionEdges: [
+          { r1: 0, c1: 0, r2: 0, c2: 1 },
+          { r1: 0, c1: 2, r2: 0, c2: 3 },
+          { r1: 1, c1: 0, r2: 1, c2: 1 },
+          { r1: 1, c1: 2, r2: 1, c2: 3 },
+          { r1: 2, c1: 0, r2: 2, c2: 1 },
+          { r1: 2, c1: 2, r2: 2, c2: 3 },
+          { r1: 3, c1: 0, r2: 3, c2: 1 },
+          { r1: 3, c1: 2, r2: 3, c2: 3 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <DominoSearchBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'domino-search') {
+        throw new Error('Domino Search template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  snail: {
+    parsePuzzLink: parseMagicSnailLink,
+    template: {
+      type: 'snail',
+      name: {
+        'zh-CN': '魔法蜗牛',
+        en: 'Magic Snail',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在可填格中填入给定数字列表中的数字。',
+          '同一行或同一列中，任意数字都不能重复出现。',
+          '按从外到内的螺旋顺序读取已填数字时，必须循环出现给定数字序列。',
+        ],
+        en: [
+          'Fill available cells with numbers from the given list.',
+          'No number may repeat in any row or column.',
+          'Reading the filled cells along the outside-in spiral must repeat the given number sequence.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'snail',
+        width: 4,
+        height: 4,
+        numbers: [1, 2, 3],
+        cells: [
+          [1, null, null, null],
+          [null, null, null, null],
+          [null, null, null, null],
+          [null, null, null, null],
+        ],
+        correctGrid: [
+          [1, 2, 3, null],
+          [null, null, null, 1],
+          [null, null, null, 2],
+          [null, null, null, 3],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <MagicSnailBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'snail') {
+        throw new Error('Magic Snail template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  'slovak-sums': {
+    parsePuzzLink: parseSlovakSumsLink,
+    template: {
+      type: 'slovak-sums',
+      name: {
+        'zh-CN': '斯洛伐克和',
+        en: 'Slovak Sums',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在白格中填入给定数字列表中的数字。',
+          '每一行和每一列都必须恰好包含一次每个指定数字。',
+          '黑格中的上方数字表示其正交相邻白格中已填数字的总和，下方数字表示这些相邻已填数字的数量。',
+        ],
+        en: [
+          'Fill white cells with numbers from the given list.',
+          'Each row and each column must contain each listed number exactly once.',
+          'In a black clue cell, the upper number gives the sum of adjacent filled numbers, and the lower number gives how many adjacent filled numbers are used.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（3×3）',
+        en: 'Example (3×3)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'slovak-sums',
+        width: 3,
+        height: 3,
+        numbers: [1, 2],
+        cells: [
+          [null, null, { sum: 3, count: 2 }],
+          [null, { sum: 6, count: 4 }, null],
+          [{ sum: 3, count: 2 }, null, null],
+        ],
+        correctGrid: [
+          [1, 2, null],
+          [2, null, 1],
+          [null, 1, 2],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <SlovakSumsBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'slovak-sums') {
+        throw new Error('Slovak Sums template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
   return puzzleRegistry[type].template;
 }
 
-function getPuzzleTypeFromLink(link: string): PuzzleType | null {
+export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
   let dataPart = link.includes('?') ? link.split('?')[1] : link;
   if (dataPart.startsWith('p?')) dataPart = dataPart.slice(2);
 
@@ -1139,13 +1637,26 @@ function getPuzzleTypeFromLink(link: string): PuzzleType | null {
     return type as PuzzleType;
   }
 
+  const aliases: Record<string, PuzzleType> = {
+    slitherlink: 'slither',
+    'magic-snail': 'snail',
+    slovaksums: 'slovak-sums',
+  };
+  if (type in aliases) {
+    return aliases[type];
+  }
+
   return null;
 }
 
 export function resolvePuzzleEntry(entry: PuzzleEntry): PuzzleData | null {
-  const type = getPuzzleTypeFromLink(entry.puzzLink);
+  return parsePuzzleLink(entry.puzzLink);
+}
+
+export function parsePuzzleLink(link: string): PuzzleData | null {
+  const type = getPuzzleTypeFromLink(link);
   if (!type) return null;
-  return puzzleRegistry[type].parsePuzzLink(entry.puzzLink);
+  return puzzleRegistry[type].parsePuzzLink(link);
 }
 
 export function renderPuzzleBoard(

@@ -16,8 +16,6 @@ export default function ExampleAnswerRevealDialog({ open, onCancel, onConfirm }:
       <div className="mx-4 w-full max-w-md border-2 border-[#bfa889] bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-900">
         <p className="mb-6 text-xl leading-8 dark:text-gray-200">
           {copy.shared.revealAnswerPrompt}
-          <br />
-          ({copy.shared.revealAnswerHint})
         </p>
         <div className="flex gap-3">
           <button onClick={onCancel} className="flex-1 border-2 px-4 py-3 text-lg font-semibold">

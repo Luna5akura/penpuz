@@ -316,7 +316,7 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?nikoji/8/8/12345678t7n8h3g5j2g4z',
-    difficulty: '困难',
+    difficulty: '困难'
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/10/10/80m10i15aakg90g102106v001g001g00vs0066g606',
@@ -327,10 +327,25 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?starbattle/10/10/2/071s7rvvvvvvrufjo0fkfoq0805001060kbq',
+    puzzLink: 'http://localhost:8080/p.html?domino-search/8/8/14541112340g634523g0g1605511g223566g546326i3432000040261352456',
     difficulty: '困难',
   },
-
+  {
+    puzzLink: 'http://localhost:8080/p.html?lakes/8/8/3j3k2k3j3k3k2j33j1k3k3j3g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?slither/8/8/55a5agaaaaga555aj555ahag5aga',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/9/9/4af3r7mej4bg000ego9glg37es3bvo00000000000080000',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/9/9/4esnofk136fvnh8dogr0rnfee890d0',
+    difficulty: '困难',
+  },
 
 
 

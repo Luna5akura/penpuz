@@ -1,6 +1,7 @@
 // src/App.tsx
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { BookOpen, CalendarDays, NotebookText } from 'lucide-react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
 import {
@@ -18,10 +19,51 @@ import { formatMinutesSeconds } from './lib/formatDuration';
 import { Card } from './components/ui/card';
 
 const HISTORY_PAGE_SIZE = 5;
+const RuleQuickReferenceDialog = lazy(() => import('./components/RuleQuickReferenceDialog'));
+const NotesPage = lazy(() => import('./components/notes/NotesPage'));
+
+type ActivePage = 'puzzle' | 'notes';
+
+function readActivePageFromUrl(): ActivePage {
+  if (typeof window === 'undefined') return 'puzzle';
+  const params = new URLSearchParams(window.location.search);
+  return params.has('note') || params.get('page') === 'notes' ? 'notes' : 'puzzle';
+}
+
+function pushAppPageUrl(page: ActivePage, currentDateStr?: string, todayDateStr?: string) {
+  if (typeof window === 'undefined') return;
+
+  const url = new URL(window.location.href);
+  if (page === 'puzzle') {
+    url.searchParams.delete('note');
+    url.searchParams.delete('page');
+    if (currentDateStr && todayDateStr) {
+      if (currentDateStr === todayDateStr) {
+        url.searchParams.delete('date');
+      } else {
+        url.searchParams.set('date', currentDateStr);
+      }
+    }
+  } else {
+    url.searchParams.delete('date');
+    if (url.searchParams.has('note')) {
+      url.searchParams.delete('page');
+    } else {
+      url.searchParams.set('page', 'notes');
+    }
+  }
+
+  const nextUrl = url.toString();
+  if (nextUrl !== window.location.href) {
+    window.history.pushState(null, '', nextUrl);
+  }
+}
 
 function App() {
+  const [activePage, setActivePage] = useState<ActivePage>(() => readActivePageFromUrl());
   const [historyPage, setHistoryPage] = useState(1);
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+  const [ruleReferenceOpen, setRuleReferenceOpen] = useState(false);
   const [copiedHistoryDate, setCopiedHistoryDate] = useState<string | null>(null);
   const { locale, copy, toggleLocale } = useI18n();
   const {
@@ -66,6 +108,16 @@ function App() {
     handleRestartResetTime();
     setRestartDialogOpen(false);
   }, [handleRestartResetTime]);
+  const handleOpenPuzzlePage = useCallback(() => {
+    closeHistory();
+    setActivePage('puzzle');
+    pushAppPageUrl('puzzle', daily?.dateStr, todayDaily?.dateStr);
+  }, [closeHistory, daily?.dateStr, todayDaily?.dateStr]);
+  const handleOpenNotesPage = useCallback(() => {
+    closeHistory();
+    setActivePage('notes');
+    pushAppPageUrl('notes');
+  }, [closeHistory]);
 
   const copyHistoryLink = useCallback(async (url: string, dateStr: string) => {
     let copied = false;
@@ -191,35 +243,57 @@ function App() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [closeHistory, showHistory]);
 
+  useEffect(() => {
+    const syncPageFromUrl = () => setActivePage(readActivePageFromUrl());
+    window.addEventListener('popstate', syncPageFromUrl);
+    return () => window.removeEventListener('popstate', syncPageFromUrl);
+  }, []);
+
   if (!daily) return <div className="text-center py-12">{copy.app.loadingDailyPuzzle}</div>;
 
   const { template } = daily;
-  const isTodayPuzzle = daily.dateStr === todayDaily?.dateStr;
   const hasResult = attemptCompleted || !!savedCompletion;
   const puzzleName = template.name[locale];
   const difficultyText = puzzleDifficultyLabels[daily.difficulty][locale];
+  const isPuzzlePage = activePage === 'puzzle';
 
   return (
     <div className="min-h-screen bg-background py-4 dark:bg-background">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* 标题栏 */}
         <Card className="mb-4 border-[#d7c7b4] bg-card p-4 dark:border-gray-700 dark:bg-card">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground sm:text-4xl">{copy.app.siteTitle}</h1>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-lg text-muted-foreground sm:text-xl">
-                <span>
-                  {isTodayPuzzle ? copy.app.todayPuzzleTypeLabel : copy.app.puzzleTypeLabel}：{puzzleName}
-                </span>
-                <Badge
-                  variant="outline"
-                  className="border-[#bca286] bg-secondary ml-3 text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                >
-                  {difficultyText}
-                </Badge>
-              </div>
+              {isPuzzlePage && (
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-lg text-muted-foreground sm:text-xl">
+                  <span>{puzzleName}</span>
+                  <Badge
+                    variant="outline"
+                    className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
+                  >
+                    {difficultyText}
+                  </Badge>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+              <Button
+                variant={isPuzzlePage ? 'default' : 'outline'}
+                onClick={handleOpenPuzzlePage}
+                className="min-w-32"
+              >
+                <CalendarDays />
+                {copy.app.puzzleTab}
+              </Button>
+              <Button
+                variant={!isPuzzlePage ? 'default' : 'outline'}
+                onClick={handleOpenNotesPage}
+                className="min-w-24"
+              >
+                <NotebookText />
+                {copy.app.notesTab}
+              </Button>
               <Button
                 variant="outline"
                 onClick={toggleLocale}
@@ -231,8 +305,17 @@ function App() {
               </Button>
               <Button
                 variant="outline"
+                onClick={() => setRuleReferenceOpen(true)}
+                className="min-w-28"
+              >
+                <BookOpen />
+                {copy.app.rulesReference}
+              </Button>
+              <Button
+                variant="outline"
                 onClick={handleOpenHistory}
                 className="min-w-32"
+                disabled={!isPuzzlePage}
               >
                 {copy.app.viewHistory}
               </Button>
@@ -240,58 +323,84 @@ function App() {
           </div>
         </Card>
 
-        {!started ? (
-          <Card className="mx-auto max-w-lg border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card">
-            <div className="space-y-3 text-center">
-              <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{copy.app.readyToStart}</h2>
-              <p className="text-lg text-muted-foreground">
-                {copy.app.currentPuzzle}：<span className="font-medium">{puzzleName}</span>
-              </p>
-              <div className="flex justify-center">
-                <Badge
-                  variant="outline"
-                  className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                >
-                  {difficultyText}
-                </Badge>
-              </div>
-              <p className="text-4xl font-bold text-foreground sm:text-5xl">
-                {copy.app.puzzleNumber(daily.index + 1)}
-              </p>
-              <div className="pt-1">
-                <Button onClick={handleStart} size="lg" className="min-w-44">
-                  {copy.app.startPuzzle}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        ) : (
+        {isPuzzlePage ? (
           <>
-            <div className="mb-4 grid gap-2 border-b px-1 pb-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-              <div className="text-xl font-semibold text-foreground sm:text-left sm:text-2xl">
-                {copy.app.elapsedTime(elapsedTime)}
-              </div>
-              <div className="text-base text-muted-foreground sm:text-center">
-                {copy.app.puzzleSummary(puzzleName, daily.index + 1)}
-              </div>
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                {hasResult && (
-                  <Button onClick={handleViewResult} variant="ghost" size="sm">
-                    {copy.app.viewResults}
-                  </Button>
-                )}
-                <Button onClick={handleOpenRestartDialog} variant="outline" size="sm">
-                  {copy.app.restart}
-                </Button>
-              </div>
-            </div>
-            <div className="flex justify-center mb-12">
-              {renderBoard()}
-            </div>
+            {!started ? (
+              <Card className="mx-auto max-w-lg border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card">
+                <div className="space-y-3 text-center">
+                  <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{puzzleName}</h2>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
+                    >
+                      {difficultyText}
+                    </Badge>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {copy.app.puzzleNumber(daily.index + 1)}
+                    </span>
+                  </div>
+                  <div className="pt-1">
+                    <Button onClick={handleStart} size="lg" className="min-w-44">
+                      {copy.app.startPuzzle}
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <>
+                <div className="mb-4 grid gap-2 border-b px-1 pb-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
+                  <div className="text-xl font-semibold text-foreground sm:text-left sm:text-2xl">
+                    {copy.app.elapsedTime(elapsedTime)}
+                  </div>
+                  <div className="text-base text-muted-foreground sm:text-center">
+                    {copy.app.puzzleSummary(puzzleName, daily.index + 1)}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    {hasResult && (
+                      <Button onClick={handleViewResult} variant="ghost" size="sm">
+                        {copy.app.viewResults}
+                      </Button>
+                    )}
+                    <Button onClick={handleOpenRestartDialog} variant="outline" size="sm">
+                      {copy.app.restart}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex justify-center mb-12">
+                  {renderBoard()}
+                </div>
+              </>
+            )}
+
+            <RulesSection template={template} />
           </>
+        ) : (
+          <Suspense fallback={<div className="border bg-card p-6 text-muted-foreground">{copy.app.loadingDailyPuzzle}</div>}>
+            <NotesPage />
+          </Suspense>
         )}
 
-        <RulesSection template={template} />
+        {ruleReferenceOpen && (
+          <Suspense fallback={null}>
+            <RuleQuickReferenceDialog
+              isOpen={ruleReferenceOpen}
+              onClose={() => setRuleReferenceOpen(false)}
+              labels={{
+                title: copy.app.rulesReferenceTitle,
+                searchPlaceholder: copy.app.rulesReferenceSearchPlaceholder,
+                resultCount: copy.app.rulesReferenceResultCount,
+                noMatches: copy.app.rulesReferenceNoMatches,
+                close: copy.app.close,
+                chineseRules: copy.app.rulesReferenceChineseRules,
+                englishRules: copy.app.rulesReferenceEnglishRules,
+                pzprSource: copy.app.rulesReferencePzprSource,
+                translatedSource: copy.app.rulesReferenceTranslatedSource,
+                appSource: copy.app.rulesReferenceAppSource,
+              }}
+            />
+          </Suspense>
+        )}
 
         {/* 历史题目列表 Modal */}
         {showHistory && (
@@ -499,7 +608,6 @@ function App() {
             >
               <div className="space-y-2">
                 <h2 className="text-xl font-semibold text-foreground">{copy.app.restartOptionsTitle}</h2>
-                <p className="text-sm text-muted-foreground">{copy.app.restartOptionsHint}</p>
               </div>
               <div className="mt-4 flex flex-col gap-2">
                 <Button onClick={handleRestartWithTime}>{copy.app.restartKeepTime}</Button>

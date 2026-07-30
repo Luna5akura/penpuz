@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { getPuzzleTemplate } from '@/puzzles/registry';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
 interface Props {
   isOpen: boolean;
@@ -123,16 +123,12 @@ export default function CompletionModal({
           <DialogTitle className="text-center text-2xl text-[#2f241a] dark:text-gray-100">
             {copy.completionModal.title}
           </DialogTitle>
-          <DialogDescription className="text-center text-base text-muted-foreground">
-            {copy.completionModal.subtitle}
-          </DialogDescription>
         </DialogHeader>
 
         <div className="py-2 text-center">
           <p className="mb-1 text-5xl font-mono font-bold tracking-tight text-[#2f241a] dark:text-gray-100 sm:text-6xl">
             {minutes}:{seconds < 10 ? '0' : ''}{seconds}
           </p>
-          <p className="text-sm text-muted-foreground dark:text-gray-400">{copy.completionModal.elapsedLabel}</p>
         </div>
 
         {/* 复制按钮 */}
