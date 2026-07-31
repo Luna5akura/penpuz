@@ -1116,8 +1116,56 @@ function NotesPage() {
     syncNotePageUrl(selectedPost.id, 'replace');
   }, [mode, selectedPost]);
 
+  const renderNoteDirectory = (variant: 'mobile' | 'desktop') => (
+    <div
+      className={
+        variant === 'mobile'
+          ? 'flex w-full max-w-full gap-2 overflow-x-auto pb-1'
+          : 'divide-y'
+      }
+    >
+      {notePosts.map((post) => {
+        const active = post.id === selectedPost?.id;
+
+        return (
+          <button
+            key={post.id}
+            type="button"
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              variant === 'mobile'
+                ? 'block max-w-44 shrink-0 rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted'
+                : 'block w-full px-4 py-3 text-left transition-colors hover:bg-muted',
+              active ? 'border-border bg-muted' : 'border-transparent'
+            )}
+            onClick={() => {
+              setMode('read');
+              setSelectedPostId(post.id);
+              syncNotePageUrl(post.id, 'push');
+            }}
+          >
+            <div className={cn(
+              'truncate font-semibold text-foreground',
+              variant === 'mobile' ? 'text-sm' : 'text-base'
+            )}>
+              {post.title[locale]}
+            </div>
+            {variant === 'desktop' ? (
+              <div className="mt-1 text-sm leading-5 text-muted-foreground">{post.summary[locale]}</div>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
-    <main className="space-y-4">
+    <main
+      className={cn(
+        'min-w-0 max-w-full space-y-4 overflow-x-hidden',
+        mode === 'read' && selectedPost ? 'pb-20 lg:pb-0' : ''
+      )}
+    >
       <section className="border bg-card px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -1143,33 +1191,18 @@ function NotesPage() {
       </section>
 
       {mode === 'read' && selectedPost && (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-50 border-t bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-6px_18px_rgba(63,42,30,0.12)] backdrop-blur lg:hidden"
+          aria-label={labels.title}
+        >
+          {renderNoteDirectory('mobile')}
+        </nav>
+      )}
+
+      {mode === 'read' && selectedPost && (
         <section className="grid min-w-0 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
-          <aside className="sticky top-0 z-20 -mx-4 border-y bg-card/95 shadow-sm backdrop-blur sm:mx-0 sm:border lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:shadow-none">
-            <div className="flex gap-2 overflow-x-auto px-4 py-2 sm:px-3 lg:block lg:divide-y lg:overflow-visible lg:p-0">
-              {notePosts.map((post) => (
-                <button
-                  key={post.id}
-                  type="button"
-                  aria-current={post.id === selectedPost.id ? 'page' : undefined}
-                  className={cn(
-                    'block shrink-0 rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted lg:w-full lg:rounded-none lg:border-0 lg:px-4 lg:py-3',
-                    post.id === selectedPost.id ? 'border-border bg-muted' : 'border-transparent'
-                  )}
-                  onClick={() => {
-                    setMode('read');
-                    setSelectedPostId(post.id);
-                    syncNotePageUrl(post.id, 'push');
-                  }}
-                >
-                  <div className="max-w-44 truncate text-sm font-semibold text-foreground lg:max-w-none lg:text-base">
-                    {post.title[locale]}
-                  </div>
-                  <div className="mt-1 hidden text-sm leading-5 text-muted-foreground lg:block">
-                    {post.summary[locale]}
-                  </div>
-                </button>
-              ))}
-            </div>
+          <aside className="hidden border bg-card lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+            {renderNoteDirectory('desktop')}
           </aside>
           {renderPost(
             selectedPost,

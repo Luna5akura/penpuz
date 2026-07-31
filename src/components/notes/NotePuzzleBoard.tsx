@@ -831,9 +831,9 @@ export default function NotePuzzleBoard({
   };
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="max-w-full overflow-x-auto">
-        <div className="relative select-none" style={frameStyle} aria-label={ariaLabel}>
+    <div className="flex min-w-0 max-w-full flex-col items-center gap-2">
+      <div className="w-full max-w-full overflow-x-auto">
+        <div className="relative mx-auto select-none" style={frameStyle} aria-label={ariaLabel}>
           <div
             className="absolute grid"
             style={{
