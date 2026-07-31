@@ -358,6 +358,14 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?domino-search/8/8/33422546266h26124g11350531h02054600g26130h1361053325144554406',
     difficulty: '简单',
   },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lakes/8/8/3j3k2k3j3k3k2j33j1k3k3j3g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?slither/8/8/77c222772c222272727722c27c7c2c7227277c',
+    difficulty: '困难',
+  },
 
 
 

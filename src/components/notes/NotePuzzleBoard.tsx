@@ -10,7 +10,7 @@ import {
   getOutlinedBorderStrokeWidth,
   getRoomBoundaryStrokeWidth,
   woodBoardTheme,
-  type BoardCellTone,
+type BoardCellTone,
 } from '@/puzzles/boardTheme';
 import { countPlacedDominoPairs, getDominoPairKey } from '@/puzzles/DominoSearch/utils';
 import { getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
@@ -34,6 +34,8 @@ interface CellView {
   locked?: boolean;
   fontRatio?: number;
 }
+
+type SlitherCellMark = 'circle' | 'cross';
 
 const DEFAULT_CELL_SIZE = 38;
 const BOARD_PADDING = commonBoardChrome.padding;
@@ -97,6 +99,55 @@ function getFirstRecordLevel(snapshot: unknown, itemKey: string, keys: string[])
     if (level > 0) return level;
   }
   return 0;
+}
+
+function getSlitherCellMark(snapshot: unknown, row: number, col: number): SlitherCellMark | null {
+  const record = asRecord(snapshot)?.cellMarks;
+  if (!record) return null;
+
+  const value = record[`${row},${col}`] ?? record[getLocalCellKey(row, col)];
+  return value === 'circle' || value === 'cross' ? value : null;
+}
+
+function SlitherCellMark({
+  mark,
+  cellSize,
+  color,
+}: {
+  mark: SlitherCellMark;
+  cellSize: number;
+  color: string;
+}) {
+  const center = cellSize / 2;
+  const radius = Math.max(7, cellSize * 0.23);
+  const crossSize = Math.max(7, cellSize * 0.19);
+  const strokeWidth = Math.max(2, Math.floor(cellSize * 0.055));
+
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0"
+      width={cellSize}
+      height={cellSize}
+      viewBox={`0 0 ${cellSize} ${cellSize}`}
+      aria-hidden="true"
+    >
+      {mark === 'circle' ? (
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          stroke={color}
+          strokeWidth={strokeWidth}
+        />
+      ) : (
+        <g stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
+          <line x1={center - crossSize} y1={center - crossSize} x2={center + crossSize} y2={center + crossSize} />
+          <line x1={center - crossSize} y1={center + crossSize} x2={center + crossSize} y2={center - crossSize} />
+        </g>
+      )}
+    </svg>
+  );
 }
 
 function getCellTrialLevel(snapshot: unknown, row: number, col: number) {
@@ -796,6 +847,8 @@ export default function NotePuzzleBoard({
                 const snapshotView = getSnapshotCellView(puzzleType, snapshot, row, col);
                 const legacyView = snapshotView ? null : getLegacyMarkView(markMap.get(getLocalCellKey(row, col)));
                 const view = mergeCellViews(base, snapshotView ?? legacyView);
+                const slitherMark = isSlither ? getSlitherCellMark(snapshot, row, col) : null;
+                const slitherMarkKey = `${row},${col}`;
                 const trialStyle = getSnapshotCellTrialStyle(
                   puzzleType,
                   snapshot,
@@ -820,7 +873,20 @@ export default function NotePuzzleBoard({
                     className="relative flex items-center justify-center font-semibold tabular-nums"
                     style={cellStyle}
                   >
-                    {view.content}
+                    {slitherMark ? (
+                      <SlitherCellMark
+                        mark={slitherMark}
+                        cellSize={cellSize}
+                        color={getSnapshotTrialColor(
+                          snapshot,
+                          slitherMarkKey,
+                          ['cellMarkLevels'],
+                          'text',
+                          woodBoardTheme.border
+                        )}
+                      />
+                    ) : null}
+                    <span className="relative z-10">{view.content}</span>
                   </div>
                 );
               })

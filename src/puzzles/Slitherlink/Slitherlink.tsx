@@ -15,7 +15,7 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
-import { getGridLineEdgeKey, parseGridLineEdgeKey } from '../gridUtils';
+import { getCellKey, getGridLineEdgeKey, parseGridLineEdgeKey } from '../gridUtils';
 import { validateSlitherlink } from './utils';
 
 interface Props {
@@ -34,6 +34,8 @@ interface SlitherlinkSnapshot {
   crossedEdges: string[];
   lineLevels: Record<string, number>;
   crossedLevels: Record<string, number>;
+  cellMarks: Record<string, SlitherlinkCellMark>;
+  cellMarkLevels: Record<string, number>;
 }
 
 const BOARD_PADDING = commonBoardChrome.padding;
@@ -42,6 +44,15 @@ const BOARD_BORDER = commonBoardChrome.border;
 type EdgeDragAction = 'line' | 'cross';
 type EdgeDragMode = 'add-line' | 'remove-line' | 'add-cross' | 'remove-cross';
 type VertexCoord = { row: number; col: number };
+type SlitherlinkCellMark = 'circle' | 'cross';
+
+function sanitizeCellMarkRecord(candidate: unknown): Record<string, SlitherlinkCellMark> {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return {};
+
+  return Object.fromEntries(
+    Object.entries(candidate).filter(([, value]) => value === 'circle' || value === 'cross')
+  );
+}
 
 function normalizeSlitherlinkSnapshot(snapshot: unknown): SlitherlinkSnapshot {
   const source = snapshot as Partial<SlitherlinkSnapshot> | null | undefined;
@@ -50,6 +61,8 @@ function normalizeSlitherlinkSnapshot(snapshot: unknown): SlitherlinkSnapshot {
     crossedEdges: sanitizeStringArray(source?.crossedEdges),
     lineLevels: sanitizeNumberRecord(source?.lineLevels),
     crossedLevels: sanitizeNumberRecord(source?.crossedLevels),
+    cellMarks: sanitizeCellMarkRecord(source?.cellMarks),
+    cellMarkLevels: sanitizeNumberRecord(source?.cellMarkLevels),
   };
 }
 
@@ -91,8 +104,46 @@ function getEdgeLinePoints(key: string, cellSize: number) {
   };
 }
 
+function renderCellCenterMark(
+  mark: SlitherlinkCellMark,
+  row: number,
+  col: number,
+  cellSize: number,
+  color: string
+) {
+  const centerX = BOARD_PADDING + (col + 0.5) * cellSize;
+  const centerY = BOARD_PADDING + (row + 0.5) * cellSize;
+  const radius = Math.max(9, cellSize * 0.3);
+  const crossSize = Math.max(9, cellSize * 0.26);
+  const strokeWidth = Math.max(2.4, cellSize * 0.065);
+
+  if (mark === 'circle') {
+    return (
+      <circle
+        cx={centerX}
+        cy={centerY}
+        r={radius}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+      />
+    );
+  }
+
+  return (
+    <g stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
+      <line x1={centerX - crossSize} y1={centerY - crossSize} x2={centerX + crossSize} y2={centerY + crossSize} />
+      <line x1={centerX - crossSize} y1={centerY + crossSize} x2={centerX + crossSize} y2={centerY - crossSize} />
+    </g>
+  );
+}
+
 function getVertexHitRadius(cellSize: number) {
   return Math.max(14, Math.floor(cellSize * 0.3));
+}
+
+function getCellCenterHitRadius(cellSize: number) {
+  return Math.max(10, Math.floor(cellSize * 0.28));
 }
 
 function getBoardPointerPoint(clientX: number, clientY: number, rect: DOMRect) {
@@ -122,6 +173,20 @@ function detectVertexAtPoint(x: number, y: number, width: number, height: number
   return { row, col };
 }
 
+function detectCellCenterAtPoint(x: number, y: number, width: number, height: number, cellSize: number) {
+  if (x < 0 || x > width * cellSize || y < 0 || y > height * cellSize) return null;
+
+  const col = Math.floor(x / cellSize);
+  const row = Math.floor(y / cellSize);
+  if (row < 0 || row >= height || col < 0 || col >= width) return null;
+
+  const centerX = (col + 0.5) * cellSize;
+  const centerY = (row + 0.5) * cellSize;
+  if (Math.hypot(x - centerX, y - centerY) > getCellCenterHitRadius(cellSize)) return null;
+
+  return { row, col };
+}
+
 function detectVertexTarget(
   clientX: number,
   clientY: number,
@@ -132,6 +197,18 @@ function detectVertexTarget(
 ) {
   const point = getBoardPointerPoint(clientX, clientY, rect);
   return detectVertexAtPoint(point.x, point.y, width, height, cellSize);
+}
+
+function detectCellCenterTarget(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+  width: number,
+  height: number,
+  cellSize: number
+) {
+  const point = getBoardPointerPoint(clientX, clientY, rect);
+  return detectCellCenterAtPoint(point.x, point.y, width, height, cellSize);
 }
 
 function detectDraggedVertexTarget(
@@ -234,6 +311,8 @@ export default function SlitherlinkBoard({
     crossedEdges: [],
     lineLevels: {},
     crossedLevels: {},
+    cellMarks: {},
+    cellMarkLevels: {},
   }), []);
   const getResetSnapshot = useCallback(() => normalizeSlitherlinkSnapshot(initialSnapshot), [initialSnapshot]);
 
@@ -242,6 +321,7 @@ export default function SlitherlinkBoard({
       ...normalizeSlitherlinkSnapshot(trialSnapshot),
       lineLevels: {},
       crossedLevels: {},
+      cellMarkLevels: {},
     }),
     onSnapshotChange,
   });
@@ -346,8 +426,35 @@ export default function SlitherlinkBoard({
         crossedEdges: Array.from(nextCrossedSet).sort(),
         lineLevels: nextLineLevels,
         crossedLevels: nextCrossedLevels,
+        cellMarks: current.cellMarks,
+        cellMarkLevels: current.cellMarkLevels,
       };
     }, { coalesce: true });
+  }, [applyChange, currentTrialLevel, trialActive]);
+
+  const toggleCellCenterMark = useCallback((row: number, col: number, mark: SlitherlinkCellMark) => {
+    applyChange((currentSnapshot) => {
+      const current = normalizeSlitherlinkSnapshot(currentSnapshot);
+      const key = getCellKey(row, col);
+      const nextMarks = { ...current.cellMarks };
+      const nextMarkLevels = { ...current.cellMarkLevels };
+      const currentMark = nextMarks[key];
+      const level = trialActive ? currentTrialLevel : 0;
+
+      if (currentMark === mark) {
+        delete nextMarks[key];
+        delete nextMarkLevels[key];
+      } else {
+        nextMarks[key] = mark;
+        nextMarkLevels[key] = level;
+      }
+
+      return {
+        ...current,
+        cellMarks: nextMarks,
+        cellMarkLevels: nextMarkLevels,
+      };
+    });
   }, [applyChange, currentTrialLevel, trialActive]);
 
   const applyEdgeDuringDrag = useCallback((key: string) => {
@@ -401,12 +508,19 @@ export default function SlitherlinkBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return;
 
-    const vertex = detectVertexTarget(event.clientX, event.clientY, rect, width, height, cellSize);
-    if (!vertex) return;
-
     const isTouchPointer =
       event.pointerType === 'touch' || (event.button === 0 && viewportWidth < commonBoardChrome.mobileBreakpoint);
     if (!isTouchPointer && event.button !== 0 && event.button !== 2) return;
+
+    const vertex = detectVertexTarget(event.clientX, event.clientY, rect, width, height, cellSize);
+    if (!vertex) {
+      const cell = detectCellCenterTarget(event.clientX, event.clientY, rect, width, height, cellSize);
+      if (!cell) return;
+
+      event.preventDefault();
+      toggleCellCenterMark(cell.row, cell.col, !isTouchPointer && event.button === 2 ? 'cross' : 'circle');
+      return;
+    }
 
     event.preventDefault();
     safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
@@ -505,6 +619,10 @@ export default function SlitherlinkBoard({
           {Array.from({ length: height }, (_, row) =>
             Array.from({ length: width }, (_, col) => {
               const clue = clues[row][col];
+              const cellKey = getCellKey(row, col);
+              const cellMark = normalizedSnapshot.cellMarks[cellKey];
+              const cellMarkColors = getTrialLevelColors(normalizedSnapshot.cellMarkLevels[cellKey] ?? 0);
+
               return (
                 <g key={`cell-${row}-${col}`}>
                   <rect
@@ -516,6 +634,9 @@ export default function SlitherlinkBoard({
                     stroke={woodBoardTheme.gridLine}
                     strokeWidth={1}
                   />
+                  {cellMark
+                    ? renderCellCenterMark(cellMark, row, col, cellSize, cellMarkColors?.text ?? woodBoardTheme.border)
+                    : null}
                   {clue !== null ? (
                     <text
                       x={BOARD_PADDING + (col + 0.5) * cellSize}
