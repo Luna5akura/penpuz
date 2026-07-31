@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { NoteReplayCellMark } from '@/notes/types';
 import {
   commonBoardChrome,
@@ -176,7 +176,7 @@ function isNumberValue(value: unknown): value is number {
 }
 
 function renderMintonetteClue(value: number | null, cellSize: number) {
-  const diameter = Math.max(24, Math.floor(cellSize * 0.68));
+  const diameter = Math.max(12, Math.floor(cellSize * 0.68));
 
   return (
     <span
@@ -195,7 +195,7 @@ function renderMintonetteClue(value: number | null, cellSize: number) {
 }
 
 function renderKurarinClue(color: 'black' | 'white' | 'gray', cellSize: number) {
-  const diameter = Math.max(20, Math.floor(cellSize * 0.58));
+  const diameter = Math.max(10, Math.floor(cellSize * 0.58));
   const fill = color === 'black' ? woodBoardTheme.shaded : color === 'gray' ? woodBoardTheme.marked : woodBoardTheme.whiteCell;
 
   return (
@@ -778,9 +778,43 @@ export default function NotePuzzleBoard({
   height,
   snapshot,
   marks = [],
-  cellSize = DEFAULT_CELL_SIZE,
+  cellSize: requestedCellSize = DEFAULT_CELL_SIZE,
   ariaLabel,
 }: NotePuzzleBoardProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return undefined;
+
+    const updateAvailableWidth = () => {
+      const nextWidth = element.getBoundingClientRect().width;
+      setAvailableWidth(Number.isFinite(nextWidth) && nextWidth > 0 ? nextWidth : null);
+    };
+
+    updateAvailableWidth();
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(updateAvailableWidth);
+      observer.observe(element);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', updateAvailableWidth);
+    return () => window.removeEventListener('resize', updateAvailableWidth);
+  }, []);
+
+  const cellSize = useMemo(() => {
+    if (!availableWidth || width <= 0) return requestedCellSize;
+
+    const chromeWidth = (BOARD_PADDING + BOARD_BORDER) * 2;
+    const fittedCellSize = (availableWidth - chromeWidth) / width;
+
+    if (!Number.isFinite(fittedCellSize) || fittedCellSize <= 0) return requestedCellSize;
+    return Math.min(requestedCellSize, fittedCellSize);
+  }, [availableWidth, requestedCellSize, width]);
+
   const activePuzzle = puzzle?.type === puzzleType && puzzle.width === width && puzzle.height === height ? puzzle : undefined;
   const markMap = makePositionMap(marks);
   const regionIds = getRegionIds(activePuzzle);
@@ -824,15 +858,19 @@ export default function NotePuzzleBoard({
   const gridCrossKeys = isSlither ? crossedEdges : [];
   const boardWidth = width * cellSize;
   const boardHeight = height * cellSize;
+  const frameWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const frameHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const frameStyle: CSSProperties = {
-    width: `${boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2}px`,
-    height: `${boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2}px`,
     ...getBoardFrameStyle(BOARD_BORDER),
+    width: `${frameWidth}px`,
+    minWidth: `${frameWidth}px`,
+    maxWidth: 'none',
+    height: `${frameHeight}px`,
   };
 
   return (
-    <div className="flex min-w-0 max-w-full flex-col items-center gap-2">
-      <div className="w-full max-w-full overflow-x-auto">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-2">
+      <div className="w-full max-w-full overflow-hidden">
         <div className="relative mx-auto select-none" style={frameStyle} aria-label={ariaLabel}>
           <div
             className="absolute grid"
