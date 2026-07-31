@@ -4,11 +4,12 @@ import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
 import type { HeyawakePuzzleData } from '../types';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
@@ -367,7 +368,7 @@ export default function HeyawakeBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const clueFontSize = getBoardNumberFontSize(cellSize);
+  const clueTextStyle = getBoardTextStyle(cellSize);
   const crossFontSize = getBoardCrossFontSize(cellSize);
   const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
@@ -436,10 +437,9 @@ export default function HeyawakeBoard({
                 >
                   {clueValue !== undefined ? (
                     <span
-                      className="font-semibold tabular-nums"
+                      className={boardClassNames.cellText}
                       style={{
-                        fontSize: `${clueFontSize}px`,
-                        lineHeight: 1,
+                        ...clueTextStyle,
                         color: isShaded ? woodBoardTheme.shadedText : trialColors?.text ?? woodBoardTheme.border,
                       }}
                     >

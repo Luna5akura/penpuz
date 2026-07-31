@@ -9,11 +9,13 @@ import {
   readSavedProgress,
   useDailyPuzzleSession,
 } from './hooks/useDailyPuzzleSession';
-import { renderPuzzleBoard } from './puzzles/registry';
+import { parsePuzzleLink, renderPuzzleBoard } from './puzzles/registry';
 import { Button } from './components/ui/button';
 // import { Card } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { useI18n } from './i18n/useI18n';
+import { setDocumentMetadata } from './lib/documentMetadata';
+import { getPuzzleMetadata } from './puzzles/puzzleMetadata';
 import { puzzleDifficultyLabels } from './puzzles/types';
 import { formatMinutesSeconds } from './lib/formatDuration';
 import { Card } from './components/ui/card';
@@ -57,6 +59,15 @@ function pushAppPageUrl(page: ActivePage, currentDateStr?: string, todayDateStr?
   if (nextUrl !== window.location.href) {
     window.history.pushState(null, '', nextUrl);
   }
+}
+
+function readPuzzleLinkFromUrl() {
+  if (typeof window === 'undefined') return null;
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('date') || params.has('note') || params.get('page') === 'notes') return null;
+
+  return parsePuzzleLink(window.location.href);
 }
 
 function App() {
@@ -248,6 +259,34 @@ function App() {
     window.addEventListener('popstate', syncPageFromUrl);
     return () => window.removeEventListener('popstate', syncPageFromUrl);
   }, []);
+
+  useEffect(() => {
+    if (!daily || activePage !== 'puzzle') return;
+
+    const linkedPuzzle = readPuzzleLinkFromUrl();
+    const puzzle = linkedPuzzle ?? daily.puzzle;
+    const metadata = getPuzzleMetadata(puzzle, locale);
+
+    if (linkedPuzzle) {
+      setDocumentMetadata({
+        title: `${metadata.title} | ${copy.app.siteTitle}`,
+        description: locale === 'zh-CN'
+          ? `在线查看和游玩这道 ${metadata.description}`
+          : `View and solve this ${metadata.description}`,
+        url: window.location.href,
+      });
+      return;
+    }
+
+    const difficultyText = puzzleDifficultyLabels[daily.difficulty][locale];
+    setDocumentMetadata({
+      title: `${daily.dateStr} ${metadata.title} | ${copy.app.siteTitle}`,
+      description: locale === 'zh-CN'
+        ? `${daily.dateStr} 第 ${daily.index + 1} 题，难度 ${difficultyText}。${metadata.description}`
+        : `${daily.dateStr} puzzle ${daily.index + 1}, ${difficultyText}. ${metadata.description}`,
+      url: window.location.href,
+    });
+  }, [activePage, copy.app.siteTitle, daily, locale]);
 
   if (!daily) return <div className="text-center py-12">{copy.app.loadingDailyPuzzle}</div>;
 

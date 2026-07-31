@@ -8,10 +8,11 @@ import { getTrialLevelColors } from '../trialStyles';
 import type { CellCoord } from '../gridUtils';
 import { getCellKey } from '../gridUtils';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getResponsiveCellSize,
   woodBoardTheme,
@@ -247,8 +248,6 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const numberFontSize = getBoardNumberFontSize(cellSize);
-
   return (
     <div className="flex flex-col items-center gap-3">
       <div
@@ -289,7 +288,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 <div
                   key={key}
                   onPointerDown={(event) => handleCellPointerDown(row, col, event)}
-                  className="relative flex items-center justify-center touch-none font-semibold tabular-nums"
+                  className={boardClassNames.touchCellContent}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
@@ -298,8 +297,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                     ...(editable ? trialStyle : undefined),
                     color: blocked ? woodBoardTheme.shadedText : trialColors?.text ?? woodBoardTheme.border,
                     cursor: editable ? 'pointer' : 'default',
-                    fontSize: `${numberFontSize}px`,
-                    lineHeight: 1,
+                    ...getBoardTextStyle(cellSize),
                     outline: selected ? `3px solid ${woodBoardTheme.accentBorder}` : undefined,
                     outlineOffset: selected ? '-4px' : undefined,
                   }}

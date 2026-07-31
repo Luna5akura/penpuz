@@ -4,13 +4,16 @@ import type { YajilinPuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { ClueArrow } from './ClueArrow';
-import { getClueNumberFontSize, MOBILE_CLUE_REFERENCE_SIZE } from './clueSizing';
 import {
+  boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardFixedTextStyle,
   getBoardFrameStyle,
   getCrossMarkStyle,
+  getDirectionalClueNumberFontSize,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
@@ -192,13 +195,13 @@ export default function YajilinBoard({
     });
   }, [fixedCellSize, viewportWidth, width]);
 
-  const clueNumberFontSize = useMemo(() => getClueNumberFontSize(cellSize), [cellSize]);
+  const clueNumberFontSize = useMemo(() => getDirectionalClueNumberFontSize(cellSize), [cellSize]);
   const verticalClueNumberTop = useMemo(() => {
-    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.5);
+    if (cellSize >= boardLayoutMetrics.directionalClueReferenceSize) return Math.floor(cellSize * 0.5);
     return Math.max(15, Math.floor(cellSize * 0.5));
   }, [cellSize]);
   const horizontalClueNumberTop = useMemo(() => {
-    if (cellSize >= MOBILE_CLUE_REFERENCE_SIZE) return Math.floor(cellSize * 0.52);
+    if (cellSize >= boardLayoutMetrics.directionalClueReferenceSize) return Math.floor(cellSize * 0.52);
     return Math.max(16, Math.floor(cellSize * 0.52));
   }, [cellSize]);
 
@@ -697,7 +700,7 @@ export default function YajilinBoard({
               return (
                 <div
                   key={`${r}-${c}`}
-                  className="relative flex items-center justify-center font-semibold tabular-nums tracking-tight dark:text-gray-100"
+                  className={`relative flex items-center justify-center dark:text-gray-100 ${boardClassNames.cellTextTight}`}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
@@ -715,7 +718,7 @@ export default function YajilinBoard({
                     <div className="relative w-full h-full">
                       <ClueArrow direction={clue.direction} cellSize={cellSize} />
                       <span
-                        className="absolute leading-none font-semibold tabular-nums"
+                        className={`absolute ${boardClassNames.cellText}`}
                         style={{
                           left: clue.direction === 'up' || clue.direction === 'down' ? `${Math.floor(cellSize * 0.5)}px` : '50%',
                           top:
@@ -723,8 +726,7 @@ export default function YajilinBoard({
                               ? `${horizontalClueNumberTop}px`
                               : `${verticalClueNumberTop}px`,
                           transform: 'translate(-50%, -50%)',
-                          fontSize: `${clueNumberFontSize}px`,
-                          lineHeight: 1,
+                          ...getBoardFixedTextStyle(clueNumberFontSize),
                         }}
                       >
                         {clue.value}

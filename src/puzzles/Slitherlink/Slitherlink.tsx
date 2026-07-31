@@ -7,8 +7,10 @@ import { getTrialLevelColors } from '../trialStyles';
 import type { SlitherlinkPuzzleData } from '../types';
 import {
   commonBoardChrome,
+  getBoardCenterMarkMetrics,
+  getBoardDotRadius,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardSvgTextProps,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
@@ -113,9 +115,7 @@ function renderCellCenterMark(
 ) {
   const centerX = BOARD_PADDING + (col + 0.5) * cellSize;
   const centerY = BOARD_PADDING + (row + 0.5) * cellSize;
-  const radius = Math.max(9, cellSize * 0.3);
-  const crossSize = Math.max(9, cellSize * 0.26);
-  const strokeWidth = Math.max(2.4, cellSize * 0.065);
+  const { radius, crossSize, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
 
   if (mark === 'circle') {
     return (
@@ -592,7 +592,7 @@ export default function SlitherlinkBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const clueFontSize = getBoardNumberFontSize(cellSize);
+  const clueTextProps = getBoardSvgTextProps(cellSize);
   const lineStroke = getLoopLineStrokeWidth(cellSize);
   const crossSize = getLoopCrossSize(cellSize, 0.12, 5);
   const svgWidth = outerWidth - BOARD_BORDER * 2;
@@ -644,8 +644,7 @@ export default function SlitherlinkBoard({
                       dominantBaseline="central"
                       textAnchor="middle"
                       fill={woodBoardTheme.border}
-                      fontSize={clueFontSize}
-                      fontWeight={700}
+                      {...clueTextProps}
                     >
                       {clue}
                     </text>
@@ -661,7 +660,7 @@ export default function SlitherlinkBoard({
                 key={`dot-${row}-${col}`}
                 cx={BOARD_PADDING + col * cellSize}
                 cy={BOARD_PADDING + row * cellSize}
-                r={Math.max(2.4, cellSize * 0.055)}
+                r={getBoardDotRadius(cellSize)}
                 fill={woodBoardTheme.border}
               />
             ))

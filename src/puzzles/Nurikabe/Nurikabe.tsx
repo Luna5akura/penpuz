@@ -6,11 +6,12 @@ import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getResponsiveCellSize,
@@ -306,8 +307,7 @@ export default function NurikabeBoard({
                 style={{
                   width: `${cellSize}px`,
                   height: `${cellSize}px`,
-                  fontSize: `${getBoardNumberFontSize(cellSize)}px`,
-                  lineHeight: 1,
+                  ...getBoardTextStyle(cellSize),
                   ...(clue
                     ? {
                         ...getBoardCellColors('clue'),
@@ -317,7 +317,7 @@ export default function NurikabeBoard({
                   ...getCellDividerStyle(),
                   ...style,
                 }}
-                className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0 cursor-pointer touch-none"
+                className={`flex items-center justify-center border-0 cursor-pointer touch-none ${boardClassNames.cellTextTight}`}
               >
                 {clue ? clue.value : isMarked ? (
                   <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>

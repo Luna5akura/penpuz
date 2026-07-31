@@ -4,10 +4,11 @@ import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { AqrePuzzleData } from '../../puzzles/types';
 import AqreBoard from '../../puzzles/Aqre/Aqre';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getOutlinedBorderStrokeWidth,
   woodBoardTheme,
@@ -135,14 +136,13 @@ export default function AqreExample({
                     return (
                       <div
                         key={`${rowIndex}-${colIndex}`}
-                        className="flex items-center justify-center font-semibold tabular-nums"
+                        className={boardClassNames.cellContent}
                         style={{
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
                           ...getBoardCellColors(isBlack ? 'playerShaded' : 'cell'),
                           ...getCellDividerStyle(),
-                          fontSize: `${getBoardNumberFontSize(CELL_SIZE)}px`,
-                          lineHeight: 1,
+                          ...getBoardTextStyle(CELL_SIZE),
                         }}
                       >
                         {clueValue ?? ''}

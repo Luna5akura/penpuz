@@ -4,11 +4,12 @@ import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
 import type { AkariPuzzleData } from '../types';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
@@ -409,7 +410,7 @@ export default function AkariBoard({
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const bulbDiameter = Math.max(20, Math.floor(cellSize * 0.8));
   const crossFontSize = getBoardCrossFontSize(cellSize);
-  const clueFontSize = getBoardNumberFontSize(cellSize);
+  const clueTextStyle = getBoardTextStyle(cellSize);
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -485,8 +486,8 @@ export default function AkariBoard({
                 >
                   {typeof puzzleCell === 'number' ? (
                     <span
-                      className="font-semibold tabular-nums"
-                      style={{ fontSize: `${clueFontSize}px`, lineHeight: 1 }}
+                      className={boardClassNames.cellText}
+                      style={clueTextStyle}
                     >
                       {puzzleCell}
                     </span>

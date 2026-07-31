@@ -6,10 +6,11 @@ import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import type { DominoSearchPuzzleData } from '../types';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
@@ -325,7 +326,6 @@ export default function DominoSearchBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const numberFontSize = getBoardNumberFontSize(cellSize);
   const dominoBorderStroke = getRoomBoundaryStrokeWidth();
   const crossSize = getLoopCrossSize(cellSize, 0.12, 5);
   const crossStroke = getLoopCrossStrokeWidth();
@@ -361,7 +361,7 @@ export default function DominoSearchBoard({
               return (
                 <div
                   key={key}
-                  className="relative flex items-center justify-center touch-none font-semibold tabular-nums"
+                  className={boardClassNames.touchCellContent}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
@@ -369,8 +369,7 @@ export default function DominoSearchBoard({
                     ...getCellDividerStyle(),
                     color: isBlocked ? woodBoardTheme.shadedText : woodBoardTheme.border,
                     cursor: isBlocked ? 'default' : 'pointer',
-                    fontSize: `${numberFontSize}px`,
-                    lineHeight: 1,
+                    ...getBoardTextStyle(cellSize),
                     outline: isSelected && !isBlocked ? `3px solid ${woodBoardTheme.accentBorder}` : undefined,
                     outlineOffset: isSelected && !isBlocked ? '-4px' : undefined,
                   }}

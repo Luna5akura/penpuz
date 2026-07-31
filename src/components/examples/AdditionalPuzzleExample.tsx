@@ -1,10 +1,15 @@
 import type { ReactNode } from 'react';
 import type { PuzzleExample } from '@/puzzles/types';
 import {
+  boardClassNames,
   commonBoardChrome,
+  getBoardDotRadius,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardSvgTextProps,
+  getBoardTextStyle,
   getCellDividerStyle,
+  getLoopCrossSize,
+  getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
   getOutlinedBorderStrokeWidth,
   getRoomBoundaryStrokeWidth,
@@ -86,14 +91,13 @@ function CellGrid({
         Array.from({ length: width }, (_, col) => (
           <div
             key={`${row}-${col}`}
-            className="relative flex items-center justify-center font-semibold tabular-nums"
+            className={boardClassNames.cellContent}
             style={{
               width: `${CELL_SIZE}px`,
               height: `${CELL_SIZE}px`,
               background: woodBoardTheme.cell,
               color: woodBoardTheme.border,
-              fontSize: `${getBoardNumberFontSize(CELL_SIZE)}px`,
-              lineHeight: 1,
+              ...getBoardTextStyle(CELL_SIZE),
               ...getCellDividerStyle(),
             }}
           >
@@ -205,7 +209,7 @@ function ShadedBoard({
           const isShaded = shaded?.[row]?.[col] === 1;
           return (
             <div
-              className="absolute inset-0 flex items-center justify-center font-semibold tabular-nums"
+              className={`absolute inset-0 flex items-center justify-center ${boardClassNames.cellText}`}
               style={{
                 background: clue !== undefined
                   ? woodBoardTheme.clueCell
@@ -229,6 +233,8 @@ function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleEx
   const lineSet = new Set(answer ? example.loopEdges : []);
   const crossSet = new Set(answer ? example.crossedEdges ?? [] : []);
   const stroke = getLoopLineStrokeWidth(CELL_SIZE);
+  const clueTextProps = getBoardSvgTextProps(CELL_SIZE);
+  const crossSize = getLoopCrossSize(CELL_SIZE, 0.12, 4);
 
   return (
     <BoardFrame width={example.width} height={example.height}>
@@ -255,8 +261,7 @@ function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleEx
                   dominantBaseline="central"
                   textAnchor="middle"
                   fill={woodBoardTheme.border}
-                  fontSize={getBoardNumberFontSize(CELL_SIZE)}
-                  fontWeight={700}
+                  {...clueTextProps}
                 >
                   {example.clues[row][col]}
                 </text>
@@ -270,7 +275,7 @@ function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleEx
               key={`dot-${row}-${col}`}
               cx={BOARD_PADDING + col * CELL_SIZE}
               cy={BOARD_PADDING + row * CELL_SIZE}
-              r={2.5}
+              r={getBoardDotRadius(CELL_SIZE)}
               fill={woodBoardTheme.border}
             />
           ))
@@ -298,9 +303,9 @@ function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleEx
           const x = BOARD_PADDING + (edge.col + (edge.orientation === 'h' ? 0.5 : 0)) * CELL_SIZE;
           const y = BOARD_PADDING + (edge.row + (edge.orientation === 'h' ? 0 : 0.5)) * CELL_SIZE;
           return (
-            <g key={`x-${key}`} stroke={woodBoardTheme.border} strokeLinecap="round">
-              <line x1={x - 4} y1={y - 4} x2={x + 4} y2={y + 4} />
-              <line x1={x - 4} y1={y + 4} x2={x + 4} y2={y - 4} />
+            <g key={`x-${key}`} stroke={woodBoardTheme.border} strokeWidth={getLoopCrossStrokeWidth()} strokeLinecap="round">
+              <line x1={x - crossSize} y1={y - crossSize} x2={x + crossSize} y2={y + crossSize} />
+              <line x1={x - crossSize} y1={y + crossSize} x2={x + crossSize} y2={y - crossSize} />
             </g>
           );
         })}
@@ -373,12 +378,11 @@ function NumberGridBoard({
 
           return (
             <div
-              className="absolute inset-0 flex items-center justify-center font-semibold tabular-nums"
+              className={`absolute inset-0 flex items-center justify-center ${boardClassNames.cellText}`}
               style={{
                 background: isBlock ? woodBoardTheme.shaded : typeof cell === 'number' ? woodBoardTheme.prefilledCell : woodBoardTheme.cell,
                 color: isBlock ? woodBoardTheme.shadedText : woodBoardTheme.border,
-                fontSize: clue ? '13px' : `${getBoardNumberFontSize(CELL_SIZE)}px`,
-                lineHeight: 1,
+                ...getBoardTextStyle(CELL_SIZE, clue ? 0.31 : 0.68, clue ? 13 : 22),
               }}
             >
               {clue ? (

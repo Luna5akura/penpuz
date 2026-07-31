@@ -4,11 +4,13 @@ import type { KurarinPuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
   getBoardFrameStyle,
   getCrossMarkStyle,
+  getKurarinClueColors,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
@@ -565,25 +567,6 @@ export default function KurarinBoard({
     };
   }, [finishPointer, handlePointerMoveAt]);
 
-  const getClueStyle = (color: 'black' | 'white' | 'gray') => {
-    if (color === 'black') {
-      return {
-        fill: '#111827',
-        stroke: '#111827',
-      };
-    }
-    if (color === 'gray') {
-      return {
-        fill: '#9ca3af',
-        stroke: '#374151',
-      };
-    }
-    return {
-      fill: '#f9fafb',
-      stroke: '#111827',
-    };
-  };
-
   const boardWidthPx = width * cellSize + (width - 1) * BOARD_GAP + BOARD_PADDING * 2;
   const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
   return (
@@ -628,7 +611,7 @@ export default function KurarinBoard({
               return (
                 <div
                   key={`${r}-${c}`}
-                  className="relative flex items-center justify-center font-semibold tabular-nums tracking-tight dark:text-gray-100"
+                  className={`relative flex items-center justify-center dark:text-gray-100 ${boardClassNames.cellTextTight}`}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
@@ -697,7 +680,7 @@ export default function KurarinBoard({
           })}
 
           {clues.map((clue, index) => {
-            const clueStyle = getClueStyle(clue.color);
+            const clueStyle = getKurarinClueColors(clue.color);
             const x = BOARD_PADDING + (clue.col * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
             const y = BOARD_PADDING + (clue.row * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
             const clueRadius = Math.max(8, Math.floor(cellSize * 0.16));

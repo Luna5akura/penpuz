@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import NumberPlacementBoard from '../shared/NumberPlacementBoard';
+import { boardClassNames, getBoardTextStyle } from '../boardTheme';
 import type { SlovakSumsPuzzleData } from '../types';
 import { validateSlovakSums } from './utils';
 
@@ -44,10 +45,9 @@ export default function SlovakSumsBoard({
 
         return (
           <span
-            className="flex flex-col items-center justify-center font-semibold tabular-nums"
+            className={`flex flex-col items-center justify-center ${boardClassNames.cellText}`}
             style={{
-              fontSize: `${Math.max(11, Math.floor(cellSize * 0.28))}px`,
-              lineHeight: 1.05,
+              ...getBoardTextStyle(cellSize, 0.28, 11, 1.05),
             }}
           >
             <span>{clue.sum}</span>
@@ -62,4 +62,3 @@ export default function SlovakSumsBoard({
     />
   );
 }
-

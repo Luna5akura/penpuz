@@ -3,8 +3,15 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { KurarinClue, KurarinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import KurarinBoard from '../../puzzles/Kurarin/Kurarin';
-import { commonBoardChrome, getBoardCellColors, getBoardFrameStyle, woodBoardTheme } from '../../puzzles/boardTheme';
-import { getLoopCrossStrokeWidth, getLoopLineStrokeWidth } from '../../puzzles/boardTheme';
+import {
+  commonBoardChrome,
+  getBoardCellColors,
+  getBoardFrameStyle,
+  getKurarinClueColors,
+  getLoopCrossStrokeWidth,
+  getLoopLineStrokeWidth,
+  woodBoardTheme,
+} from '../../puzzles/boardTheme';
 import { createKurarinEdgeSet, parseKurarinEdgeKey } from '../../puzzles/Kurarin/utils';
 
 interface Props {
@@ -22,16 +29,6 @@ const CELL_SIZE = 44;
 const GAP = 1;
 const PADDING = commonBoardChrome.padding;
 const BORDER = commonBoardChrome.border;
-
-function getClueStyle(color: KurarinClue['color']) {
-  if (color === 'black') {
-    return { fill: '#111827', stroke: '#111827' };
-  }
-  if (color === 'gray') {
-    return { fill: '#9ca3af', stroke: '#374151' };
-  }
-  return { fill: '#f9fafb', stroke: '#111827' };
-}
 
 export default function KurarinExample({
   width,
@@ -181,7 +178,7 @@ export default function KurarinExample({
                 })}
 
                 {clues.map((clue, index) => {
-                  const clueStyle = getClueStyle(clue.color);
+                  const clueStyle = getKurarinClueColors(clue.color);
                   const x = PADDING + (clue.col * (CELL_SIZE + GAP)) / 2 + CELL_SIZE / 2;
                   const y = PADDING + (clue.row * (CELL_SIZE + GAP)) / 2 + CELL_SIZE / 2;
                   return (

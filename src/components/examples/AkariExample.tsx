@@ -4,10 +4,11 @@ import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import type { AkariPuzzleData } from '../../puzzles/types';
 import AkariBoard from '../../puzzles/Akari/Akari';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
@@ -60,7 +61,7 @@ export default function AkariExample({
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const bulbDiameter = Math.max(20, Math.floor(CELL_SIZE * 0.8));
-  const clueFontSize = getBoardNumberFontSize(CELL_SIZE);
+  const clueTextStyle = getBoardTextStyle(CELL_SIZE);
 
   return (
     <>
@@ -146,7 +147,7 @@ export default function AkariExample({
                     return (
                       <div
                         key={`${row}-${col}`}
-                        className="flex items-center justify-center font-semibold tabular-nums"
+                        className={boardClassNames.cellContent}
                         style={{
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
@@ -154,8 +155,7 @@ export default function AkariExample({
                             isBlack ? 'shaded' : isBulb ? 'brightLit' : isLit ? 'lit' : 'cell'
                           ),
                           ...getCellDividerStyle(),
-                          fontSize: `${clueFontSize}px`,
-                          lineHeight: 1,
+                          ...clueTextStyle,
                         }}
                       >
                         {typeof puzzleCell === 'number'

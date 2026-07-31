@@ -12,6 +12,11 @@ export function normalizePuzzLinkDataPart(link: string) {
   let dataPart = link.trim();
   const queryIndex = dataPart.indexOf('?');
   if (queryIndex >= 0) dataPart = dataPart.slice(queryIndex + 1);
+  if (/%2f/i.test(dataPart)) {
+    const firstQueryPart = dataPart.split('&')[0];
+    dataPart = firstQueryPart.endsWith('=') ? firstQueryPart.slice(0, -1) : firstQueryPart;
+    dataPart = decodeURIComponent(dataPart);
+  }
   if (dataPart.startsWith('p?')) dataPart = dataPart.slice(2);
   return dataPart;
 }

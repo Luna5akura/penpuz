@@ -4,11 +4,12 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import { validateNurikabe, getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
@@ -179,8 +180,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                     style={{
                       width: '44px',
                       height: '44px',
-                      fontSize: `${getBoardNumberFontSize(44)}px`,
-                      lineHeight: 1,
+                      ...getBoardTextStyle(44),
                       ...(isBad2x2
                         ? getInvalidBoardCellColors('dark')
                         : isClue(r, c)
@@ -191,7 +191,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                           : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                       ...getCellDividerStyle(),
                     }}
-                    className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0 cursor-pointer"
+                    className={`flex items-center justify-center border-0 cursor-pointer ${boardClassNames.cellTextTight}`}
                   >
                     {isClue(r, c) ? (
                       <span className={isBadClue ? 'text-red-600 dark:text-red-400' : ''}>
@@ -244,12 +244,11 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                 row.map((isBlack, c) => (
                   <div
                     key={`${r}-${c}`}
-                    className="flex items-center justify-center font-semibold tabular-nums tracking-tight border-0"
+                    className={`flex items-center justify-center border-0 ${boardClassNames.cellTextTight}`}
                     style={{
                       width: '44px',
                       height: '44px',
-                      fontSize: `${getBoardNumberFontSize(44)}px`,
-                      lineHeight: 1,
+                      ...getBoardTextStyle(44),
                       background: isBlack ? woodBoardTheme.shaded : woodBoardTheme.cell,
                       color: isBlack ? woodBoardTheme.shadedText : woodBoardTheme.border,
                       ...getCellDividerStyle(),

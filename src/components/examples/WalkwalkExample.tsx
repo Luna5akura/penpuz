@@ -4,10 +4,11 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import type { WalkwalkPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import WalkwalkBoard from '../../puzzles/Walkwalk/Walkwalk';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
@@ -56,7 +57,7 @@ function StaticWalkwalkBoard({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const clueFontSize = getBoardNumberFontSize(CELL_SIZE);
+  const clueTextStyle = getBoardTextStyle(CELL_SIZE);
   const boundaryStroke = getRoomBoundaryStrokeWidth();
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
   const loopLineStrokeWidth = getLoopLineStrokeWidth(CELL_SIZE);
@@ -88,14 +89,13 @@ function StaticWalkwalkBoard({
           Array.from({ length: width }, (_, col) => (
             <div
               key={`${row}-${col}`}
-              className="flex items-center justify-center font-semibold tabular-nums"
+              className={boardClassNames.cellContent}
               style={{
                 width: `${CELL_SIZE}px`,
                 height: `${CELL_SIZE}px`,
                 ...getBoardCellColors('cell'),
                 ...getCellDividerStyle(),
-                fontSize: `${clueFontSize}px`,
-                lineHeight: 1,
+                ...clueTextStyle,
               }}
             >
               {clueMap.get(`${row},${col}`) ?? ''}

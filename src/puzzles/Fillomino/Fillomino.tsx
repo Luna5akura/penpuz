@@ -7,10 +7,12 @@ import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardControlTextStyle,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -105,6 +107,11 @@ export default function FillominoBoard({
   const longPressThreshold = 500;
 
   const gap = 0;
+  const resetTransientUiState = useCallback(() => {
+    setShowNumpad(false);
+    setNumpadTarget(null);
+    setMobileMode('number');
+  }, []);
 
   // ==================== 新增：防止重复完成 ====================
   const hasCompleted = useRef(false);
@@ -174,9 +181,7 @@ export default function FillominoBoard({
 
   useEffect(() => {
     reset(getResetSnapshot());
-    setShowNumpad(false);
-    setNumpadTarget(null);
-    setMobileMode('number');
+    queueMicrotask(resetTransientUiState);
     hoveredCellRef.current = null;
     isDragging.current = false;
     startRow.current = -1;
@@ -194,7 +199,7 @@ export default function FillominoBoard({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-  }, [getResetSnapshot, puzzle, reset, resetToken]);
+  }, [getResetSnapshot, puzzle, reset, resetToken, resetTransientUiState]);
 
   // ==================== 关键修复：带完成守卫的验证逻辑 ====================
   const validate = useCallback(() => {
@@ -674,12 +679,11 @@ export default function FillominoBoard({
                       hoveredCellRef.current = null;
                     }
                   }}
-                  className="flex items-center justify-center font-semibold tabular-nums cursor-pointer border-0 relative"
+                  className={`flex items-center justify-center cursor-pointer border-0 relative ${boardClassNames.cellText}`}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    fontSize: `${getBoardNumberFontSize(cellSize)}px`,
-                    lineHeight: `${cellSize}px`,
+                    ...getBoardTextStyle(cellSize),
                     ...(isPreFilled
                       ? {
                           ...getBoardCellColors('prefilled'),
@@ -812,8 +816,7 @@ export default function FillominoBoard({
                 style={{
                   width: '32px',
                   height: '32px',
-                  fontSize: '24px',
-                  fontWeight: 'bold',
+                  ...getBoardControlTextStyle(24),
                   color: woodBoardTheme.border,
                   background: 'transparent',
                   border: 'none',
@@ -835,8 +838,7 @@ export default function FillominoBoard({
                   style={{
                     width: '52px',
                     height: '52px',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
+                    ...getBoardControlTextStyle(24),
                     ...getBoardCellColors('prefilled'),
                     border: `2px solid ${woodBoardTheme.border}`,
                     borderRadius: '8px',
@@ -854,8 +856,7 @@ export default function FillominoBoard({
                 style={{
                   gridColumn: 'span 3',
                   height: '52px',
-                  fontSize: '20px',
-                  fontWeight: 'bold',
+                  ...getBoardControlTextStyle(20),
                   background: woodBoardTheme.invalidSoft,
                   border: `2px solid ${woodBoardTheme.border}`,
                   borderRadius: '8px',

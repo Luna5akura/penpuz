@@ -3,12 +3,13 @@ import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import type { MintonettePuzzleData } from '../types';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCircleClueDiameter,
   getBoardCircleClueStrokeWidth,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getResponsiveCellSize,
   woodBoardTheme,
@@ -140,7 +141,7 @@ export default function MintonetteBoard({
     width,
   }), [fixedCellSize, viewportWidth, width]);
 
-  const clueNumberFontSize = useMemo(() => getBoardNumberFontSize(cellSize, 0.58, 18), [cellSize]);
+  const clueTextStyle = useMemo(() => getBoardTextStyle(cellSize, 0.58, 18), [cellSize]);
   const clueCircleDiameter = useMemo(() => getBoardCircleClueDiameter(cellSize), [cellSize]);
   const clueCircleStrokeWidth = useMemo(() => getBoardCircleClueStrokeWidth(cellSize), [cellSize]);
 
@@ -445,7 +446,7 @@ export default function MintonetteBoard({
               return (
                 <div
                   key={`clue-${row}-${col}`}
-                  className="absolute flex items-center justify-center rounded-full font-semibold tabular-nums"
+                  className={`absolute flex items-center justify-center rounded-full ${boardClassNames.cellText}`}
                   style={{
                     width: `${clueCircleDiameter}px`,
                     height: `${clueCircleDiameter}px`,
@@ -454,8 +455,7 @@ export default function MintonetteBoard({
                     border: `${clueCircleStrokeWidth}px solid ${woodBoardTheme.border}`,
                     color: woodBoardTheme.border,
                     background: getBoardCellColors('cell').background,
-                    fontSize: `${clueNumberFontSize}px`,
-                    lineHeight: 1,
+                    ...clueTextStyle,
                   }}
                 >
                   {clueInfo.value ?? ''}

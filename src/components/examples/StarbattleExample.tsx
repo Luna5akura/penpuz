@@ -6,8 +6,11 @@ import type { StarbattlePuzzleData } from '../../puzzles/types';
 import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
 import {
   commonBoardChrome,
+  getBoardBoundaryStrokeWidth,
   getBoardCellColors,
+  getBoardFixedTextStyle,
   getBoardFrameStyle,
+  getBoardSymbolFontSize,
   getCellDividerStyle,
   getOutlinedBorderStrokeWidth,
   woodBoardTheme,
@@ -51,8 +54,9 @@ export default function StarbattleExample({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const boundaryStroke = 3;
+  const boundaryStroke = getBoardBoundaryStrokeWidth(CELL_SIZE);
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const starFontSize = getBoardSymbolFontSize(CELL_SIZE);
 
   return (
     <>
@@ -151,7 +155,7 @@ export default function StarbattleExample({
                         }}
                       >
                         {starSet.has(`${row},${col}`) ? (
-                          <span style={{ fontSize: `${Math.floor(CELL_SIZE * 0.55)}px`, lineHeight: 1 }}>★</span>
+                          <span style={getBoardFixedTextStyle(starFontSize)}>★</span>
                         ) : null}
                       </div>
                     ))

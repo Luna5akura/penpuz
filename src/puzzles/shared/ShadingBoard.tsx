@@ -6,11 +6,12 @@ import { sanitizeMatrix } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import type { BoundarySegments, CellCoord } from '../gridUtils';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getOutlinedBorderStrokeWidth,
@@ -314,7 +315,6 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const numberFontSize = getBoardNumberFontSize(cellSize);
   const crossFontSize = getBoardCrossFontSize(cellSize);
   const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
@@ -362,7 +362,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                 <div
                   key={`${row}-${col}`}
                   onPointerDown={(event) => handleCellPointerDown(row, col, event)}
-                  className="relative flex items-center justify-center touch-none"
+                  className={boardClassNames.touchCellContent}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
@@ -370,8 +370,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                     ...getCellDividerStyle(),
                     ...trialStyle,
                     cursor: isLockedCell(row, col) ? 'default' : 'pointer',
-                    fontSize: `${numberFontSize}px`,
-                    lineHeight: 1,
+                    ...getBoardTextStyle(cellSize),
                   }}
                 >
                   {renderCellContent?.(row, col, state, cellSize) ??

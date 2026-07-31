@@ -3,9 +3,11 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import type { NikojiPuzzleData } from '../../puzzles/types';
 import NikojiBoard from '../../puzzles/Nikoji/Nikoji';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
+  getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
@@ -119,14 +121,13 @@ export default function NikojiExample({
                   row.map((letter, c) => (
                     <div
                       key={`${r}-${c}`}
-                      className="flex items-center justify-center font-semibold tabular-nums"
+                      className={boardClassNames.cellContent}
                       style={{
                         width: `${CELL_SIZE}px`,
                         height: `${CELL_SIZE}px`,
                         ...getBoardCellColors(letter ? 'clue' : 'cell'),
                         ...getCellDividerStyle(),
-                        fontSize: `${Math.max(18, Math.floor(CELL_SIZE * 0.54))}px`,
-                        lineHeight: 1,
+                        ...getBoardTextStyle(CELL_SIZE, 0.54, 18),
                       }}
                     >
                       {letter ?? ''}

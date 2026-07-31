@@ -3,10 +3,11 @@ import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import type { WalkwalkPuzzleData } from '../types';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getInvalidBoardCellColors,
   getLoopCrossSize,
@@ -148,7 +149,7 @@ export default function WalkwalkBoard({
     viewportWidth,
     width,
   }), [fixedCellSize, viewportWidth, width]);
-  const clueFontSize = useMemo(() => getBoardNumberFontSize(cellSize), [cellSize]);
+  const clueTextStyle = useMemo(() => getBoardTextStyle(cellSize), [cellSize]);
   const boundaryStroke = getRoomBoundaryStrokeWidth();
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
   const loopLineStrokeWidth = useMemo(() => getLoopLineStrokeWidth(cellSize), [cellSize]);
@@ -363,15 +364,14 @@ export default function WalkwalkBoard({
               return (
                 <div
                   key={`${row}-${col}`}
-                  className="relative flex items-center justify-center font-semibold tabular-nums"
+                  className={boardClassNames.cellContent}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     ...getBoardCellColors('cell'),
                     ...getCellDividerStyle(),
                     ...(isInvalid ? getInvalidBoardCellColors('soft') : {}),
-                    fontSize: `${clueFontSize}px`,
-                    lineHeight: 1,
+                    ...clueTextStyle,
                     zIndex: 1,
                   }}
                 >

@@ -3,9 +3,11 @@ import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import type { NikojiPuzzleData } from '../types';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
+  getBoardTextStyle,
   getCellDividerStyle,
   getResponsiveCellSize,
   woodBoardTheme,
@@ -362,15 +364,14 @@ export default function NikojiBoard({
               return (
                 <div
                   key={`${r}-${c}`}
-                  className="flex items-center justify-center font-semibold tabular-nums select-none"
+                  className={`flex items-center justify-center select-none ${boardClassNames.cellText}`}
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     ...getBoardCellColors(letter ? 'clue' : 'cell'),
                     ...getCellDividerStyle(),
                     ...(isInvalid ? { background: woodBoardTheme.invalidSoft, color: woodBoardTheme.invalidText } : {}),
-                    fontSize: `${Math.max(18, Math.floor(cellSize * 0.54))}px`,
-                    lineHeight: 1,
+                    ...getBoardTextStyle(cellSize, 0.54, 18),
                   }}
                 >
                   {letter ?? ''}

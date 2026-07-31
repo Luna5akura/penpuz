@@ -45,6 +45,7 @@ import { parseLakesLink } from './Lakes/utils';
 import { parseDominoSearchLink } from './DominoSearch/utils';
 import { parseMagicSnailLink } from './MagicSnail/utils';
 import { parseSlovakSumsLink } from './SlovakSums/utils';
+import { normalizePuzzLinkDataPart } from './gridUtils';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
@@ -1629,9 +1630,7 @@ export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
 }
 
 export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
-  let dataPart = link.includes('?') ? link.split('?')[1] : link;
-  if (dataPart.startsWith('p?')) dataPart = dataPart.slice(2);
-
+  const dataPart = normalizePuzzLinkDataPart(link);
   const type = dataPart.split('/')[0];
   if (type in puzzleRegistry) {
     return type as PuzzleType;

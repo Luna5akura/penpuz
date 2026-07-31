@@ -2,6 +2,7 @@ export const woodBoardTheme = {
   frame: '#d2b48c',
   border: '#3f2a1e',
   cell: '#f8f1e3',
+  whiteCell: '#fffdf6',
   clueCell: '#f5ead8',
   prefilledCell: '#f0e6d2',
   panel: '#fbf6ed',
@@ -23,6 +24,28 @@ export const woodBoardTheme = {
   invalidSoft: '#f5d0c5',
   invalidMarked: '#f2c9bf',
   invalidText: '#7a3b2e',
+  neutralInk: '#111827',
+  neutralMid: '#374151',
+  neutralSoft: '#9ca3af',
+  neutralLight: '#f9fafb',
+} as const;
+
+export const boardTypography = {
+  textWeight: 600,
+  markWeight: 500,
+  controlWeight: 600,
+  lineHeight: 1,
+} as const;
+
+export const boardClassNames = {
+  cellText: 'font-semibold tabular-nums',
+  cellTextTight: 'font-semibold tabular-nums tracking-tight',
+  cellContent: 'relative flex items-center justify-center font-semibold tabular-nums',
+  touchCellContent: 'relative flex items-center justify-center touch-none font-semibold tabular-nums',
+} as const;
+
+export const boardLayoutMetrics = {
+  directionalClueReferenceSize: 44,
 } as const;
 
 export type BoardCellTone =
@@ -73,7 +96,38 @@ export function getCrossMarkStyle(fontSize: number, color = woodBoardTheme.marke
     fontSize: `${fontSize}px`,
     lineHeight: 1,
     color,
-    fontWeight: 500,
+    fontWeight: boardTypography.markWeight,
+  } as const;
+}
+
+export function getBoardTextStyle(cellSize: number, ratio = 0.68, min = 22, lineHeight = boardTypography.lineHeight) {
+  return {
+    fontSize: `${getBoardNumberFontSize(cellSize, ratio, min)}px`,
+    lineHeight,
+    fontWeight: boardTypography.textWeight,
+  } as const;
+}
+
+export function getBoardFixedTextStyle(fontSize: number, lineHeight = boardTypography.lineHeight) {
+  return {
+    fontSize: `${fontSize}px`,
+    lineHeight,
+    fontWeight: boardTypography.textWeight,
+  } as const;
+}
+
+export function getBoardControlTextStyle(fontSize: number, lineHeight = boardTypography.lineHeight) {
+  return {
+    fontSize: `${fontSize}px`,
+    lineHeight,
+    fontWeight: boardTypography.controlWeight,
+  } as const;
+}
+
+export function getBoardSvgTextProps(cellSize: number, ratio = 0.68, min = 22) {
+  return {
+    fontSize: getBoardNumberFontSize(cellSize, ratio, min),
+    fontWeight: boardTypography.textWeight,
   } as const;
 }
 
@@ -97,6 +151,37 @@ export function getLoopCrossStrokeWidth() {
   return 1.6;
 }
 
+export function getBoardDotRadius(cellSize: number, ratio = 0.055, min = 2.4) {
+  return Math.max(min, cellSize * ratio);
+}
+
+export function getBoardCenterMarkMetrics(cellSize: number) {
+  return {
+    radius: Math.max(9, cellSize * 0.3),
+    crossSize: Math.max(9, cellSize * 0.26),
+    strokeWidth: Math.max(2.4, cellSize * 0.065),
+  } as const;
+}
+
+export function getBoardSymbolFontSize(cellSize: number, ratio = 0.54, min = 18) {
+  return Math.max(min, Math.floor(cellSize * ratio));
+}
+
+export function getBoardBoundaryStrokeWidth(cellSize: number, ratio = 0.08, min = 3) {
+  return Math.max(min, Math.floor(cellSize * ratio));
+}
+
+export function getDirectionalClueNumberFontSize(cellSize: number) {
+  if (cellSize >= boardLayoutMetrics.directionalClueReferenceSize) {
+    return getBoardNumberFontSize(cellSize, 0.68, 22);
+  }
+  return getBoardNumberFontSize(cellSize, 0.7, 22);
+}
+
+export function getDirectionalClueArrowStrokeWidth(cellSize: number) {
+  return cellSize >= boardLayoutMetrics.directionalClueReferenceSize ? 2.8 : 2.4;
+}
+
 export function getRoomBoundaryStrokeWidth() {
   return 3;
 }
@@ -107,6 +192,27 @@ export function getBoardCircleClueDiameter(cellSize: number, ratio = 0.76, min =
 
 export function getBoardCircleClueStrokeWidth(cellSize: number, ratio = 0.065, min = 2.5) {
   return Math.max(min, Number((cellSize * ratio).toFixed(1)));
+}
+
+export function getKurarinClueColors(color: 'black' | 'white' | 'gray') {
+  if (color === 'black') {
+    return {
+      fill: woodBoardTheme.neutralInk,
+      stroke: woodBoardTheme.neutralInk,
+    } as const;
+  }
+
+  if (color === 'gray') {
+    return {
+      fill: woodBoardTheme.neutralSoft,
+      stroke: woodBoardTheme.neutralMid,
+    } as const;
+  }
+
+  return {
+    fill: woodBoardTheme.neutralLight,
+    stroke: woodBoardTheme.neutralInk,
+  } as const;
 }
 
 export function getCellDividerStyle(width = 1, color = woodBoardTheme.gridLine) {

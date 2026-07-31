@@ -4,10 +4,12 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import { useI18n } from '@/i18n/useI18n';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardControlTextStyle,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from '../../puzzles/Fillomino/utils';
@@ -435,14 +437,13 @@ export default function FillominoExample({
                       onMouseLeave={() => {
                         if (!isDragging.current) hoveredCellRef.current = null;
                       }}
-                      className={`flex items-center justify-center font-semibold tabular-nums cursor-pointer border-0 relative
+                      className={`flex items-center justify-center cursor-pointer border-0 relative ${boardClassNames.cellText}
                         ${isPreFilled ? '' : 'hover:bg-gray-100 active:bg-gray-200'}
                         ${invalidCells.some(cell => cell.r === r && cell.c === c) ? 'text-red-600' : ''}`}
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        fontSize: `${getBoardNumberFontSize(cellSize)}px`,
-                        lineHeight: `${cellSize}px`,
+                        ...getBoardTextStyle(cellSize),
                         ...(isPreFilled
                           ? {
                               ...getBoardCellColors('prefilled'),
@@ -528,7 +529,7 @@ export default function FillominoExample({
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-                  <button onClick={closeNumpad} style={{ width: '32px', height: '32px', fontSize: '24px', fontWeight: 'bold', color: woodBoardTheme.border, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%' }}>✕</button>
+                  <button onClick={closeNumpad} style={{ width: '32px', height: '32px', ...getBoardControlTextStyle(24), color: woodBoardTheme.border, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%' }}>✕</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: '8px' }}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
@@ -538,8 +539,7 @@ export default function FillominoExample({
                       style={{
                         width: '52px',
                         height: '52px',
-                        fontSize: '24px',
-                        fontWeight: 'bold',
+                        ...getBoardControlTextStyle(24),
                         ...getBoardCellColors('prefilled'),
                         border: `2px solid ${woodBoardTheme.border}`,
                         borderRadius: '8px',
@@ -557,8 +557,7 @@ export default function FillominoExample({
                     style={{
                       gridColumn: 'span 3',
                       height: '52px',
-                      fontSize: '20px',
-                      fontWeight: 'bold',
+                      ...getBoardControlTextStyle(20),
                       background: woodBoardTheme.invalidSoft,
                       border: `2px solid ${woodBoardTheme.border}`,
                       borderRadius: '8px',
@@ -605,7 +604,7 @@ export default function FillominoExample({
                   row.map((_, c) => (
                     <div
                       key={`${r}-${c}`}
-                      className="flex items-center justify-center font-semibold tabular-nums"
+                      className="flex items-center justify-center"
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
@@ -638,12 +637,11 @@ export default function FillominoExample({
                   row.map((val, c) => (
                     <div
                       key={`${r}-${c}`}
-                      className="flex items-center justify-center font-semibold tabular-nums"
+                      className={`flex items-center justify-center ${boardClassNames.cellText}`}
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
-                        fontSize: `${getBoardNumberFontSize(cellSize)}px`,
-                        lineHeight: `${cellSize}px`,
+                        ...getBoardTextStyle(cellSize),
                         ...getBoardCellColors('cell'),
                       }}
                     >

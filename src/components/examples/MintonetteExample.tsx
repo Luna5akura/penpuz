@@ -3,13 +3,17 @@ import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import type { MintonettePuzzleData, MintonetteSolutionEdge } from '../../puzzles/types';
 import MintonetteBoard from '../../puzzles/Mintonette/Mintonette';
 import {
+  boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCircleClueDiameter,
   getBoardCircleClueStrokeWidth,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
+  getLoopCrossSize,
+  getLoopCrossStrokeWidth,
+  getLoopLineStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { createMintonetteEdgeSet, parseMintonetteEdgeKey } from '../../puzzles/Mintonette/utils';
@@ -44,7 +48,7 @@ function StaticMintonetteBoard({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
-  const clueNumberFontSize = getBoardNumberFontSize(CELL_SIZE, 0.58, 18);
+  const clueNumberTextStyle = getBoardTextStyle(CELL_SIZE, 0.58, 18);
   const clueCircleDiameter = getBoardCircleClueDiameter(CELL_SIZE);
   const clueCircleStrokeWidth = getBoardCircleClueStrokeWidth(CELL_SIZE);
   const getCenter = (row: number, col: number) => ({
@@ -85,15 +89,14 @@ function StaticMintonetteBoard({
               >
                 {clueValue !== undefined ? (
                   <div
-                    className="flex items-center justify-center rounded-full font-semibold tabular-nums"
+                    className={`flex items-center justify-center rounded-full ${boardClassNames.cellText}`}
                     style={{
                       width: `${clueCircleDiameter}px`,
                       height: `${clueCircleDiameter}px`,
                       border: `${clueCircleStrokeWidth}px solid ${woodBoardTheme.border}`,
                       color: woodBoardTheme.border,
                       background: getBoardCellColors('cell').background,
-                      fontSize: `${clueNumberFontSize}px`,
-                      lineHeight: 1,
+                      ...clueNumberTextStyle,
                       position: 'relative',
                       zIndex: 2,
                     }}
@@ -126,7 +129,7 @@ function StaticMintonetteBoard({
               x2={to.x}
               y2={to.y}
               stroke={woodBoardTheme.ink}
-              strokeWidth={Math.max(4, Math.floor(CELL_SIZE * 0.11))}
+              strokeWidth={getLoopLineStrokeWidth(CELL_SIZE, 0.11, 4)}
               strokeLinecap="round"
             />
           );
@@ -137,12 +140,12 @@ function StaticMintonetteBoard({
           if (!edge) return null;
           const centerX = (getCenter(edge.r1, edge.c1).x + getCenter(edge.r2, edge.c2).x) / 2;
           const centerY = (getCenter(edge.r1, edge.c1).y + getCenter(edge.r2, edge.c2).y) / 2;
-          const size = Math.max(4, Math.floor(CELL_SIZE * 0.12));
+          const size = getLoopCrossSize(CELL_SIZE, 0.12, 4);
           return (
             <g
               key={`cross-${edgeKey}`}
               stroke={woodBoardTheme.border}
-              strokeWidth="1.7"
+              strokeWidth={getLoopCrossStrokeWidth()}
               strokeLinecap="round"
             >
               <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />

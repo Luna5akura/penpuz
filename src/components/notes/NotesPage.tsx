@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, Edit3, Eye, FileDown, FileText, Link2, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
+import { setDocumentMetadata } from '@/lib/documentMetadata';
 import { cn } from '@/lib/utils';
 import { notePosts } from '@/notes/posts';
 import { getNotePuzzleTypeName, notePuzzleTypeOptions } from '@/notes/puzzleTypeOptions';
@@ -10,6 +11,7 @@ import type {
   NotePostBlock,
   NoteReplayStep,
 } from '@/notes/types';
+import { getPuzzleMetadata } from '@/puzzles/puzzleMetadata';
 import { parsePuzzleLink, renderPuzzleBoard } from '@/puzzles/registry';
 import type { PuzzleData, PuzzleType } from '@/puzzles/types';
 import { Badge } from '../ui/badge';
@@ -47,6 +49,25 @@ interface DraftReplayBlock {
 }
 
 type DraftBlock = DraftTextBlock | DraftReplayBlock;
+
+interface StoredNoteEditorDraft {
+  version: 1;
+  savedAt: string;
+  mode: NotesMode;
+  selectedPostId: string;
+  draft: {
+    id: string;
+    titleZh: string;
+    titleEn: string;
+    summaryZh: string;
+    summaryEn: string;
+    author: string;
+    date: string;
+    blocks: DraftBlock[];
+  };
+}
+
+const NOTE_EDITOR_DRAFT_STORAGE_KEY = 'penpuz:note-editor-draft:v1';
 
 const noteCopy = {
   'zh-CN': {
@@ -95,6 +116,7 @@ const noteCopy = {
     loadStep: '载入盘面',
     updateStep: '更新盘面',
     saveFile: '保存',
+    autoSavedAt: (time: string) => `已自动保存 ${time}`,
     stepsCount: (count: number) => `步骤 ${count}`,
   },
   en: {
@@ -143,6 +165,7 @@ const noteCopy = {
     loadStep: 'Load board',
     updateStep: 'Update board',
     saveFile: 'Save',
+    autoSavedAt: (time: string) => `Autosaved ${time}`,
     stepsCount: (count: number) => `Steps ${count}`,
   },
 };
@@ -375,6 +398,172 @@ function postBlockToDraftBlock(block: NotePostBlock): DraftBlock {
   };
 }
 
+function getRecordString(record: Record<string, unknown>, key: string, fallback = '') {
+  const value = record[key];
+  return typeof value === 'string' ? value : fallback;
+}
+
+function getRecordNumber(record: Record<string, unknown>, key: string, fallback: number) {
+  const value = record[key];
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeLocalizedText(value: unknown, fallbackZh: string, fallbackEn: string) {
+  const record = asRecord(value);
+  return {
+    'zh-CN': typeof record?.['zh-CN'] === 'string' ? record['zh-CN'] : fallbackZh,
+    en: typeof record?.en === 'string' ? record.en : fallbackEn,
+  };
+}
+
+function isSerializablePuzzleData(value: unknown): value is PuzzleData {
+  const record = asRecord(value);
+  return (
+    typeof record?.type === 'string' &&
+    typeof record.width === 'number' &&
+    typeof record.height === 'number'
+  );
+}
+
+function normalizeReplayStep(value: unknown, index: number): NoteReplayStep | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const title = normalizeLocalizedText(record.title, `步骤 ${index + 1}`, `Step ${index + 1}`);
+  const note = normalizeLocalizedText(record.note, '', '');
+  return {
+    title,
+    note,
+    ...(record.snapshot !== undefined ? { snapshot: record.snapshot } : {}),
+    ...(Array.isArray(record.marks) ? { marks: record.marks as NoteReplayStep['marks'] } : {}),
+  };
+}
+
+function normalizeStoredDraftBlock(value: unknown): DraftBlock | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const type = record.type;
+  if (type === 'text') {
+    return {
+      id: getRecordString(record, 'id') || makeBlockId(),
+      type: 'text',
+      bodyZh: getRecordString(record, 'bodyZh'),
+      bodyEn: getRecordString(record, 'bodyEn'),
+    };
+  }
+
+  if (type !== 'puzzle-replay') return null;
+
+  const puzzleLink = getRecordString(record, 'puzzleLink');
+  const linkedPuzzle = puzzleLink ? parsePuzzleLink(puzzleLink) ?? undefined : undefined;
+  const storedPuzzle = isSerializablePuzzleData(record.puzzle) ? record.puzzle : undefined;
+  const puzzle = storedPuzzle ?? linkedPuzzle;
+  const width = Math.min(12, Math.max(3, Math.floor(getRecordNumber(record, 'width', puzzle?.width ?? 5))));
+  const height = Math.min(12, Math.max(3, Math.floor(getRecordNumber(record, 'height', puzzle?.height ?? 5))));
+  const rawSteps = Array.isArray(record.steps) ? record.steps : [];
+  const steps = rawSteps
+    .map((step, index) => normalizeReplayStep(step, index))
+    .filter((step): step is NoteReplayStep => step !== null);
+
+  return {
+    id: getRecordString(record, 'id') || makeBlockId(),
+    type: 'puzzle-replay',
+    puzzleType: (typeof record.puzzleType === 'string' ? record.puzzleType : puzzle?.type ?? 'nurikabe') as PuzzleType,
+    puzzleLink,
+    ...(puzzle ? { puzzle } : {}),
+    importError: typeof record.importError === 'string' ? record.importError : null,
+    titleZh: getRecordString(record, 'titleZh', '过程'),
+    titleEn: getRecordString(record, 'titleEn', 'Process'),
+    width,
+    height,
+    stepNoteZh: getRecordString(record, 'stepNoteZh'),
+    stepNoteEn: getRecordString(record, 'stepNoteEn'),
+    ...(record.boardSnapshot !== undefined ? { boardSnapshot: record.boardSnapshot } : {}),
+    boardResetToken: getRecordNumber(record, 'boardResetToken', 0),
+    boardStartTime: getRecordNumber(record, 'boardStartTime', Date.now()),
+    steps: trimSteps(steps, width, height),
+  };
+}
+
+function normalizeStoredNoteEditorDraft(value: unknown): StoredNoteEditorDraft | null {
+  const record = asRecord(value);
+  const draft = asRecord(record?.draft);
+  if (!record || !draft || record.version !== 1) return null;
+
+  const rawBlocks = Array.isArray(draft.blocks) ? draft.blocks : [];
+  const blocks = rawBlocks
+    .map(normalizeStoredDraftBlock)
+    .filter((block): block is DraftBlock => block !== null);
+
+  return {
+    version: 1,
+    savedAt: getRecordString(record, 'savedAt', new Date().toISOString()),
+    mode: record.mode === 'edit' ? 'edit' : 'read',
+    selectedPostId: getRecordString(record, 'selectedPostId'),
+    draft: {
+      id: getRecordString(draft, 'id'),
+      titleZh: getRecordString(draft, 'titleZh', '新的解题笔记'),
+      titleEn: getRecordString(draft, 'titleEn', 'New solving note'),
+      summaryZh: getRecordString(draft, 'summaryZh', '记录一个题型的关键推进过程。'),
+      summaryEn: getRecordString(draft, 'summaryEn', 'A note about a key solving process.'),
+      author: getRecordString(draft, 'author', 'penpuz'),
+      date: getRecordString(draft, 'date', getTodayIsoDate()),
+      blocks: blocks.length > 0 ? blocks : [
+        makeTextDraftBlock('写下你的观察、定式或关键分歧。', ''),
+        makeReplayDraftBlock(),
+      ],
+    },
+  };
+}
+
+function readStoredNoteEditorDraft() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(NOTE_EDITOR_DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+
+    const draft = normalizeStoredNoteEditorDraft(JSON.parse(raw) as unknown);
+    if (!draft) {
+      window.localStorage.removeItem(NOTE_EDITOR_DRAFT_STORAGE_KEY);
+      return null;
+    }
+
+    return draft;
+  } catch {
+    window.localStorage.removeItem(NOTE_EDITOR_DRAFT_STORAGE_KEY);
+    return null;
+  }
+}
+
+function writeStoredNoteEditorDraft(draft: StoredNoteEditorDraft) {
+  if (typeof window === 'undefined') return false;
+
+  try {
+    window.localStorage.setItem(NOTE_EDITOR_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function formatAutosaveTime(value: string, locale: 'zh-CN' | 'en') {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+
+  return new Intl.DateTimeFormat(locale === 'zh-CN' ? 'zh-CN' : 'en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  }).format(date);
+}
+
+function shouldReplaceReplayTitle(value: string, fallback: string) {
+  const title = value.trim();
+  return title === '' || title === fallback;
+}
+
 function downloadPostFile(post: NotePost) {
   const payload: DraftNotePostFile = {
     schema: 'penpuz-note/v1',
@@ -494,23 +683,69 @@ function ReplayBoardEditor({
 function NotesPage() {
   const { locale } = useI18n();
   const labels = noteCopy[locale];
-  const [mode, setMode] = useState<NotesMode>('read');
-  const [selectedPostId, setSelectedPostId] = useState(getInitialSelectedPostId);
+  const restoredEditorDraft = useMemo(() => readStoredNoteEditorDraft(), []);
+  const shouldRestoreEditorMode = restoredEditorDraft?.mode === 'edit';
+  const [mode, setMode] = useState<NotesMode>(() => restoredEditorDraft?.mode ?? 'read');
+  const [selectedPostId, setSelectedPostId] = useState(() => {
+    const restoredPostId = restoredEditorDraft?.selectedPostId;
+    return restoredPostId && notePosts.some((post) => post.id === restoredPostId)
+      ? restoredPostId
+      : getInitialSelectedPostId();
+  });
   const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
-  const [draftId, setDraftId] = useState('');
-  const [draftTitleZh, setDraftTitleZh] = useState('新的解题笔记');
-  const [draftTitleEn, setDraftTitleEn] = useState('New solving note');
-  const [draftSummaryZh, setDraftSummaryZh] = useState('记录一个题型的关键推进过程。');
-  const [draftSummaryEn, setDraftSummaryEn] = useState('A note about a key solving process.');
-  const [draftAuthor, setDraftAuthor] = useState('penpuz');
-  const [draftDate, setDraftDate] = useState(getTodayIsoDate());
+  const [lastAutoSavedAt, setLastAutoSavedAt] = useState<string | null>(() => restoredEditorDraft?.savedAt ?? null);
+  const [draftId, setDraftId] = useState(() => restoredEditorDraft?.draft.id ?? '');
+  const [draftTitleZh, setDraftTitleZh] = useState(() => restoredEditorDraft?.draft.titleZh ?? '新的解题笔记');
+  const [draftTitleEn, setDraftTitleEn] = useState(() => restoredEditorDraft?.draft.titleEn ?? 'New solving note');
+  const [draftSummaryZh, setDraftSummaryZh] = useState(() =>
+    restoredEditorDraft?.draft.summaryZh ?? '记录一个题型的关键推进过程。'
+  );
+  const [draftSummaryEn, setDraftSummaryEn] = useState(() =>
+    restoredEditorDraft?.draft.summaryEn ?? 'A note about a key solving process.'
+  );
+  const [draftAuthor, setDraftAuthor] = useState(() => restoredEditorDraft?.draft.author ?? 'penpuz');
+  const [draftDate, setDraftDate] = useState(() => restoredEditorDraft?.draft.date ?? getTodayIsoDate());
   const [noteFileError, setNoteFileError] = useState<string | null>(null);
-  const [draftBlocks, setDraftBlocks] = useState<DraftBlock[]>(() => [
-    makeTextDraftBlock('写下你的观察、定式或关键分歧。', ''),
-    makeReplayDraftBlock(),
-  ]);
+  const [draftBlocks, setDraftBlocks] = useState<DraftBlock[]>(() =>
+    restoredEditorDraft?.draft.blocks ?? [
+      makeTextDraftBlock('写下你的观察、定式或关键分歧。', ''),
+      makeReplayDraftBlock(),
+    ]
+  );
 
   const selectedPost = notePosts.find((post) => post.id === selectedPostId) ?? notePosts[0];
+  const autoSaveText = useMemo(() => {
+    if (!lastAutoSavedAt) return null;
+    const formatted = formatAutosaveTime(lastAutoSavedAt, locale);
+    return formatted ? labels.autoSavedAt(formatted) : null;
+  }, [labels, lastAutoSavedAt, locale]);
+  const editorDraftSnapshot = useMemo<StoredNoteEditorDraft>(() => ({
+    version: 1,
+    savedAt: new Date().toISOString(),
+    mode,
+    selectedPostId,
+    draft: {
+      id: draftId,
+      titleZh: draftTitleZh,
+      titleEn: draftTitleEn,
+      summaryZh: draftSummaryZh,
+      summaryEn: draftSummaryEn,
+      author: draftAuthor,
+      date: draftDate,
+      blocks: draftBlocks,
+    },
+  }), [
+    draftAuthor,
+    draftBlocks,
+    draftDate,
+    draftId,
+    draftSummaryEn,
+    draftSummaryZh,
+    draftTitleEn,
+    draftTitleZh,
+    mode,
+    selectedPostId,
+  ]);
   const draftPost = useMemo<NotePost>(() => {
     const postTitle = makeLocalizedText(draftTitleZh, draftTitleEn);
     return {
@@ -664,12 +899,16 @@ function NotesPage() {
         };
       }
 
+      const metadataZh = getPuzzleMetadata(puzzle, 'zh-CN');
+      const metadataEn = getPuzzleMetadata(puzzle, 'en');
       return {
         ...block,
         puzzleType: puzzle.type,
         puzzleLink,
         puzzle,
         importError: null,
+        titleZh: shouldReplaceReplayTitle(block.titleZh, '过程') ? metadataZh.title : block.titleZh,
+        titleEn: shouldReplaceReplayTitle(block.titleEn, 'Process') ? metadataEn.title : block.titleEn,
         width: puzzle.width,
         height: puzzle.height,
         boardSnapshot: undefined,
@@ -792,18 +1031,85 @@ function NotesPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
 
-    const syncSelectedPostFromUrl = () => {
+    const writeDraft = (updateStatus: boolean) => {
+      const savedAt = new Date().toISOString();
+      const saved = writeStoredNoteEditorDraft({
+        ...editorDraftSnapshot,
+        savedAt,
+      });
+      if (saved && updateStatus) {
+        setLastAutoSavedAt(savedAt);
+      }
+    };
+
+    const timeoutId = window.setTimeout(() => writeDraft(true), 350);
+    const handleBeforeUnload = () => writeDraft(false);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        writeDraft(false);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [editorDraftSnapshot]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const syncSelectedPostFromUrl = (preserveMode = false) => {
       const nextPost = findNotePostById(readNoteIdFromUrl());
       if (!nextPost) return;
 
-      setMode('read');
+      if (!preserveMode) {
+        setMode('read');
+      }
       setSelectedPostId((current) => (current === nextPost.id ? current : nextPost.id));
     };
 
-    syncSelectedPostFromUrl();
-    window.addEventListener('popstate', syncSelectedPostFromUrl);
-    return () => window.removeEventListener('popstate', syncSelectedPostFromUrl);
-  }, []);
+    syncSelectedPostFromUrl(shouldRestoreEditorMode);
+    const handlePopState = () => syncSelectedPostFromUrl(false);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [shouldRestoreEditorMode]);
+
+  useEffect(() => {
+    const siteTitle = locale === 'zh-CN' ? '每日纸笔谜题' : 'Daily Logic Puzzles';
+
+    if (mode === 'read' && selectedPost) {
+      setDocumentMetadata({
+        title: `${selectedPost.title[locale]} | ${labels.title} | ${siteTitle}`,
+        description: selectedPost.summary[locale] || labels.byline(selectedPost.author, selectedPost.date),
+        url: window.location.href,
+        type: 'article',
+      });
+      return;
+    }
+
+    if (mode === 'edit') {
+      setDocumentMetadata({
+        title: `${draftPost.title[locale]} | ${labels.editMode} | ${siteTitle}`,
+        description: draftPost.summary[locale] || labels.byline(draftPost.author, draftPost.date),
+        url: window.location.href,
+        type: 'article',
+      });
+      return;
+    }
+
+    setDocumentMetadata({
+      title: `${labels.title} | ${siteTitle}`,
+      description: locale === 'zh-CN'
+        ? '阅读和编辑纸笔谜题解题笔记。'
+        : 'Read and edit pencil puzzle solving notes.',
+      url: window.location.href,
+      type: 'article',
+    });
+  }, [draftPost, labels, locale, mode, selectedPost]);
 
   useEffect(() => {
     if (mode !== 'read' || !selectedPost) return;
@@ -886,27 +1192,30 @@ function NotesPage() {
         <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,0.9fr)]">
           <div className="space-y-4 border bg-card px-4 py-4 sm:px-5">
             <div className="-mx-4 -mt-4 border-b bg-muted/35 px-4 py-3 sm:-mx-5 sm:px-5">
-              <div className="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="outline" onClick={resetDraft}>
-                  <Plus />
-                  {labels.newNote}
-                </Button>
-                <Button asChild variant="outline">
-                  <label>
-                    <Upload />
-                    {labels.openFile}
-                    <input
-                      type="file"
-                      accept=".json,.penpuz-note.json,application/json"
-                      className="sr-only"
-                      onChange={openNoteFile}
-                    />
-                  </label>
-                </Button>
-                <Button onClick={() => downloadPostFile(draftPost)}>
-                  <FileDown />
-                  {labels.saveFile}
-                </Button>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-h-5 text-xs text-muted-foreground">{autoSaveText}</div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={resetDraft}>
+                    <Plus />
+                    {labels.newNote}
+                  </Button>
+                  <Button asChild variant="outline">
+                    <label>
+                      <Upload />
+                      {labels.openFile}
+                      <input
+                        type="file"
+                        accept=".json,.penpuz-note.json,application/json"
+                        className="sr-only"
+                        onChange={openNoteFile}
+                      />
+                    </label>
+                  </Button>
+                  <Button onClick={() => downloadPostFile(draftPost)}>
+                    <FileDown />
+                    {labels.saveFile}
+                  </Button>
+                </div>
               </div>
             </div>
             {noteFileError ? <p className="text-sm text-destructive">{noteFileError}</p> : null}

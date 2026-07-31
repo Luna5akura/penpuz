@@ -2,15 +2,19 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { NoteReplayCellMark } from '@/notes/types';
 import {
   commonBoardChrome,
+  boardClassNames,
+  getBoardCenterMarkMetrics,
   getBoardCellColors,
+  getBoardDotRadius,
   getBoardFrameStyle,
-  getBoardNumberFontSize,
+  getBoardTextStyle,
   getCellDividerStyle,
   getLoopLineStrokeWidth,
+  getLoopCrossStrokeWidth,
   getOutlinedBorderStrokeWidth,
   getRoomBoundaryStrokeWidth,
   woodBoardTheme,
-type BoardCellTone,
+  type BoardCellTone,
 } from '@/puzzles/boardTheme';
 import { countPlacedDominoPairs, getDominoPairKey } from '@/puzzles/DominoSearch/utils';
 import { getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
@@ -119,9 +123,7 @@ function SlitherCellMark({
   color: string;
 }) {
   const center = cellSize / 2;
-  const radius = Math.max(7, cellSize * 0.23);
-  const crossSize = Math.max(7, cellSize * 0.19);
-  const strokeWidth = Math.max(2, Math.floor(cellSize * 0.055));
+  const { radius, crossSize, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
 
   return (
     <svg
@@ -178,13 +180,13 @@ function renderMintonetteClue(value: number | null, cellSize: number) {
 
   return (
     <span
-      className="flex items-center justify-center rounded-full border font-semibold tabular-nums"
+      className={`flex items-center justify-center rounded-full border ${boardClassNames.cellText}`}
       style={{
         width: `${diameter}px`,
         height: `${diameter}px`,
         borderColor: woodBoardTheme.border,
         background: woodBoardTheme.panel,
-        fontSize: `${Math.max(14, Math.floor(cellSize * 0.38))}px`,
+        ...getBoardTextStyle(cellSize, 0.38, 14),
       }}
     >
       {value ?? '?'}
@@ -194,7 +196,7 @@ function renderMintonetteClue(value: number | null, cellSize: number) {
 
 function renderKurarinClue(color: 'black' | 'white' | 'gray', cellSize: number) {
   const diameter = Math.max(20, Math.floor(cellSize * 0.58));
-  const fill = color === 'black' ? woodBoardTheme.shaded : color === 'gray' ? woodBoardTheme.marked : '#fffdf6';
+  const fill = color === 'black' ? woodBoardTheme.shaded : color === 'gray' ? woodBoardTheme.marked : woodBoardTheme.whiteCell;
 
   return (
     <span
@@ -504,7 +506,7 @@ function SlitherDots({ width, height, cellSize }: { width: number; height: numbe
             key={`dot-${row}-${col}`}
             cx={BOARD_PADDING + col * cellSize}
             cy={BOARD_PADDING + row * cellSize}
-            r={Math.max(2, Math.floor(cellSize * 0.06))}
+            r={getBoardDotRadius(cellSize, 0.06, 2)}
             fill={woodBoardTheme.border}
           />
         ))
@@ -702,7 +704,7 @@ function CrossOverlay({
             key={`${keyPrefix}-${key}`}
             stroke={typeof stroke === 'function' ? stroke(key) : stroke}
             strokeLinecap="round"
-            strokeWidth={1.6}
+            strokeWidth={getLoopCrossStrokeWidth()}
           >
             <line x1={x - size} y1={y - size} x2={x + size} y2={y + size} />
             <line x1={x - size} y1={y + size} x2={x + size} y2={y - size} />
@@ -726,7 +728,7 @@ function StarbattleDots({
 }) {
   if (edgeDots.length === 0 && vertexDots.length === 0) return null;
 
-  const dotRadius = Math.max(3, Math.floor(cellSize * 0.09));
+  const dotRadius = getBoardDotRadius(cellSize, 0.09, 3);
 
   return (
     <svg className="pointer-events-none absolute left-0 top-0" width="100%" height="100%">
@@ -863,14 +865,13 @@ export default function NotePuzzleBoard({
                   ...getBoardCellColors(view.tone),
                   ...getCellDividerStyle(),
                   ...trialStyle,
-                  fontSize: `${getBoardNumberFontSize(cellSize, view.fontRatio ?? 0.58, 15)}px`,
-                  lineHeight: 1,
+                  ...getBoardTextStyle(cellSize, view.fontRatio ?? 0.58, 15),
                 };
 
                 return (
                   <div
                     key={`${row}-${col}`}
-                    className="relative flex items-center justify-center font-semibold tabular-nums"
+                    className={boardClassNames.cellContent}
                     style={cellStyle}
                   >
                     {slitherMark ? (

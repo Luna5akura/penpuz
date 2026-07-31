@@ -1,9 +1,9 @@
 import type { YajilinDirection } from '../types';
-const MOBILE_CLUE_REFERENCE_SIZE = 44;
+import { boardLayoutMetrics, getDirectionalClueArrowStrokeWidth } from '../boardTheme';
 
 function getArrowFrameStyle(direction: YajilinDirection, cellSize: number) {
-  const sideInset = cellSize >= MOBILE_CLUE_REFERENCE_SIZE ? 1 : 0;
-  const horizontalTopInset = cellSize >= MOBILE_CLUE_REFERENCE_SIZE ? 1 : 0;
+  const sideInset = cellSize >= boardLayoutMetrics.directionalClueReferenceSize ? 1 : 0;
+  const horizontalTopInset = cellSize >= boardLayoutMetrics.directionalClueReferenceSize ? 1 : 0;
   const verticalWidth = Math.max(12, Math.round(cellSize * 0.26));
   const verticalHeight = Math.max(26, cellSize - 2);
   const horizontalWidth = Math.max(26, cellSize - 2);
@@ -47,7 +47,7 @@ function getArrowFrameStyle(direction: YajilinDirection, cellSize: number) {
 
 export function ClueArrow({ direction, cellSize }: { direction: YajilinDirection; cellSize: number }) {
   const isVertical = direction === 'up' || direction === 'down';
-  const strokeWidth = cellSize >= MOBILE_CLUE_REFERENCE_SIZE ? 2.8 : 2.4;
+  const strokeWidth = getDirectionalClueArrowStrokeWidth(cellSize);
   const headSize = isVertical ? 7 : 6.5;
 
   const viewBox = isVertical ? '0 0 24 48' : '0 0 48 24';

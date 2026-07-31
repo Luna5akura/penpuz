@@ -6,9 +6,13 @@ import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
 import {
   commonBoardChrome,
+  getBoardBoundaryStrokeWidth,
   getBoardCellColors,
   getBoardCrossFontSize,
+  getBoardDotRadius,
+  getBoardFixedTextStyle,
   getBoardFrameStyle,
+  getBoardSymbolFontSize,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
@@ -504,10 +508,10 @@ export default function StarbattleBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const starFontSize = Math.max(18, Math.floor(cellSize * 0.54));
+  const starFontSize = getBoardSymbolFontSize(cellSize);
   const crossFontSize = getBoardCrossFontSize(cellSize);
-  const dotRadius = Math.max(6, Math.floor(cellSize * 0.16));
-  const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
+  const dotRadius = getBoardDotRadius(cellSize, 0.16, 6);
+  const boundaryStroke = getBoardBoundaryStrokeWidth(cellSize);
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
 
   return (
@@ -580,7 +584,7 @@ export default function StarbattleBoard({
                   }}
                 >
                   {state === 1 ? (
-                    <span style={{ fontSize: `${starFontSize}px`, lineHeight: 1 }}>★</span>
+                    <span style={getBoardFixedTextStyle(starFontSize)}>★</span>
                   ) : state === 2 ? (
                     <span style={getCrossMarkStyle(crossFontSize, trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
                   ) : null}
