@@ -608,7 +608,7 @@ function renderPost(
   actions?: ReactNode
 ) {
   return (
-    <article className="border bg-card">
+    <article className="min-w-0 border bg-card">
       <header className="border-b px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -628,7 +628,7 @@ function renderPost(
             return (
               <section key={`text-${index}`} className="space-y-3">
                 {block.body[locale].split(/\n{2,}/).map((paragraph, paragraphIndex) => (
-                  <p key={paragraphIndex} className="text-base leading-8 text-foreground">
+                  <p key={paragraphIndex} className="break-words text-base leading-8 text-foreground [overflow-wrap:anywhere]">
                     {paragraph}
                   </p>
                 ))}
@@ -1143,24 +1143,30 @@ function NotesPage() {
       </section>
 
       {mode === 'read' && selectedPost && (
-        <section className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
-          <aside className="border bg-card">
-            <div className="divide-y">
+        <section className="grid min-w-0 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
+          <aside className="sticky top-0 z-20 -mx-4 border-y bg-card/95 shadow-sm backdrop-blur sm:mx-0 sm:border lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:shadow-none">
+            <div className="flex gap-2 overflow-x-auto px-4 py-2 sm:px-3 lg:block lg:divide-y lg:overflow-visible lg:p-0">
               {notePosts.map((post) => (
                 <button
                   key={post.id}
                   type="button"
-                  className={`block w-full px-4 py-3 text-left transition-colors hover:bg-muted ${
-                    post.id === selectedPost.id ? 'bg-muted' : ''
-                  }`}
+                  aria-current={post.id === selectedPost.id ? 'page' : undefined}
+                  className={cn(
+                    'block shrink-0 rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted lg:w-full lg:rounded-none lg:border-0 lg:px-4 lg:py-3',
+                    post.id === selectedPost.id ? 'border-border bg-muted' : 'border-transparent'
+                  )}
                   onClick={() => {
                     setMode('read');
                     setSelectedPostId(post.id);
                     syncNotePageUrl(post.id, 'push');
                   }}
                 >
-                  <div className="font-semibold text-foreground">{post.title[locale]}</div>
-                  <div className="mt-1 text-sm leading-5 text-muted-foreground">{post.summary[locale]}</div>
+                  <div className="max-w-44 truncate text-sm font-semibold text-foreground lg:max-w-none lg:text-base">
+                    {post.title[locale]}
+                  </div>
+                  <div className="mt-1 hidden text-sm leading-5 text-muted-foreground lg:block">
+                    {post.summary[locale]}
+                  </div>
                 </button>
               ))}
             </div>

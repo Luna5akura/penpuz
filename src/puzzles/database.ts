@@ -366,6 +366,11 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?slither/8/8/77c222772c222272727722c27c7c2c7227277c',
     difficulty: '困难',
   },
+    {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?slither/8/8/d38ddhdh3dmd8di8d3dl8833d',
+    difficulty: '困难',
+  },
+
 
 
 

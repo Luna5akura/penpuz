@@ -11,7 +11,7 @@ interface PuzzleReplayViewerProps {
 
 function PuzzleReplayViewer({ replay, locale }: PuzzleReplayViewerProps) {
   return (
-    <div className="border bg-[#fffdf9] p-3 dark:bg-gray-950">
+    <div className="min-w-0 border bg-[#fffdf9] p-3 dark:bg-gray-950">
       <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-xl font-semibold text-foreground">{replay.title[locale]}</h3>
@@ -29,8 +29,8 @@ function PuzzleReplayViewer({ replay, locale }: PuzzleReplayViewerProps) {
           const note = step.note[locale].trim();
 
           return (
-            <section key={`${step.title[locale]}-${index}`} className="border bg-card p-3">
-              {note ? <p className="text-sm leading-6 text-muted-foreground">{note}</p> : null}
+            <section key={`${step.title[locale]}-${index}`} className="min-w-0 border bg-card p-3">
+              {note ? <p className="break-words text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">{note}</p> : null}
               <div className={note ? 'mt-3' : undefined}>
                 <NotePuzzleBoard
                   puzzle={replay.puzzle}

@@ -146,6 +146,20 @@ function getCellCenterHitRadius(cellSize: number) {
   return Math.max(10, Math.floor(cellSize * 0.28));
 }
 
+function getEdgeHitThreshold(cellSize: number) {
+  return Math.max(8, Math.floor(cellSize * 0.18));
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function distanceToRange(value: number, start: number, end: number) {
+  if (value < start) return start - value;
+  if (value > end) return value - end;
+  return 0;
+}
+
 function getBoardPointerPoint(clientX: number, clientY: number, rect: DOMRect) {
   return {
     x: clientX - rect.left - BOARD_BORDER - BOARD_PADDING,
@@ -187,6 +201,42 @@ function detectCellCenterAtPoint(x: number, y: number, width: number, height: nu
   return { row, col };
 }
 
+function detectEdgeAtPoint(x: number, y: number, width: number, height: number, cellSize: number) {
+  const boardWidth = width * cellSize;
+  const boardHeight = height * cellSize;
+  const threshold = getEdgeHitThreshold(cellSize);
+
+  if (x < -threshold || x > boardWidth + threshold || y < -threshold || y > boardHeight + threshold) {
+    return null;
+  }
+
+  const candidates: Array<{ distance: number; key: string }> = [];
+  const horizontalRow = Math.round(y / cellSize);
+  if (horizontalRow >= 0 && horizontalRow <= height) {
+    const horizontalCol = clamp(Math.floor(x / cellSize), 0, width - 1);
+    const segmentStart = horizontalCol * cellSize;
+    const segmentEnd = segmentStart + cellSize;
+    candidates.push({
+      distance: Math.hypot(y - horizontalRow * cellSize, distanceToRange(x, segmentStart, segmentEnd)),
+      key: getGridLineEdgeKey('h', horizontalRow, horizontalCol),
+    });
+  }
+
+  const verticalCol = Math.round(x / cellSize);
+  if (verticalCol >= 0 && verticalCol <= width) {
+    const verticalRow = clamp(Math.floor(y / cellSize), 0, height - 1);
+    const segmentStart = verticalRow * cellSize;
+    const segmentEnd = segmentStart + cellSize;
+    candidates.push({
+      distance: Math.hypot(x - verticalCol * cellSize, distanceToRange(y, segmentStart, segmentEnd)),
+      key: getGridLineEdgeKey('v', verticalRow, verticalCol),
+    });
+  }
+
+  const best = candidates.sort((left, right) => left.distance - right.distance)[0];
+  return best && best.distance <= threshold ? best.key : null;
+}
+
 function detectVertexTarget(
   clientX: number,
   clientY: number,
@@ -197,6 +247,18 @@ function detectVertexTarget(
 ) {
   const point = getBoardPointerPoint(clientX, clientY, rect);
   return detectVertexAtPoint(point.x, point.y, width, height, cellSize);
+}
+
+function detectEdgeTarget(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+  width: number,
+  height: number,
+  cellSize: number
+) {
+  const point = getBoardPointerPoint(clientX, clientY, rect);
+  return detectEdgeAtPoint(point.x, point.y, width, height, cellSize);
 }
 
 function detectCellCenterTarget(
@@ -432,6 +494,35 @@ export default function SlitherlinkBoard({
     }, { coalesce: true });
   }, [applyChange, currentTrialLevel, trialActive]);
 
+  const toggleEdgeCross = useCallback((key: string) => {
+    applyChange((currentSnapshot) => {
+      const current = normalizeSlitherlinkSnapshot(currentSnapshot);
+      const nextLineSet = new Set(current.lineEdges);
+      const nextCrossedSet = new Set(current.crossedEdges);
+      const nextLineLevels = { ...current.lineLevels };
+      const nextCrossedLevels = { ...current.crossedLevels };
+
+      if (nextCrossedSet.has(key)) {
+        nextCrossedSet.delete(key);
+        delete nextCrossedLevels[key];
+      } else {
+        nextCrossedSet.add(key);
+        nextLineSet.delete(key);
+        nextCrossedLevels[key] = trialActive ? currentTrialLevel : 0;
+        delete nextLineLevels[key];
+      }
+
+      return {
+        lineEdges: Array.from(nextLineSet).sort(),
+        crossedEdges: Array.from(nextCrossedSet).sort(),
+        lineLevels: nextLineLevels,
+        crossedLevels: nextCrossedLevels,
+        cellMarks: current.cellMarks,
+        cellMarkLevels: current.cellMarkLevels,
+      };
+    });
+  }, [applyChange, currentTrialLevel, trialActive]);
+
   const toggleCellCenterMark = useCallback((row: number, col: number, mark: SlitherlinkCellMark) => {
     applyChange((currentSnapshot) => {
       const current = normalizeSlitherlinkSnapshot(currentSnapshot);
@@ -514,6 +605,15 @@ export default function SlitherlinkBoard({
 
     const vertex = detectVertexTarget(event.clientX, event.clientY, rect, width, height, cellSize);
     if (!vertex) {
+      if (!isTouchPointer && event.button === 2) {
+        const edgeKey = detectEdgeTarget(event.clientX, event.clientY, rect, width, height, cellSize);
+        if (edgeKey) {
+          event.preventDefault();
+          toggleEdgeCross(edgeKey);
+          return;
+        }
+      }
+
       const cell = detectCellCenterTarget(event.clientX, event.clientY, rect, width, height, cellSize);
       if (!cell) return;
 
