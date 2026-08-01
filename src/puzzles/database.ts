@@ -378,6 +378,11 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?magic-snail/8/8/4/zr.g.l.j.g.g1h.k.g.j.g.k.h1g.g.j.l.g./',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?magic-snail/8/8/4/zr.i3j.g1l.n.n.n.l4g.j2i./',
+    difficulty: '困难',
+  },
+
 
 
 
