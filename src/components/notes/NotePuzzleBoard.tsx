@@ -3,6 +3,7 @@ import type { NoteReplayCellMark } from '@/notes/types';
 import {
   commonBoardChrome,
   boardClassNames,
+  getBoardBoundaryStrokeWidth,
   getBoardCenterMarkMetrics,
   getBoardCellColors,
   getBoardDotRadius,
@@ -17,6 +18,7 @@ import {
   type BoardCellTone,
 } from '@/puzzles/boardTheme';
 import { countPlacedDominoPairs, getDominoPairKey } from '@/puzzles/DominoSearch/utils';
+import { getMagicSnailBoundaryLines } from '@/puzzles/MagicSnail/utils';
 import { getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
 import { getTrialLevelColors } from '@/puzzles/trialStyles';
 import type { PuzzleData, PuzzleType, YajilinDirection } from '@/puzzles/types';
@@ -301,7 +303,7 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
     }
     case 'snail': {
       const cell = puzzle.cells[row]?.[col] ?? null;
-      if (cell === 'block') return { tone: 'shaded', locked: true };
+      if (cell === 'block') return { tone: 'marked', content: '×', locked: true };
       if (typeof cell === 'number') return { tone: 'prefilled', content: cell, locked: true };
       return { tone: 'cell' };
     }
@@ -321,7 +323,13 @@ function getSnapshotCellView(puzzleType: PuzzleType, snapshot: unknown, row: num
   const value = getGridValue(snapshot, row, col);
   if (value === undefined || value === null || value === 0) return null;
 
-  if (puzzleType === 'fillomino' || puzzleType === 'snail' || puzzleType === 'slovak-sums') {
+  if (puzzleType === 'snail') {
+    if (value === 'circle') return { tone: 'cell' };
+    if (value === 'cross') return { tone: 'marked' };
+    return isNumberValue(value) ? { tone: 'cell', content: value } : null;
+  }
+
+  if (puzzleType === 'fillomino' || puzzleType === 'slovak-sums') {
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
@@ -674,6 +682,35 @@ function LineOverlay({
   );
 }
 
+function MagicSnailOverlay({
+  puzzle,
+  cellSize,
+}: {
+  puzzle: PuzzleData | undefined;
+  cellSize: number;
+}) {
+  if (puzzle?.type !== 'snail') return null;
+
+  const boundaryStrokeWidth = getBoardBoundaryStrokeWidth(cellSize);
+
+  return (
+    <svg className="pointer-events-none absolute left-0 top-0" width="100%" height="100%">
+      {getMagicSnailBoundaryLines(puzzle.width, puzzle.height).map((line, index) => (
+        <line
+          key={`snail-boundary-${index}`}
+          x1={BOARD_PADDING + line.x1 * cellSize}
+          y1={BOARD_PADDING + line.y1 * cellSize}
+          x2={BOARD_PADDING + line.x2 * cellSize}
+          y2={BOARD_PADDING + line.y2 * cellSize}
+          stroke={woodBoardTheme.border}
+          strokeLinecap="square"
+          strokeWidth={boundaryStrokeWidth}
+        />
+      ))}
+    </svg>
+  );
+}
+
 function CrossOverlay({
   keys,
   cellSize,
@@ -888,7 +925,11 @@ export default function NotePuzzleBoard({
                 const legacyView = snapshotView ? null : getLegacyMarkView(markMap.get(getLocalCellKey(row, col)));
                 const view = mergeCellViews(base, snapshotView ?? legacyView);
                 const slitherMark = isSlither ? getSlitherCellMark(snapshot, row, col) : null;
+                const snailMark = puzzleType === 'snail' && (snapshotValue === 'circle' || snapshotValue === 'cross')
+                  ? snapshotValue
+                  : null;
                 const slitherMarkKey = `${row},${col}`;
+                const centerMark = slitherMark ?? snailMark;
                 const trialStyle = getSnapshotCellTrialStyle(
                   puzzleType,
                   snapshot,
@@ -912,17 +953,21 @@ export default function NotePuzzleBoard({
                     className={boardClassNames.cellContent}
                     style={cellStyle}
                   >
-                    {slitherMark ? (
+                    {centerMark ? (
                       <SlitherCellMark
-                        mark={slitherMark}
+                        mark={centerMark}
                         cellSize={cellSize}
-                        color={getSnapshotTrialColor(
-                          snapshot,
-                          slitherMarkKey,
-                          ['cellMarkLevels'],
-                          'text',
-                          woodBoardTheme.border
-                        )}
+                        color={
+                          snailMark
+                            ? getSnapshotTrialColor(snapshot, slitherMarkKey, ['levels'], 'text', woodBoardTheme.border)
+                            : getSnapshotTrialColor(
+                                snapshot,
+                                slitherMarkKey,
+                                ['cellMarkLevels'],
+                                'text',
+                                woodBoardTheme.border
+                              )
+                        }
                       />
                     ) : null}
                     <span className="relative z-10">{view.content}</span>
@@ -934,6 +979,7 @@ export default function NotePuzzleBoard({
 
           {regionIds ? <RegionBoundaries regionIds={regionIds} width={width} height={height} cellSize={cellSize} /> : null}
           {isSlither ? <SlitherDots width={width} height={height} cellSize={cellSize} /> : null}
+          <MagicSnailOverlay puzzle={activePuzzle} cellSize={cellSize} />
           <LineOverlay
             keys={deepLines}
             cellSize={cellSize}

@@ -182,6 +182,10 @@ export interface MagicSnailPuzzleData {
   height: number;
   numbers: number[];
   cells: MagicSnailCell[][];
+  start?: {
+    row: number;
+    col: number;
+  };
 }
 
 export interface SlovakSumsClueCell {
@@ -364,6 +368,10 @@ export type PuzzleExample =
       height: number;
       numbers: number[];
       cells: MagicSnailCell[][];
+      start?: {
+        row: number;
+        col: number;
+      };
       correctGrid: (number | null)[][];
     }
   | {

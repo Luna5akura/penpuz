@@ -25,8 +25,10 @@ export interface NumberPlacementValidationResult {
   badCells: CellCoord[];
 }
 
+export type NumberPlacementCellValue = number | 'circle' | 'cross' | null;
+
 interface NumberPlacementSnapshot {
-  grid: (number | null)[][];
+  grid: NumberPlacementCellValue[][];
   levels: number[][];
 }
 
@@ -40,7 +42,13 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   getFixedValue?: (row: number, col: number) => number | null;
   isBlockedCell?: (row: number, col: number) => boolean;
   renderBlockedCell?: (row: number, col: number, cellSize: number) => ReactNode;
-  getCellTone?: (row: number, col: number, value: number | null) => BoardCellTone;
+  renderOverlay?: (cellSize: number, boardWidthPx: number, boardHeightPx: number) => ReactNode;
+  renderCellValue?: (value: NumberPlacementCellValue, cellSize: number, row: number, col: number) => ReactNode;
+  getCellTone?: (row: number, col: number, value: NumberPlacementCellValue) => BoardCellTone;
+  extraCellValues?: Array<Exclude<NumberPlacementCellValue, number | null>>;
+  cellInputMode?: 'select' | 'cycle';
+  cycleValues?: NumberPlacementCellValue[];
+  showValueButtons?: boolean;
   initialSnapshot?: unknown;
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
@@ -49,8 +57,10 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
 
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
+const EMPTY_EXTRA_CELL_VALUES: Array<Exclude<NumberPlacementCellValue, number | null>> = [];
+const EMPTY_CYCLE_VALUES: NumberPlacementCellValue[] = [];
 
-function createEmptyNumberGrid(width: number, height: number): (number | null)[][] {
+function createEmptyNumberGrid(width: number, height: number): NumberPlacementCellValue[][] {
   return Array.from({ length: height }, () => Array(width).fill(null));
 }
 
@@ -60,17 +70,24 @@ function normalizeNumberPlacementSnapshot(
   height: number,
   numbers: number[],
   getFixedValue: (row: number, col: number) => number | null,
-  isBlockedCell: (row: number, col: number) => boolean
+  isBlockedCell: (row: number, col: number) => boolean,
+  extraCellValues: Array<Exclude<NumberPlacementCellValue, number | null>>
 ): NumberPlacementSnapshot {
   const numberSet = new Set(numbers);
+  const extraCellValueSet = new Set(extraCellValues);
   const fallback = {
     grid: createEmptyNumberGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   };
   const source = snapshot as Partial<NumberPlacementSnapshot> | null | undefined;
-  const grid = sanitizeMatrix(source?.grid, fallback.grid, (value) =>
-    value === null || numberSet.has(value as number) ? (value as number | null) : null
-  );
+  const grid = sanitizeMatrix(source?.grid, fallback.grid, (value) => {
+    if (value === null) return null;
+    if (typeof value === 'number' && numberSet.has(value)) return value;
+    if (typeof value === 'string' && extraCellValueSet.has(value as Exclude<NumberPlacementCellValue, number | null>)) {
+      return value as NumberPlacementCellValue;
+    }
+    return null;
+  });
   const levels = sanitizeMatrix(source?.levels, fallback.levels, (value, fallbackCell) =>
     typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
   );
@@ -104,7 +121,13 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   getFixedValue = () => null,
   isBlockedCell = () => false,
   renderBlockedCell,
+  renderOverlay,
+  renderCellValue,
   getCellTone,
+  extraCellValues = EMPTY_EXTRA_CELL_VALUES,
+  cellInputMode = 'select',
+  cycleValues = EMPTY_CYCLE_VALUES,
+  showValueButtons = true,
   initialSnapshot,
   onSnapshotChange,
   fixedCellSize,
@@ -119,17 +142,34 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const hasCompleted = useRef(false);
 
   const createInitialSnapshot = useCallback<() => NumberPlacementSnapshot>(
-    () => normalizeNumberPlacementSnapshot(null, width, height, numbers, getFixedValue, isBlockedCell),
-    [getFixedValue, height, isBlockedCell, numbers, width]
+    () => normalizeNumberPlacementSnapshot(null, width, height, numbers, getFixedValue, isBlockedCell, extraCellValues),
+    [extraCellValues, getFixedValue, height, isBlockedCell, numbers, width]
   );
   const getResetSnapshot = useCallback(
-    () => normalizeNumberPlacementSnapshot(initialSnapshot, width, height, numbers, getFixedValue, isBlockedCell),
-    [getFixedValue, height, initialSnapshot, isBlockedCell, numbers, width]
+    () =>
+      normalizeNumberPlacementSnapshot(
+        initialSnapshot,
+        width,
+        height,
+        numbers,
+        getFixedValue,
+        isBlockedCell,
+        extraCellValues
+      ),
+    [extraCellValues, getFixedValue, height, initialSnapshot, isBlockedCell, numbers, width]
   );
 
   const history = usePuzzleHistory<NumberPlacementSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...normalizeNumberPlacementSnapshot(trialSnapshot, width, height, numbers, getFixedValue, isBlockedCell),
+      ...normalizeNumberPlacementSnapshot(
+        trialSnapshot,
+        width,
+        height,
+        numbers,
+        getFixedValue,
+        isBlockedCell,
+        extraCellValues
+      ),
       levels: Array.from({ length: height }, () => Array(width).fill(0)),
     }),
     onSnapshotChange,
@@ -154,12 +194,16 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   } = history;
 
   const normalizedSnapshot = useMemo(
-    () => normalizeNumberPlacementSnapshot(snapshot, width, height, numbers, getFixedValue, isBlockedCell),
-    [getFixedValue, height, isBlockedCell, numbers, snapshot, width]
+    () => normalizeNumberPlacementSnapshot(snapshot, width, height, numbers, getFixedValue, isBlockedCell, extraCellValues),
+    [extraCellValues, getFixedValue, height, isBlockedCell, numbers, snapshot, width]
   );
   const grid = normalizedSnapshot.grid;
   const levels = normalizedSnapshot.levels;
-  const validation = useMemo(() => validate(grid, puzzle), [grid, puzzle, validate]);
+  const validationGrid = useMemo(
+    () => grid.map((rowValues) => rowValues.map((value) => (typeof value === 'number' ? value : null))),
+    [grid]
+  );
+  const validation = useMemo(() => validate(validationGrid, puzzle), [puzzle, validate, validationGrid]);
   const visibleValidation = showValidationMessage ? validation : null;
   const cellSize = useMemo(
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width }),
@@ -190,7 +234,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     onComplete(Math.floor((Date.now() - startTime) / 1000));
   }, [onComplete, startTime, validation.valid]);
 
-  const setCellValue = useCallback((row: number, col: number, value: number | null) => {
+  const setCellValue = useCallback((row: number, col: number, value: NumberPlacementCellValue) => {
     if (isBlockedCell(row, col) || getFixedValue(row, col) !== null) return;
 
     applyChange((currentSnapshot) => {
@@ -200,7 +244,8 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         height,
         numbers,
         getFixedValue,
-        isBlockedCell
+        isBlockedCell,
+        extraCellValues
       );
       if (current.grid[row][col] === value) return current;
 
@@ -210,7 +255,48 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       nextLevels[row][col] = value === null ? 0 : trialActive ? currentTrialLevel : 0;
       return { grid: nextGrid, levels: nextLevels };
     });
-  }, [applyChange, currentTrialLevel, getFixedValue, height, isBlockedCell, numbers, trialActive, width]);
+  }, [applyChange, currentTrialLevel, extraCellValues, getFixedValue, height, isBlockedCell, numbers, trialActive, width]);
+
+  const cycleCellValue = useCallback((row: number, col: number, direction: 1 | -1) => {
+    if (isBlockedCell(row, col) || getFixedValue(row, col) !== null || cycleValues.length === 0) return;
+
+    applyChange((currentSnapshot) => {
+      const current = normalizeNumberPlacementSnapshot(
+        currentSnapshot,
+        width,
+        height,
+        numbers,
+        getFixedValue,
+        isBlockedCell,
+        extraCellValues
+      );
+      const currentValue = current.grid[row][col];
+      const currentIndex = cycleValues.findIndex((value) => value === currentValue);
+      const nextIndex = currentIndex < 0
+        ? direction === 1 ? 0 : cycleValues.length - 1
+        : (currentIndex + direction + cycleValues.length) % cycleValues.length;
+      const nextValue = cycleValues[nextIndex] ?? null;
+
+      if (currentValue === nextValue) return current;
+
+      const nextGrid = current.grid.map((rowValues) => [...rowValues]);
+      const nextLevels = current.levels.map((rowValues) => [...rowValues]);
+      nextGrid[row][col] = nextValue;
+      nextLevels[row][col] = nextValue === null ? 0 : trialActive ? currentTrialLevel : 0;
+      return { grid: nextGrid, levels: nextLevels };
+    });
+  }, [
+    applyChange,
+    currentTrialLevel,
+    cycleValues,
+    extraCellValues,
+    getFixedValue,
+    height,
+    isBlockedCell,
+    numbers,
+    trialActive,
+    width,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -236,6 +322,15 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const handleCellPointerDown = (row: number, col: number, event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
+    if (cellInputMode === 'cycle') {
+      if (isBlockedCell(row, col) || getFixedValue(row, col) !== null) return;
+      if (event.button !== 0 && event.button !== 2) return;
+
+      cycleCellValue(row, col, event.button === 2 ? -1 : 1);
+      setSelectedCell(null);
+      return;
+    }
+
     if (isBlockedCell(row, col) || getFixedValue(row, col) !== null) {
       setSelectedCell(null);
       return;
@@ -274,7 +369,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               const fixedValue = getFixedValue(row, col);
               const blocked = isBlockedCell(row, col);
               const editable = !blocked && fixedValue === null;
-              const selected = selectedCell?.row === row && selectedCell?.col === col;
+              const selected = cellInputMode !== 'cycle' && selectedCell?.row === row && selectedCell?.col === col;
               const trialColors = getTrialLevelColors(levels[row][col]);
               const tone = getCellTone?.(row, col, value) ?? (
                 blocked ? 'shaded' : fixedValue !== null ? 'prefilled' : 'cell'
@@ -302,36 +397,51 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                     outlineOffset: selected ? '-4px' : undefined,
                   }}
                 >
-                  {blocked ? renderBlockedCell?.(row, col, cellSize) : value}
+                  {blocked ? renderBlockedCell?.(row, col, cellSize) : renderCellValue?.(value, cellSize, row, col) ?? value}
                 </div>
               );
             })
           )}
         </div>
+        {renderOverlay ? (
+          <div
+            className="pointer-events-none absolute"
+            style={{
+              left: `${BOARD_PADDING}px`,
+              top: `${BOARD_PADDING}px`,
+              width: `${boardWidthPx}px`,
+              height: `${boardHeightPx}px`,
+            }}
+          >
+            {renderOverlay(cellSize, boardWidthPx, boardHeightPx)}
+          </div>
+        ) : null}
       </div>
 
-      <div className="flex flex-wrap justify-center gap-2">
-        {numbers.map((number) => (
+      {showValueButtons ? (
+        <div className="flex flex-wrap justify-center gap-2">
+          {numbers.map((number) => (
+            <Button
+              key={number}
+              variant="outline"
+              size="sm"
+              disabled={!selectedEditable}
+              onClick={() => selectedCell && setCellValue(selectedCell.row, selectedCell.col, number)}
+              className="min-w-10 tabular-nums"
+            >
+              {number}
+            </Button>
+          ))}
           <Button
-            key={number}
             variant="outline"
             size="sm"
             disabled={!selectedEditable}
-            onClick={() => selectedCell && setCellValue(selectedCell.row, selectedCell.col, number)}
-            className="min-w-10 tabular-nums"
+            onClick={() => selectedCell && setCellValue(selectedCell.row, selectedCell.col, null)}
           >
-            {number}
+            清空
           </Button>
-        ))}
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!selectedEditable}
-          onClick={() => selectedCell && setCellValue(selectedCell.row, selectedCell.col, null)}
-        >
-          清空
-        </Button>
-      </div>
+        </div>
+      ) : null}
 
       <PuzzleAssistToolbar
         canUndo={canUndo}

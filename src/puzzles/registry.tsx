@@ -296,10 +296,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '涂黑一些空格，并画出一条经过所有其余非线索格子的单一回路。',
-          '回路不能分叉或交叉，涂黑格之间不能正交相邻。',
-          '带数字或问号的箭头格不能涂黑，也不属于回路的一部分。',
-          '数字表示箭头方向上被涂黑的格子数，问号只给出方向不限定数量。',
+          '画一条横平竖直地经过一些空格中心且不和自身交叉的回路，并把未经过的空格涂黑。',
+          '涂黑的格子不能相邻。',
+          '带箭头的数字表示从此格开始在这个方向中的黑格数。',
         ],
         en: [
           'Shade some cells and draw a single loop through all remaining non-clue cells.',
@@ -401,8 +400,8 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在一些空格中放入星星，且任意两个星星不能横向、纵向或对角相邻。',
-          '右上角的数字表示每一行、每一列和每一个粗边框区域中都必须恰好放入相同数量的星星。',
+          '在一些格子内放置一颗星，使得每行、列、区域内的星数等于盘面外给出的数字。',
+          '任意两颗星不能放在互相接触的格子内。',
         ],
         en: [
           'Place stars in some cells so that no two stars touch horizontally, vertically, or diagonally.',
@@ -486,10 +485,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '盘面被粗边框分成若干区域。涂黑一些格子，且任意两个黑格不能横向或纵向相邻。',
-          '带数字的区域中，数字表示该区域内恰好要涂黑多少格。',
-          '任意一段连续的横向或纵向留白线段，都不能穿过两个或以上的区域边界。',
-          '所有留白格必须正交连成一个整体。',
+          '涂黑一些格子，使得涂黑的格子之间不相邻，且留白的格子连通成一个整体。',
+          '任意一横段或纵段留白格不能穿过两个以上区域边界。',
+          '数字表示此区域内涂黑格的个数。',
         ],
         en: [
           'The board is divided into rooms. Shade some cells, and shaded cells cannot touch horizontally or vertically.',
@@ -578,10 +576,8 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '盘面被粗边框分成若干区域。涂黑一些格子。',
-          '带数字的区域中，数字表示该区域内恰好要涂黑多少格。',
-          '横向或纵向都不能出现连续4格或以上同为黑格，或同为留白格。',
-          '所有黑格必须正交连成一个整体。',
+          '涂黑一些空格，使得所有涂黑的格子连通成一个整体，且没有全部涂黑或者全部留白的1×4或4×1的结构。',
+          '数字表示此区域内涂黑格的个数。',
         ],
         en: [
           'The board is divided into rooms. Shade some cells on the board.',
@@ -666,7 +662,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'mintonette',
       name: {
-        'zh-CN': '数弯',
+        'zh-CN': '排球/数弯',
         en: 'Mintonette',
       },
       rulesTitle: {
@@ -675,10 +671,10 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在圆圈之间画线，把所有圆圈两两配对。',
-          '线段之间不能交叉，也不能重叠。',
-          '带数字的圆圈表示这条线到达另一端之前必须拐弯的次数；没有数字的圆圈可以配任意拐弯次数。',
-          '盘面上的每一个格子都必须被某一条线使用。',
+          '用横平竖直地经过格子中心的路径把圆圈两两连接配对，使得每个圈都恰好属于一对。',
+          '路径不能和自身或互相交叉，包括在端点交叉。',
+          '每个格子必须恰好有一条路径经过。',
+          '圆圈里的数字表示其路径转弯的次数。',
         ],
         en: [
           'Draw lines between circles to form pairs.',
@@ -782,9 +778,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '用边线把盘面分成若干区域，并且每个区域必须恰好包含一个字母。',
-          '相同字母所在的区域必须形状和朝向都一致，而且字母在区域中的相对位置也一致。',
-          '不同字母所在的区域必须是不同形状；旋转或镜像后仍算相同形状。',
+          '沿虚格线把盘面分成若干个区域，使得每个区域恰好包含一个字母。',
+          '包含相同字母的区域必须平移全等，包括字母在区域内的相对位置。',
+          '包含不同字母的区域不能以任何方式全等。',
         ],
         en: [
           'Divide the grid into regions, and each region must contain exactly one letter.',
@@ -864,9 +860,10 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在一些空白格中放置灯泡，使所有非黑格都被照亮。灯泡会照亮自己所在的格子，以及在横向或纵向上直到被黑格阻挡前的所有格子。',
+          '在一些空格内放置一个灯泡，以照亮所有空格。',
+          '格子里的灯泡可以照亮所有从此格横竖能够直接连接到且不被黑格阻挡的空格，包括此格本身。',
           '任意两个灯泡不能互相照亮。',
-          '黑格中的数字表示其上下左右四个相邻格中恰好要放入多少个灯泡。',
+          '黑格里的数字表示与之相邻的（至多）四格中的灯泡个数。',
         ],
         en: [
           'Place lights in some empty cells so that every non-black cell is illuminated. A light illuminates its own cell and all cells seen horizontally or vertically until blocked by a black cell.',
@@ -945,16 +942,13 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Kurarin',
       },
       rulesTitle: {
-        'zh-CN': '规则',
+        'zh-CN': '游戏规则',
         en: 'Rules',
       },
       rules: {
         'zh-CN': [
-          '在棋盘中涂黑一部分格子，并在所有未涂黑格子上画出一条单一回路。',
-          '回路不能分叉，也不能自交。',
-          '黑色圆圈重叠的涂黑格数量要多于未涂黑格。',
-          '白色圆圈重叠的未涂黑格数量要多于涂黑格。',
-          '灰色圆圈重叠的涂黑格与未涂黑格数量必须相等。',
+          '在盘面内涂黑一些格子，使得留白的格子形成一条横平竖直不交叉的回路。',
+          '盘面内的点提示了其所接触的（至多）四格中涂黑格和留白格哪种更多：白色表示留白格更多，黑色表示涂黑格更多，灰色表示涂黑格和留白格一样多。',
         ],
         en: [
           'Shade some cells and draw a single loop through all remaining unshaded cells.',
@@ -1164,9 +1158,8 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '沿格线画线，使所有线段连成一条单一回路。',
-          '回路不能分叉，也不能自交。',
-          '数字表示该格四条边中有多少条属于回路。',
+          '连接相邻圆点画一条不和自身交叉的回路。',
+          '数字表示此格中回路经过的边数。',
         ],
         en: [
           'Draw lines along cell edges to form one single loop.',
@@ -1227,7 +1220,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'lits',
       name: {
-        'zh-CN': 'LITS',
+        'zh-CN': '四格骨墙',
         en: 'LITS',
       },
       rulesTitle: {
@@ -1236,9 +1229,8 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在每个粗边框区域内涂出一个由四个正交连通黑格组成的四连块。',
-          '所有黑格必须正交连成一片，且不能出现全黑的 2×2 方块。',
-          '两个共享边的四连块不能是相同形状；旋转或镜像后相同也算相同形状。',
+          '在每个区域内涂黑一个四格骨牌，使得所有涂黑的格子连通成一个整体，且没有全部涂黑的2×2结构。',
+          '不同区域中全等的四格骨牌不能相邻。',
         ],
         en: [
           'Place one tetromino, a connected block of four shaded cells, in every outlined region.',
@@ -1395,9 +1387,7 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '把盘面划分成若干个 1×2 或 2×1 的骨牌。',
-          '每个格子必须恰好属于一张骨牌。',
-          '每张骨牌覆盖的两个数字，必须与目标骨牌列表中的一个组合对应，且每个组合恰好使用一次。',
+          '把盘面分成若干个两格区域，使得所有由给出的列表里的数字组成的（无序）数对都在恰好一个区域内同时出现。',
         ],
         en: [
           'Divide the grid into 1×2 or 2×1 dominoes.',
@@ -1470,7 +1460,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'snail',
       name: {
-        'zh-CN': '魔法蜗牛',
+        'zh-CN': '蜗牛',
         en: 'Magic Snail',
       },
       rulesTitle: {
@@ -1479,9 +1469,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在可填格中填入给定数字列表中的数字。',
-          '同一行或同一列中，任意数字都不能重复出现。',
-          '按从外到内的螺旋顺序读取已填数字时，必须循环出现给定数字序列。',
+          '在一些空格里填一个属于给出的列表（1~N）中的数，使得每个数字在每行和每列都恰好出现一次。',
+          '从有圆圈的格子开始，沿着螺旋（“蜗牛”）的这一路径，所经过的数字必须按1~N循环：1, 2, ..., N, 1, 2, ...。',
+          '×表示此格不能填数。',
         ],
         en: [
           'Fill available cells with numbers from the given list.',

@@ -9,14 +9,14 @@ import {
   readSavedProgress,
   useDailyPuzzleSession,
 } from './hooks/useDailyPuzzleSession';
-import { parsePuzzleLink, renderPuzzleBoard } from './puzzles/registry';
+import { getPuzzleTemplate, parsePuzzleLink, renderPuzzleBoard } from './puzzles/registry';
 import { Button } from './components/ui/button';
 // import { Card } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { useI18n } from './i18n/useI18n';
 import { setDocumentMetadata } from './lib/documentMetadata';
 import { getPuzzleMetadata } from './puzzles/puzzleMetadata';
-import { puzzleDifficultyLabels } from './puzzles/types';
+import { puzzleDifficultyLabels, type PuzzleData } from './puzzles/types';
 import { formatMinutesSeconds } from './lib/formatDuration';
 import { Card } from './components/ui/card';
 
@@ -72,10 +72,16 @@ function readPuzzleLinkFromUrl() {
 
 function App() {
   const [activePage, setActivePage] = useState<ActivePage>(() => readActivePageFromUrl());
+  const [urlVersion, setUrlVersion] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [ruleReferenceOpen, setRuleReferenceOpen] = useState(false);
   const [copiedHistoryDate, setCopiedHistoryDate] = useState<string | null>(null);
+  const [directBoardInstance, setDirectBoardInstance] = useState(0);
+  const [directStartTime, setDirectStartTime] = useState(() => Date.now());
+  const [directElapsedTime, setDirectElapsedTime] = useState(0);
+  const [directAttemptCompleted, setDirectAttemptCompleted] = useState(false);
+  const [directBoardSnapshot, setDirectBoardSnapshot] = useState<unknown>(null);
   const { locale, copy, toggleLocale } = useI18n();
   const {
     todayDaily,
@@ -103,6 +109,15 @@ function App() {
     loadHistoryPuzzle,
     buildHistoryShareUrl,
   } = useDailyPuzzleSession();
+  const linkedPuzzle = useMemo(
+    () => {
+      void urlVersion;
+      return activePage === 'puzzle' ? readPuzzleLinkFromUrl() : null;
+    },
+    [activePage, urlVersion]
+  );
+  const linkedPuzzleKey = linkedPuzzle && typeof window !== 'undefined' ? window.location.href : null;
+  const isDirectPuzzle = !!linkedPuzzle;
 
   const handleOpenHistory = useCallback(() => {
     setHistoryPage(1);
@@ -111,14 +126,36 @@ function App() {
   const handleOpenRestartDialog = useCallback(() => {
     setRestartDialogOpen(true);
   }, []);
+  const handleDirectComplete = useCallback((finalTime: number) => {
+    setDirectElapsedTime(finalTime);
+    setDirectAttemptCompleted(true);
+  }, []);
+  const handleDirectBoardProgress = useCallback((snapshot: unknown) => {
+    setDirectBoardSnapshot(snapshot);
+  }, []);
+  const restartDirectPuzzle = useCallback((nextElapsedTime: number) => {
+    setDirectStartTime(Date.now() - nextElapsedTime * 1000);
+    setDirectElapsedTime(nextElapsedTime);
+    setDirectAttemptCompleted(false);
+    setDirectBoardSnapshot(null);
+    setDirectBoardInstance((value) => value + 1);
+  }, []);
   const handleRestartWithTime = useCallback(() => {
-    handleRestartPreserveTime();
+    if (isDirectPuzzle) {
+      restartDirectPuzzle(directElapsedTime);
+    } else {
+      handleRestartPreserveTime();
+    }
     setRestartDialogOpen(false);
-  }, [handleRestartPreserveTime]);
+  }, [directElapsedTime, handleRestartPreserveTime, isDirectPuzzle, restartDirectPuzzle]);
   const handleRestartFromZero = useCallback(() => {
-    handleRestartResetTime();
+    if (isDirectPuzzle) {
+      restartDirectPuzzle(0);
+    } else {
+      handleRestartResetTime();
+    }
     setRestartDialogOpen(false);
-  }, [handleRestartResetTime]);
+  }, [handleRestartResetTime, isDirectPuzzle, restartDirectPuzzle]);
   const handleOpenPuzzlePage = useCallback(() => {
     closeHistory();
     setActivePage('puzzle');
@@ -175,16 +212,32 @@ function App() {
   }, []);
 
   const renderBoard = useCallback(() => {
-    if (!daily || !startTime) return null;
+    const activePuzzle: PuzzleData | undefined = linkedPuzzle ?? daily?.puzzle;
+    const activeStartTime = linkedPuzzle ? directStartTime : startTime;
+    if (!activePuzzle || !activeStartTime) return null;
+
     return renderPuzzleBoard(
-      daily.puzzle,
-      startTime,
-      boardInstance,
-      handleComplete,
-      boardSnapshot,
-      handleBoardProgress,
+      activePuzzle,
+      activeStartTime,
+      linkedPuzzle ? directBoardInstance : boardInstance,
+      linkedPuzzle ? handleDirectComplete : handleComplete,
+      linkedPuzzle ? directBoardSnapshot : boardSnapshot,
+      linkedPuzzle ? handleDirectBoardProgress : handleBoardProgress,
     );
-  }, [boardInstance, boardSnapshot, daily, handleBoardProgress, handleComplete, startTime]);
+  }, [
+    boardInstance,
+    boardSnapshot,
+    daily?.puzzle,
+    directBoardInstance,
+    directBoardSnapshot,
+    directStartTime,
+    handleBoardProgress,
+    handleComplete,
+    handleDirectBoardProgress,
+    handleDirectComplete,
+    linkedPuzzle,
+    startTime,
+  ]);
   const historyItems = useMemo(() => {
     if (!todayDaily || !daily) return [];
 
@@ -255,15 +308,37 @@ function App() {
   }, [closeHistory, showHistory]);
 
   useEffect(() => {
-    const syncPageFromUrl = () => setActivePage(readActivePageFromUrl());
+    const syncPageFromUrl = () => {
+      setActivePage(readActivePageFromUrl());
+      setUrlVersion((value) => value + 1);
+    };
     window.addEventListener('popstate', syncPageFromUrl);
     return () => window.removeEventListener('popstate', syncPageFromUrl);
   }, []);
 
   useEffect(() => {
+    if (!linkedPuzzleKey) return;
+
+    setDirectStartTime(Date.now());
+    setDirectElapsedTime(0);
+    setDirectAttemptCompleted(false);
+    setDirectBoardSnapshot(null);
+    setDirectBoardInstance((value) => value + 1);
+  }, [linkedPuzzleKey]);
+
+  useEffect(() => {
+    if (!linkedPuzzleKey || directAttemptCompleted) return;
+
+    const interval = window.setInterval(() => {
+      setDirectElapsedTime(Math.floor((Date.now() - directStartTime) / 1000));
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [directAttemptCompleted, directStartTime, linkedPuzzleKey]);
+
+  useEffect(() => {
     if (!daily || activePage !== 'puzzle') return;
 
-    const linkedPuzzle = readPuzzleLinkFromUrl();
     const puzzle = linkedPuzzle ?? daily.puzzle;
     const metadata = getPuzzleMetadata(puzzle, locale);
 
@@ -286,14 +361,18 @@ function App() {
         : `${daily.dateStr} puzzle ${daily.index + 1}, ${difficultyText}. ${metadata.description}`,
       url: window.location.href,
     });
-  }, [activePage, copy.app.siteTitle, daily, locale]);
+  }, [activePage, copy.app.siteTitle, daily, linkedPuzzle, locale]);
 
   if (!daily) return <div className="text-center py-12">{copy.app.loadingDailyPuzzle}</div>;
 
-  const { template } = daily;
-  const hasResult = attemptCompleted || !!savedCompletion;
+  const activePuzzle = linkedPuzzle ?? daily.puzzle;
+  const template = linkedPuzzle ? getPuzzleTemplate(linkedPuzzle.type) : daily.template;
+  const metadata = getPuzzleMetadata(activePuzzle, locale);
+  const hasResult = isDirectPuzzle ? directAttemptCompleted : attemptCompleted || !!savedCompletion;
+  const activeStarted = isDirectPuzzle || started;
+  const activeElapsedTime = isDirectPuzzle ? directElapsedTime : elapsedTime;
   const puzzleName = template.name[locale];
-  const difficultyText = puzzleDifficultyLabels[daily.difficulty][locale];
+  const difficultyText = isDirectPuzzle ? null : puzzleDifficultyLabels[daily.difficulty][locale];
   const isPuzzlePage = activePage === 'puzzle';
 
   return (
@@ -306,13 +385,15 @@ function App() {
               <h1 className="text-3xl font-bold text-foreground sm:text-4xl">{copy.app.siteTitle}</h1>
               {isPuzzlePage && (
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-lg text-muted-foreground sm:text-xl">
-                  <span>{puzzleName}</span>
-                  <Badge
-                    variant="outline"
-                    className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                  >
-                    {difficultyText}
-                  </Badge>
+                  <span>{metadata.title}</span>
+                  {difficultyText && (
+                    <Badge
+                      variant="outline"
+                      className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
+                    >
+                      {difficultyText}
+                    </Badge>
+                  )}
                 </div>
               )}
             </div>
@@ -354,7 +435,7 @@ function App() {
                 variant="outline"
                 onClick={handleOpenHistory}
                 className="min-w-32"
-                disabled={!isPuzzlePage}
+                disabled={!isPuzzlePage || isDirectPuzzle}
               >
                 {copy.app.viewHistory}
               </Button>
@@ -364,17 +445,19 @@ function App() {
 
         {isPuzzlePage ? (
           <>
-            {!started ? (
+            {!activeStarted ? (
               <Card className="mx-auto max-w-lg border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card">
                 <div className="space-y-3 text-center">
                   <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{puzzleName}</h2>
                   <div className="flex flex-wrap items-center justify-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                    >
-                      {difficultyText}
-                    </Badge>
+                    {difficultyText && (
+                      <Badge
+                        variant="outline"
+                        className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
+                      >
+                        {difficultyText}
+                      </Badge>
+                    )}
                     <span className="text-sm font-medium text-muted-foreground">
                       {copy.app.puzzleNumber(daily.index + 1)}
                     </span>
@@ -390,13 +473,13 @@ function App() {
               <>
                 <div className="mb-4 grid gap-2 border-b px-1 pb-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
                   <div className="text-xl font-semibold text-foreground sm:text-left sm:text-2xl">
-                    {copy.app.elapsedTime(elapsedTime)}
+                    {copy.app.elapsedTime(activeElapsedTime)}
                   </div>
                   <div className="text-base text-muted-foreground sm:text-center">
-                    {copy.app.puzzleSummary(puzzleName, daily.index + 1)}
+                    {isDirectPuzzle ? metadata.title : copy.app.puzzleSummary(puzzleName, daily.index + 1)}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    {hasResult && (
+                    {!isDirectPuzzle && hasResult && (
                       <Button onClick={handleViewResult} variant="ghost" size="sm">
                         {copy.app.viewResults}
                       </Button>
@@ -626,13 +709,15 @@ function App() {
           </div>
         )}
 
-        <CompletionModal
-          isOpen={resultOpen}
-          time={resultTime}
-          onClose={closeCompletion}
-          puzzleType={daily?.puzzle.type || 'nurikabe'}
-          dateStr={daily.dateStr}
-        />
+        {!isDirectPuzzle && (
+          <CompletionModal
+            isOpen={resultOpen}
+            time={resultTime}
+            onClose={closeCompletion}
+            puzzleType={daily?.puzzle.type || 'nurikabe'}
+            dateStr={daily.dateStr}
+          />
+        )}
         {restartDialogOpen && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3"

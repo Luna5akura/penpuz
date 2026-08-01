@@ -1,6 +1,7 @@
 import type { MagicSnailCell, MagicSnailPuzzleData } from '../types';
 import type { NumberPlacementValidationResult } from '../shared/NumberPlacementBoard';
 import {
+  type CellCoord,
   decodeCustomPayload,
   getCellKey,
   isPositiveGridSize,
@@ -10,6 +11,7 @@ import {
 interface MagicSnailPayload {
   numbers?: unknown;
   cells?: unknown;
+  start?: unknown;
 }
 
 function parseNumbers(candidate: unknown): number[] | null {
@@ -38,6 +40,168 @@ function parseCells(candidate: unknown, width: number, height: number, allowedNu
   return rows;
 }
 
+function parseStart(candidate: unknown, width: number, height: number): CellCoord | undefined | null {
+  if (candidate === null || candidate === undefined) return undefined;
+
+  if (Array.isArray(candidate)) {
+    const [row, col] = candidate;
+    return Number.isInteger(row) && Number.isInteger(col) && row >= 0 && row < height && col >= 0 && col < width
+      ? { row, col }
+      : null;
+  }
+
+  if (typeof candidate === 'object') {
+    const cell = candidate as Partial<CellCoord>;
+    return Number.isInteger(cell.row) &&
+      Number.isInteger(cell.col) &&
+      cell.row >= 0 &&
+      cell.row < height &&
+      cell.col >= 0 &&
+      cell.col < width
+      ? { row: cell.row, col: cell.col }
+      : null;
+  }
+
+  return null;
+}
+
+function parseSequentialNumbers(candidate: string): number[] | null {
+  const count = Number(candidate);
+  if (!Number.isInteger(count) || count <= 0) return null;
+  return Array.from({ length: count }, (_, index) => index + 1);
+}
+
+function parseHexSlice(encoded: string, start: number, length: number): number | null {
+  const value = encoded.slice(start, start + length);
+  return value.length === length && /^[0-9a-f]+$/i.test(value) ? parseInt(value, 16) : null;
+}
+
+function readNumber16(encoded: string, index: number): [number | null, number] {
+  const char = encoded[index];
+  if (char === undefined) return [null, 0];
+  if ((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
+    return [parseInt(char, 16), 1];
+  }
+  if (char === '-') {
+    const value = parseHexSlice(encoded, index + 1, 2);
+    return value === null ? [null, 0] : [value, 3];
+  }
+  if (char === '+') {
+    const value = parseHexSlice(encoded, index + 1, 3);
+    return value === null ? [null, 0] : [value, 4];
+  }
+  if (char === '=') {
+    const value = parseHexSlice(encoded, index + 1, 3);
+    return value === null ? [null, 0] : [value + 4096, 4];
+  }
+  if (char === '%' || char === '@') {
+    const value = parseHexSlice(encoded, index + 1, 3);
+    return value === null ? [null, 0] : [value + 8192, 4];
+  }
+  if (char === '*') {
+    const value = parseHexSlice(encoded, index + 1, 4);
+    return value === null ? [null, 0] : [value + 12240, 5];
+  }
+  if (char === '$') {
+    const value = parseHexSlice(encoded, index + 1, 5);
+    return value === null ? [null, 0] : [value + 77776, 6];
+  }
+  return [null, 0];
+}
+
+function parseCompactNumberCells(
+  encoded: string,
+  width: number,
+  height: number,
+  allowedNumbers: Set<number>
+): { cells: MagicSnailCell[][]; rest: string } | null {
+  const totalCells = width * height;
+  const cells = Array<MagicSnailCell>(totalCells).fill(null);
+  let cellIndex = 0;
+  let stringIndex = 0;
+
+  while (stringIndex < encoded.length && cellIndex < cells.length) {
+    const char = encoded[stringIndex];
+
+    if (char === '.') {
+      cells[cellIndex] = 'block';
+      cellIndex++;
+      stringIndex++;
+      continue;
+    }
+
+    const [value, consumed] = readNumber16(encoded, stringIndex);
+
+    if (consumed > 0) {
+      if (value !== null && !allowedNumbers.has(value)) return null;
+      cells[cellIndex] = value;
+      cellIndex++;
+      stringIndex += consumed;
+      continue;
+    }
+
+    if (char >= 'g' && char <= 'z') {
+      cellIndex += parseInt(char, 36) - 15;
+      stringIndex++;
+      continue;
+    }
+
+    return null;
+  }
+
+  if (cellIndex !== cells.length) return null;
+
+  return {
+    cells: Array.from({ length: height }, (_, row) => cells.slice(row * width, (row + 1) * width)),
+    rest: encoded.slice(stringIndex),
+  };
+}
+
+function parseCompactStartPrefix(encoded: string, width: number, height: number): CellCoord | undefined | null {
+  if (!encoded) return undefined;
+
+  const totalCells = width * height;
+  let cellIndex = 0;
+
+  for (const char of encoded) {
+    if (char < 'i' || char > 'z') return null;
+
+    const value = parseInt(char, 36);
+    if (!Number.isFinite(value)) return null;
+    cellIndex += value - 17;
+    if (cellIndex >= totalCells) return null;
+  }
+
+  return { row: Math.floor(cellIndex / width), col: cellIndex % width };
+}
+
+function parseCompactMagicSnailData(parts: string[], width: number, height: number): MagicSnailPuzzleData | null {
+  if (parts.length < 5) return null;
+
+  const numbers = parseSequentialNumbers(parts[3]);
+  if (!numbers) return null;
+
+  const encodedData = parts.slice(4).join('/').replace(/\/+$/u, '');
+  if (!encodedData) return null;
+  const allowedNumbers = new Set(numbers);
+  const direct = parseCompactNumberCells(encodedData, width, height, allowedNumbers);
+  if (direct?.rest === '') {
+    return { type: 'snail', width, height, numbers, cells: direct.cells };
+  }
+
+  for (let splitIndex = 1; splitIndex < encodedData.length; splitIndex++) {
+    const start = parseCompactStartPrefix(encodedData.slice(0, splitIndex), width, height);
+    if (start === null) continue;
+
+    const decoded = parseCompactNumberCells(encodedData.slice(splitIndex), width, height, allowedNumbers);
+    if (decoded?.rest === '') {
+      return { type: 'snail', width, height, numbers, cells: decoded.cells };
+    }
+  }
+
+  return null;
+}
+
 export function parseMagicSnailLink(link: string): MagicSnailPuzzleData | null {
   try {
     const parts = parsePuzzLinkParts(link);
@@ -47,6 +211,9 @@ export function parseMagicSnailLink(link: string): MagicSnailPuzzleData | null {
     const height = Number(parts[2]);
     if (!isPositiveGridSize(width, height)) return null;
 
+    const compactPuzzle = parseCompactMagicSnailData(parts, width, height);
+    if (compactPuzzle) return compactPuzzle;
+
     const payload = decodeCustomPayload<MagicSnailPayload>(parts.slice(3).join('/'));
     if (!payload) return null;
 
@@ -55,14 +222,16 @@ export function parseMagicSnailLink(link: string): MagicSnailPuzzleData | null {
 
     const cells = parseCells(payload.cells, width, height, new Set(numbers));
     if (!cells) return null;
+    const start = parseStart(payload.start, width, height);
+    if (start === null) return null;
 
-    return { type: 'snail', width, height, numbers, cells };
+    return { type: 'snail', width, height, numbers, cells, start };
   } catch {
     return null;
   }
 }
 
-export function getMagicSnailSpiralPath(width: number, height: number) {
+export function getMagicSnailSpiralPath(width: number, height: number, start?: CellCoord) {
   const path: Array<{ row: number; col: number }> = [];
   let top = 0;
   let bottom = height - 1;
@@ -84,7 +253,65 @@ export function getMagicSnailSpiralPath(width: number, height: number) {
     }
   }
 
-  return path;
+  if (!start) return path;
+
+  const startIndex = path.findIndex((cell) => cell.row === start.row && cell.col === start.col);
+  if (startIndex <= 0) return path;
+  return [...path.slice(startIndex), ...path.slice(0, startIndex)];
+}
+
+export function getMagicSnailStartCell(puzzle: MagicSnailPuzzleData) {
+  const { width, height, cells, start } = puzzle;
+  if (
+    start &&
+    start.row >= 0 &&
+    start.row < height &&
+    start.col >= 0 &&
+    start.col < width &&
+    cells[start.row][start.col] !== 'block'
+  ) {
+    return start;
+  }
+
+  return getMagicSnailSpiralPath(width, height).find((cell) => cells[cell.row][cell.col] !== 'block') ?? null;
+}
+
+export function getMagicSnailBoundaryLines(width: number, height: number) {
+  const lines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  if (width <= 1 || height <= 1) return lines;
+
+  let x = 0;
+  let y = 1;
+  let horizontalLength = width - 1;
+  let verticalLength = height - 2;
+  let directionIndex = 0;
+  const directions = [
+    { x: 1, y: 0 },
+    { x: 0, y: 1 },
+    { x: -1, y: 0 },
+    { x: 0, y: -1 },
+  ];
+
+  while (horizontalLength > 0 || verticalLength > 0) {
+    const length = directionIndex % 2 === 0 ? horizontalLength : verticalLength;
+    if (length <= 0) break;
+
+    const direction = directions[directionIndex % directions.length];
+    const nextX = x + direction.x * length;
+    const nextY = y + direction.y * length;
+    lines.push({ x1: x, y1: y, x2: nextX, y2: nextY });
+    x = nextX;
+    y = nextY;
+
+    if (directionIndex % 2 === 0) {
+      horizontalLength--;
+    } else {
+      verticalLength--;
+    }
+    directionIndex++;
+  }
+
+  return lines;
 }
 
 function markLineDuplicates(
@@ -140,7 +367,8 @@ export function validateMagicSnail(
     }
   }
 
-  const filledAlongSpiral = getMagicSnailSpiralPath(width, height)
+  const start = getMagicSnailStartCell(puzzle);
+  const filledAlongSpiral = getMagicSnailSpiralPath(width, height, start ?? undefined)
     .filter((cell) => cells[cell.row][cell.col] !== 'block')
     .map((cell) => ({ ...cell, value: grid[cell.row][cell.col] }))
     .filter((cell): cell is { row: number; col: number; value: number } => cell.value !== null);
@@ -166,4 +394,3 @@ export function validateMagicSnail(
     }),
   };
 }
-
