@@ -78,6 +78,20 @@ if (!walkwalkExamplePuzzle) {
   throw new Error('Failed to parse the built-in Walkwalk example puzzle.');
 }
 
+const MAGIC_SNAIL_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?magic-snail/5/5/3/zh.m2i1m3h';
+const MAGIC_SNAIL_EXAMPLE_ANSWER_LINK =
+  'https://luna5akura.github.io/Atol-Solver/p.html?magic-snail/5/5/3/z12.g33g12g2h31g321h13g2';
+const magicSnailExamplePuzzle = parseMagicSnailLink(MAGIC_SNAIL_EXAMPLE_LINK);
+const magicSnailExampleAnswer = parseMagicSnailLink(MAGIC_SNAIL_EXAMPLE_ANSWER_LINK);
+
+if (!magicSnailExamplePuzzle || !magicSnailExampleAnswer) {
+  throw new Error('Failed to parse the built-in Magic Snail example puzzle.');
+}
+
+const magicSnailExampleCorrectGrid = magicSnailExampleAnswer.cells.map((row) =>
+  row.map((cell) => (typeof cell === 'number' ? cell : null))
+);
+
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
   startTime: number;
@@ -1480,8 +1494,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（4×4）',
-        en: 'Example (4×4)',
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
       },
       playableLabel: {
         'zh-CN': '题面',
@@ -1493,21 +1507,12 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       example: {
         puzzleType: 'snail',
-        width: 4,
-        height: 4,
-        numbers: [1, 2, 3],
-        cells: [
-          [1, null, null, null],
-          [null, null, null, null],
-          [null, null, null, null],
-          [null, null, null, null],
-        ],
-        correctGrid: [
-          [1, 2, 3, null],
-          [null, null, null, 1],
-          [null, null, null, 2],
-          [null, null, null, 3],
-        ],
+        width: magicSnailExamplePuzzle.width,
+        height: magicSnailExamplePuzzle.height,
+        numbers: magicSnailExamplePuzzle.numbers,
+        cells: magicSnailExamplePuzzle.cells,
+        start: magicSnailExamplePuzzle.start,
+        correctGrid: magicSnailExampleCorrectGrid,
       },
     },
     renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (

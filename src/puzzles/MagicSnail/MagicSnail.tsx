@@ -1,4 +1,5 @@
 import { useCallback, useMemo } from 'react';
+import { useI18n } from '@/i18n/useI18n';
 import NumberPlacementBoard, { type NumberPlacementCellValue } from '../shared/NumberPlacementBoard';
 import type { MagicSnailPuzzleData } from '../types';
 import {
@@ -99,6 +100,7 @@ export default function MagicSnailBoard({
   fixedCellSize,
   showValidationMessage,
 }: Props) {
+  const { copy } = useI18n();
   const getFixedValue = useCallback(
     (row: number, col: number) => {
       const cell = puzzle.cells[row][col];
@@ -129,36 +131,48 @@ export default function MagicSnailBoard({
     },
     [puzzle.cells]
   );
+  const numberRange = useMemo(
+    () => ({
+      min: Math.min(...puzzle.numbers),
+      max: Math.max(...puzzle.numbers),
+    }),
+    [puzzle.numbers]
+  );
 
   return (
-    <NumberPlacementBoard
-      puzzle={puzzle}
-      numbers={puzzle.numbers}
-      startTime={startTime}
-      resetToken={resetToken}
-      onComplete={onComplete}
-      validate={validateMagicSnail}
-      getFixedValue={getFixedValue}
-      isBlockedCell={isBlockedCell}
-      renderBlockedCell={renderBlockedCell}
-      renderCellValue={renderMagicSnailCellValue}
-      renderOverlay={(cellSize, boardWidthPx, boardHeightPx) => (
-        <MagicSnailOverlay
-          puzzle={puzzle}
-          cellSize={cellSize}
-          boardWidthPx={boardWidthPx}
-          boardHeightPx={boardHeightPx}
-        />
-      )}
-      getCellTone={getCellTone}
-      extraCellValues={magicSnailExtraValues}
-      cellInputMode="cycle"
-      cycleValues={cycleValues}
-      showValueButtons={false}
-      initialSnapshot={initialSnapshot}
-      onSnapshotChange={onSnapshotChange}
-      fixedCellSize={fixedCellSize}
-      showValidationMessage={showValidationMessage}
-    />
+    <div className="flex w-full flex-col items-center gap-3">
+      <div className="w-full text-right text-sm font-semibold text-muted-foreground">
+        {copy.shared.numberRange(numberRange.min, numberRange.max)}
+      </div>
+      <NumberPlacementBoard
+        puzzle={puzzle}
+        numbers={puzzle.numbers}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        validate={validateMagicSnail}
+        getFixedValue={getFixedValue}
+        isBlockedCell={isBlockedCell}
+        renderBlockedCell={renderBlockedCell}
+        renderCellValue={renderMagicSnailCellValue}
+        renderOverlay={(cellSize, boardWidthPx, boardHeightPx) => (
+          <MagicSnailOverlay
+            puzzle={puzzle}
+            cellSize={cellSize}
+            boardWidthPx={boardWidthPx}
+            boardHeightPx={boardHeightPx}
+          />
+        )}
+        getCellTone={getCellTone}
+        extraCellValues={magicSnailExtraValues}
+        cellInputMode="cycle"
+        cycleValues={cycleValues}
+        showValueButtons={false}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+        fixedCellSize={fixedCellSize}
+        showValidationMessage={showValidationMessage}
+      />
+    </div>
   );
 }
