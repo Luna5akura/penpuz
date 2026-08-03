@@ -16,6 +16,7 @@ import {
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import { getEdgeKey, getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
+import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 
 type AdditionalPuzzleExampleData = Extract<
   PuzzleExample,
@@ -372,7 +373,7 @@ function NumberGridBoard({
           const cell = cells[row][col];
           const isBlock = cell === 'block' || (cell !== null && typeof cell === 'object');
           const clue = cell && typeof cell === 'object' && 'sum' in cell && 'count' in cell
-            ? cell as { sum: number; count: number }
+            ? cell as { sum: number | null; count: number }
             : null;
           const value = values?.[row]?.[col] ?? (typeof cell === 'number' ? cell : null);
 
@@ -385,12 +386,7 @@ function NumberGridBoard({
                 ...getBoardTextStyle(CELL_SIZE, clue ? 0.31 : 0.68, clue ? 13 : 22),
               }}
             >
-              {clue ? (
-                <span className="flex flex-col items-center">
-                  <span>{clue.sum}</span>
-                  <span className="mt-0.5 border-t border-white/65 px-1 pt-0.5">{clue.count}</span>
-                </span>
-              ) : value}
+              {clue ? <SlovakSumsClue sum={clue.sum} count={clue.count} cellSize={CELL_SIZE} /> : value}
             </div>
           );
         }}

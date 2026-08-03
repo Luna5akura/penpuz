@@ -166,6 +166,28 @@ export interface LakesPuzzleData {
   clues: NurikabeClue[];
 }
 
+export type TapaClueValue = number | '?';
+export type TapaClue = TapaClueValue[];
+
+export interface TapaPuzzleData {
+  type: 'tapa';
+  width: number;
+  height: number;
+  clues: (TapaClue | null)[][];
+}
+
+export type MagicSummerCell = number | 'block' | null;
+
+export interface MagicSummerPuzzleData {
+  type: 'magic-summer';
+  width: number;
+  height: number;
+  numbers: number[];
+  rowSums: (number | null)[];
+  columnSums: (number | null)[];
+  cells: MagicSummerCell[][];
+}
+
 export interface DominoSearchPuzzleData {
   type: 'domino-search';
   width: number;
@@ -189,7 +211,7 @@ export interface MagicSnailPuzzleData {
 }
 
 export interface SlovakSumsClueCell {
-  sum: number;
+  sum: number | null;
   count: number;
 }
 
@@ -218,6 +240,8 @@ export type PuzzleData =
   | SlitherlinkPuzzleData
   | LitsPuzzleData
   | LakesPuzzleData
+  | TapaPuzzleData
+  | MagicSummerPuzzleData
   | DominoSearchPuzzleData
   | MagicSnailPuzzleData
   | SlovakSumsPuzzleData;
@@ -353,6 +377,23 @@ export type PuzzleExample =
       height: number;
       clues: NurikabeClue[];
       correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'tapa';
+      width: number;
+      height: number;
+      clues: (TapaClue | null)[][];
+      correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'magic-summer';
+      width: number;
+      height: number;
+      numbers: number[];
+      rowSums: (number | null)[];
+      columnSums: (number | null)[];
+      cells: MagicSummerCell[][];
+      correctGrid: (number | null)[][];
     }
   | {
       puzzleType: 'domino-search';

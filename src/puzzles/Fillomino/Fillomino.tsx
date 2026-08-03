@@ -5,6 +5,7 @@ import type { FillominoPuzzleData } from '../types';
 import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from './utils';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
+import { getKeyboardDigit, isKeyboardInputTarget } from '@/lib/keyboard';
 import { getTrialLevelColors } from '../trialStyles';
 import {
   boardClassNames,
@@ -40,6 +41,7 @@ type FillominoSnapshot = {
 };
 
 const BOARD_PADDING = commonBoardChrome.padding;
+const KEYBOARD_ENTRY_TIMEOUT_MS = 1000;
 
 function normalizeFillominoSnapshot(snapshot: unknown, fallback: FillominoSnapshot): FillominoSnapshot {
   const source = snapshot as Partial<FillominoSnapshot> | null | undefined;
@@ -89,6 +91,7 @@ export default function FillominoBoard({
   const [numpadTarget, setNumpadTarget] = useState<{ row: number; col: number } | null>(null);
 
   const hoveredCellRef = useRef<{ row: number; col: number } | null>(null);
+  const keyboardEntryRef = useRef<{ row: number; col: number; text: string; timestamp: number } | null>(null);
   const isDragging = useRef(false);
   const startRow = useRef(-1);
   const startCol = useRef(-1);
@@ -102,6 +105,8 @@ export default function FillominoBoard({
   const boundaryOperationRef = useRef<'add' | 'delete' | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const suppressTapRef = useRef(false);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  const resetBoardRef = useRef<() => void>(() => {});
 
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const longPressThreshold = 500;
@@ -124,8 +129,8 @@ export default function FillominoBoard({
     deepLineLevels: {},
   }), [clues]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeFillominoSnapshot(initialSnapshot, createInitialSnapshot());
-  }, [createInitialSnapshot, initialSnapshot]);
+    return normalizeFillominoSnapshot(initialSnapshotRef.current, createInitialSnapshot());
+  }, [createInitialSnapshot]);
   const history = usePuzzleHistory<FillominoSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...normalizeFillominoSnapshot(trialSnapshot, createInitialSnapshot()),
@@ -180,9 +185,14 @@ export default function FillominoBoard({
   }, [width]);
 
   useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
+
+  const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
     queueMicrotask(resetTransientUiState);
     hoveredCellRef.current = null;
+    keyboardEntryRef.current = null;
     isDragging.current = false;
     startRow.current = -1;
     startCol.current = -1;
@@ -199,7 +209,15 @@ export default function FillominoBoard({
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
-  }, [getResetSnapshot, puzzle, reset, resetToken, resetTransientUiState]);
+  }, [getResetSnapshot, reset, resetTransientUiState]);
+
+  useEffect(() => {
+    resetBoardRef.current = resetBoard;
+  }, [resetBoard]);
+
+  useEffect(() => {
+    resetBoardRef.current();
+  }, [puzzle, resetToken]);
 
   // ==================== 关键修复：带完成守卫的验证逻辑 ====================
   const validate = useCallback(() => {
@@ -220,6 +238,7 @@ export default function FillominoBoard({
 
   // ==================== 键盘输入（带详细调试日志） ====================
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (isKeyboardInputTarget(e.target)) return;
     const hovered = hoveredCellRef.current;
     if (!hovered) return;
 
@@ -230,6 +249,7 @@ export default function FillominoBoard({
 
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
+      keyboardEntryRef.current = null;
       applyChange((currentSnapshot) => {
         const newGrid = currentSnapshot.grid.map(r => [...r]);
         const newGridLevels = currentSnapshot.gridLevels.map(r => [...r]);
@@ -244,17 +264,39 @@ export default function FillominoBoard({
       return;
     }
 
-    // 新增：同时支持主键盘和小键盘数字键
-    let num: number | null = null;
-    if (e.key >= '1' && e.key <= '9') {
-      num = parseInt(e.key);
-    } else if (e.key.startsWith('Numpad') && e.key.length === 7) {
-      const n = parseInt(e.key.slice(6));
-      if (n >= 1 && n <= 9) num = n;
+    const num = getKeyboardDigit(e);
+    if (num === null) return;
+
+    const now = Date.now();
+    const previousEntry = keyboardEntryRef.current;
+    const canAppend = previousEntry !== null &&
+      previousEntry.row === row &&
+      previousEntry.col === col &&
+      now - previousEntry.timestamp <= KEYBOARD_ENTRY_TIMEOUT_MS;
+    const nextText = canAppend ? `${previousEntry.text}${num}` : String(num);
+    const nextNumber = Number(nextText);
+
+    if (nextNumber >= 1 && nextNumber <= 99 && nextText.length <= 2) {
+      e.preventDefault();
+      keyboardEntryRef.current = { row, col, text: nextText, timestamp: now };
+      applyChange((currentSnapshot) => {
+        const newGrid = currentSnapshot.grid.map(r => [...r]);
+        const newGridLevels = currentSnapshot.gridLevels.map(r => [...r]);
+        newGrid[row][col] = nextNumber;
+        newGridLevels[row][col] = trialActive ? currentTrialLevel : 0;
+        return {
+          ...currentSnapshot,
+          grid: newGrid,
+          gridLevels: newGridLevels,
+        };
+      });
+      return;
     }
 
-    if (num !== null) {
+    keyboardEntryRef.current = null;
+    if (num >= 1 && num <= 9) {
       e.preventDefault();
+      keyboardEntryRef.current = { row, col, text: String(num), timestamp: now };
       applyChange((currentSnapshot) => {
         const newGrid = currentSnapshot.grid.map(r => [...r]);
         const newGridLevels = currentSnapshot.gridLevels.map(r => [...r]);
@@ -501,6 +543,7 @@ export default function FillominoBoard({
     if (!isDragging.current) {           // ← 新增
       hoveredCellRef.current = { row: r, col: c };
     }
+    keyboardEntryRef.current = null;
     e.preventDefault();
     e.stopPropagation();
     if (e.button === 2) e.preventDefault();
@@ -672,6 +715,7 @@ export default function FillominoBoard({
                   onMouseEnter={() => {
                     if (!isPreFilled) {
                       hoveredCellRef.current = { row: r, col: c };
+                      keyboardEntryRef.current = null;
                     }
                   }}
                   onMouseLeave={() => {

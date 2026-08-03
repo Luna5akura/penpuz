@@ -13,6 +13,8 @@ import WalkwalkBoard from './Walkwalk/Walkwalk';
 import SlitherlinkBoard from './Slitherlink/Slitherlink';
 import LitsBoard from './Lits/Lits';
 import LakesBoard from './Lakes/Lakes';
+import TapaBoard from './Tapa/Tapa';
+import MagicSummerBoard from './MagicSummer/MagicSummer';
 import DominoSearchBoard from './DominoSearch/DominoSearch';
 import MagicSnailBoard from './MagicSnail/MagicSnail';
 import SlovakSumsBoard from './SlovakSums/SlovakSums';
@@ -42,6 +44,8 @@ import { parseWalkwalkLink } from './Walkwalk/utils';
 import { parseSlitherlinkLink } from './Slitherlink/utils';
 import { parseLitsLink } from './Lits/utils';
 import { parseLakesLink } from './Lakes/utils';
+import { parseTapaLink } from './Tapa/utils';
+import { parseMagicSummerLink } from './MagicSummer/utils';
 import { parseDominoSearchLink } from './DominoSearch/utils';
 import { parseMagicSnailLink } from './MagicSnail/utils';
 import { parseSlovakSumsLink } from './SlovakSums/utils';
@@ -66,10 +70,14 @@ import type {
   KurarinPuzzleData,
   SlitherlinkPuzzleData,
   SlovakSumsPuzzleData,
+  MagicSummerPuzzleData,
+  TapaPuzzleData,
   WalkwalkPuzzleData,
   YajilinPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
+import TapaExample from '../components/examples/TapaExample';
+import MagicSummerExample from '../components/examples/MagicSummerExample';
 
 const WALKWALK_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/5/5/8gh20v00l1g6m7l3g';
 const walkwalkExamplePuzzle = parseWalkwalkLink(WALKWALK_EXAMPLE_LINK);
@@ -91,6 +99,38 @@ if (!magicSnailExamplePuzzle || !magicSnailExampleAnswer) {
 const magicSnailExampleCorrectGrid = magicSnailExampleAnswer.cells.map((row) =>
   row.map((cell) => (typeof cell === 'number' ? cell : null))
 );
+
+const TAPA_EXAMPLE_LINK = 'https://puzz.link/p?tapa/6/6/1ia71a86gaaajjafhad6g7g42j22g4321';
+const tapaExamplePuzzle = parseTapaLink(TAPA_EXAMPLE_LINK);
+
+if (!tapaExamplePuzzle) {
+  throw new Error('Failed to parse the built-in Tapa example puzzle.');
+}
+
+const tapaExampleCorrectSolution: (0 | 1)[][] = [
+  [0, 1, 1, 1, 0, 0],
+  [0, 0, 1, 0, 0, 1],
+  [1, 1, 1, 0, 1, 1],
+  [0, 0, 1, 0, 1, 0],
+  [0, 1, 1, 1, 1, 0],
+  [0, 1, 0, 0, 0, 0],
+];
+
+const MAGIC_SUMMER_EXAMPLE_LINK =
+  'https://luna5akura.github.io/Atol-Solver/p.html?magic-summer/5/5/3/15,6,15,15,15/15,6,15,15,15/1h3./2h.1/h.12/3.g2g/.g2g3';
+const magicSummerExamplePuzzle = parseMagicSummerLink(MAGIC_SUMMER_EXAMPLE_LINK);
+
+if (!magicSummerExamplePuzzle) {
+  throw new Error('Failed to parse the built-in Magic Summer example puzzle.');
+}
+
+const magicSummerExampleCorrectGrid: (number | null)[][] = [
+  [1, 2, null, 3, null],
+  [2, null, 3, null, 1],
+  [null, 3, null, 1, 2],
+  [3, null, 1, 2, null],
+  [null, 1, 2, null, 3],
+];
 
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
@@ -123,6 +163,8 @@ type PuzzleRegistry = {
   slither: PuzzleRegistryEntry<SlitherlinkPuzzleData>;
   lits: PuzzleRegistryEntry<LitsPuzzleData>;
   lakes: PuzzleRegistryEntry<LakesPuzzleData>;
+  tapa: PuzzleRegistryEntry<TapaPuzzleData>;
+  'magic-summer': PuzzleRegistryEntry<MagicSummerPuzzleData>;
   'domino-search': PuzzleRegistryEntry<DominoSearchPuzzleData>;
   snail: PuzzleRegistryEntry<MagicSnailPuzzleData>;
   'slovak-sums': PuzzleRegistryEntry<SlovakSumsPuzzleData>;
@@ -1387,6 +1429,159 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  tapa: {
+    parsePuzzLink: parseTapaLink,
+    template: {
+      type: 'tapa',
+      name: {
+        'zh-CN': 'Tapa',
+        en: 'Tapa',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '涂黑一些空格，使得所有涂黑格连成一个整体，且不能出现2×2全黑区域。',
+          '线索格不能涂黑；线索中的数字表示周围八格中每一段连续黑格的长度，顺序不限。',
+          '问号可代表任意正整数；如果线索格中只有一个问号，也允许周围没有黑格。',
+        ],
+        en: [
+          'Shade cells so that all shaded cells form one orthogonally connected area, with no fully shaded 2×2 block.',
+          'Clue cells cannot be shaded. Their numbers give the lengths of the consecutive shaded runs around the eight neighboring cells, in any order.',
+          'A question mark can represent any positive length; a lone question mark can also represent no shaded neighbors.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'tapa',
+        width: tapaExamplePuzzle.width,
+        height: tapaExamplePuzzle.height,
+        clues: tapaExamplePuzzle.clues,
+        correctSolution: tapaExampleCorrectSolution,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <TapaBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'tapa') {
+        throw new Error('Tapa template example type mismatch.');
+      }
+
+      return (
+        <TapaExample
+          width={example.width}
+          height={example.height}
+          clues={example.clues}
+          correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  'magic-summer': {
+    parsePuzzLink: parseMagicSummerLink,
+    template: {
+      type: 'magic-summer',
+      name: {
+        'zh-CN': '魔夏',
+        en: 'Magic Summer',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在空格中填入给出的数码，使每个数码在每行和每列都恰好出现一次。',
+          '盘面外的数字表示该行或该列中所有连续数码段组成的多位数之和。',
+          '有叉标记的格子不能填数，部分数码可能已经给出。',
+        ],
+        en: [
+          'Fill cells with digits from the given list so that every digit appears exactly once in each row and column.',
+          'An outside clue gives the sum of the multi-digit numbers formed by each consecutive run of filled cells in that row or column.',
+          'Crossed cells cannot contain digits, and some digits may already be given.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'magic-summer',
+        width: magicSummerExamplePuzzle.width,
+        height: magicSummerExamplePuzzle.height,
+        numbers: magicSummerExamplePuzzle.numbers,
+        rowSums: magicSummerExamplePuzzle.rowSums,
+        columnSums: magicSummerExamplePuzzle.columnSums,
+        cells: magicSummerExamplePuzzle.cells,
+        correctGrid: magicSummerExampleCorrectGrid,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <MagicSummerBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'magic-summer') {
+        throw new Error('Magic Summer template example type mismatch.');
+      }
+
+      return (
+        <MagicSummerExample
+          puzzle={{
+            type: 'magic-summer',
+            width: example.width,
+            height: example.height,
+            numbers: example.numbers,
+            rowSums: example.rowSums,
+            columnSums: example.columnSums,
+            cells: example.cells,
+          }}
+          correctGrid={example.correctGrid}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
   'domino-search': {
     parsePuzzLink: parseDominoSearchLink,
     template: {
@@ -1556,12 +1751,12 @@ export const puzzleRegistry: PuzzleRegistry = {
         'zh-CN': [
           '在白格中填入给定数字列表中的数字。',
           '每一行和每一列都必须恰好包含一次每个指定数字。',
-          '黑格中的上方数字表示其正交相邻白格中已填数字的总和，下方数字表示这些相邻已填数字的数量。',
+          '黑格中的上方数字表示其正交相邻白格中已填数字的总和，白色圆点数量表示这些相邻已填数字的数量；没有圆点表示数量未知。',
         ],
         en: [
           'Fill white cells with numbers from the given list.',
           'Each row and each column must contain each listed number exactly once.',
-          'In a black clue cell, the upper number gives the sum of adjacent filled numbers, and the lower number gives how many adjacent filled numbers are used.',
+          'In a black clue cell, the upper number gives the sum of adjacent filled numbers, and the white dots give how many adjacent cells contain numbers; no dots means the amount is unknown.',
         ],
       },
       exampleTitle: {
@@ -1634,6 +1829,7 @@ export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
   const aliases: Record<string, PuzzleType> = {
     slitherlink: 'slither',
     'magic-snail': 'snail',
+    magic: 'magic-summer',
     slovaksums: 'slovak-sums',
   };
   if (type in aliases) {

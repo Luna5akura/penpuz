@@ -2,6 +2,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import { getPuzzleTemplate } from '@/puzzles/registry';
+import type { PuzzleType } from '@/puzzles/types';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 
@@ -9,7 +10,7 @@ interface Props {
   isOpen: boolean;
   time: number;
   onClose: () => void;
-  puzzleType: 'nurikabe' | 'fillomino' | 'yajilin' | 'starbattle' | 'heyawake' | 'aqre' | 'mintonette' | 'nikoji' | 'akari' | 'kurarin' | 'walkwalk';
+  puzzleType: PuzzleType;
   dateStr: string;
 }
 

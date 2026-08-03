@@ -472,7 +472,11 @@ function normalizeStoredDraftBlock(value: unknown): DraftBlock | null {
     puzzleType: (typeof record.puzzleType === 'string' ? record.puzzleType : puzzle?.type ?? 'nurikabe') as PuzzleType,
     puzzleLink,
     ...(puzzle ? { puzzle } : {}),
-    importError: typeof record.importError === 'string' ? record.importError : null,
+    importError: linkedPuzzle
+      ? null
+      : typeof record.importError === 'string'
+        ? record.importError
+        : null,
     titleZh: getRecordString(record, 'titleZh', '过程'),
     titleEn: getRecordString(record, 'titleEn', 'Process'),
     width,

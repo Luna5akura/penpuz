@@ -109,14 +109,16 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
     lastCell: null,
   });
   const hasCompleted = useRef(false);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  const resetBoardRef = useRef<() => void>(() => {});
 
   const createInitialSnapshot = useCallback<() => ShadingSnapshot>(() => ({
     grid: createEmptyShadingGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
   const getResetSnapshot = useCallback(
-    () => normalizeShadingSnapshot(initialSnapshot, width, height),
-    [height, initialSnapshot, width]
+    () => normalizeShadingSnapshot(initialSnapshotRef.current, width, height),
+    [height, width]
   );
 
   const history = usePuzzleHistory<ShadingSnapshot>(createInitialSnapshot(), {
@@ -169,6 +171,10 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
     return () => window.removeEventListener('resize', updateSize);
   }, []);
 
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
+
   const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
     pointerState.current = {
@@ -182,8 +188,12 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   }, [getResetSnapshot, reset]);
 
   useEffect(() => {
-    resetBoard();
-  }, [puzzle, resetBoard, resetToken]);
+    resetBoardRef.current = resetBoard;
+  }, [resetBoard]);
+
+  useEffect(() => {
+    resetBoardRef.current();
+  }, [puzzle, resetToken]);
 
   useEffect(() => {
     if (!validation.valid || hasCompleted.current) return;

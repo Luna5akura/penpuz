@@ -3,6 +3,7 @@ import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } fr
 import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
 import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
 import { useI18n } from '@/i18n/useI18n';
+import { getKeyboardDigit } from '@/lib/keyboard';
 import {
   boardClassNames,
   commonBoardChrome,
@@ -15,6 +16,7 @@ import {
 import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from '../../puzzles/Fillomino/utils';
 
 const BOARD_PADDING = commonBoardChrome.padding;
+const KEYBOARD_ENTRY_TIMEOUT_MS = 1000;
 
 interface Props {
   width: number;
@@ -51,6 +53,7 @@ export default function FillominoExample({
   const [numpadTarget, setNumpadTarget] = useState<{ row: number; col: number } | null>(null);
 
   const hoveredCellRef = useRef<{ row: number; col: number } | null>(null);
+  const keyboardEntryRef = useRef<{ row: number; col: number; text: string; timestamp: number } | null>(null);
   const isDragging = useRef(false);
   const startRow = useRef(-1);
   const startCol = useRef(-1);
@@ -95,14 +98,33 @@ export default function FillominoExample({
     const { row, col } = hovered;
     if (cluesGrid[row][col] !== null) return;
 
-    let num: number | null = null;
-    if (e.key >= '1' && e.key <= '9') num = parseInt(e.key);
-    else if (e.key.startsWith('Numpad') && e.key.length === 7) {
-      const n = parseInt(e.key.slice(6));
-      if (n >= 1 && n <= 9) num = n;
-    }
-    if (num !== null) {
+    const num = getKeyboardDigit(e);
+    if (num === null) return;
+
+    const now = Date.now();
+    const previousEntry = keyboardEntryRef.current;
+    const canAppend = previousEntry !== null &&
+      previousEntry.row === row &&
+      previousEntry.col === col &&
+      now - previousEntry.timestamp <= KEYBOARD_ENTRY_TIMEOUT_MS;
+    const nextText = canAppend ? `${previousEntry.text}${num}` : String(num);
+    const nextNumber = Number(nextText);
+
+    if (nextNumber >= 1 && nextNumber <= 99 && nextText.length <= 2) {
       e.preventDefault();
+      keyboardEntryRef.current = { row, col, text: nextText, timestamp: now };
+      setGrid(prev => {
+        const newGrid = prev.map(r => [...r]);
+        newGrid[row][col] = nextNumber;
+        return newGrid;
+      });
+      return;
+    }
+
+    keyboardEntryRef.current = null;
+    if (num >= 1 && num <= 9) {
+      e.preventDefault();
+      keyboardEntryRef.current = { row, col, text: String(num), timestamp: now };
       setGrid(prev => {
         const newGrid = prev.map(r => [...r]);
         newGrid[row][col] = num;
@@ -322,6 +344,7 @@ export default function FillominoExample({
   }, []);
 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
+    keyboardEntryRef.current = null;
     e.preventDefault();
     e.stopPropagation();
     if (e.button === 2) e.preventDefault();

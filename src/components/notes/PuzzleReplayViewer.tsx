@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/types';
 import type { NotePuzzleReplayBlock } from '@/notes/types';
 import { getNotePuzzleTypeName } from '@/notes/puzzleTypeOptions';
+import { parsePuzzleLink } from '@/puzzles/registry';
 import { Badge } from '../ui/badge';
 import NotePuzzleBoard from './NotePuzzleBoard';
 
@@ -10,6 +11,8 @@ interface PuzzleReplayViewerProps {
 }
 
 function PuzzleReplayViewer({ replay, locale }: PuzzleReplayViewerProps) {
+  const puzzle = replay.puzzle ?? (replay.puzzleLink ? parsePuzzleLink(replay.puzzleLink) ?? undefined : undefined);
+
   return (
     <div className="min-w-0 border bg-[#fffdf9] p-3 dark:bg-gray-950">
       <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
@@ -33,7 +36,7 @@ function PuzzleReplayViewer({ replay, locale }: PuzzleReplayViewerProps) {
               {note ? <p className="break-words text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]">{note}</p> : null}
               <div className={note ? 'mt-3' : undefined}>
                 <NotePuzzleBoard
-                  puzzle={replay.puzzle}
+                  puzzle={puzzle}
                   puzzleType={replay.puzzleType}
                   width={replay.width}
                   height={replay.height}

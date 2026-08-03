@@ -68,6 +68,17 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
       return [isZh ? `${regionCount(puzzle.regionIds)} 个区域` : `${regionCount(puzzle.regionIds)} regions`];
     case 'lakes':
       return [isZh ? `${puzzle.clues.length} 个数字线索` : `${puzzle.clues.length} clues`];
+    case 'tapa':
+      return [isZh
+        ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个数字线索`
+        : `${matrixCount(puzzle.clues, (value) => value !== null)} clues`];
+    case 'magic-summer':
+      return [
+        isZh ? `${puzzle.numbers.length} 个可填数码` : `${puzzle.numbers.length} available digits`,
+        isZh
+          ? `${puzzle.rowSums.filter((value) => value !== null).length + puzzle.columnSums.filter((value) => value !== null).length} 个外侧和数`
+          : `${puzzle.rowSums.filter((value) => value !== null).length + puzzle.columnSums.filter((value) => value !== null).length} outside sums`,
+      ];
     case 'domino-search':
       return [
         isZh ? `${puzzle.dominoes.length} 个待找骨牌` : `${puzzle.dominoes.length} dominoes to find`,

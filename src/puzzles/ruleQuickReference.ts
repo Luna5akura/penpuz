@@ -3596,8 +3596,8 @@ export const ruleQuickReferenceItems: RuleQuickReferenceItem[] = [
     "chineseAlias": "斯洛伐克和",
     "category": "数字I",
     "ruleTags": "行列唯一",
-    "chineseRules": "在白格中填入给定数字列表中的数字。每一行和每一列都必须恰好包含一次每个指定数字。黑格中的上方数字表示其正交相邻白格中已填数字的总和，下方数字表示这些相邻已填数字的数量。",
-    "englishRules": "Fill white cells with numbers from the given list.\nEach row and each column must contain each listed number exactly once.\nIn a black clue cell, the upper number gives the sum of adjacent filled numbers, and the lower number gives how many adjacent filled numbers are used.",
+    "chineseRules": "在白格中填入给定数字列表中的数字。每一行和每一列都必须恰好包含一次每个指定数字。黑格中的上方数字表示其正交相邻白格中已填数字的总和，白色圆点数量表示这些相邻已填数字的数量；没有圆点表示数量未知。",
+    "englishRules": "Fill white cells with numbers from the given list.\nEach row and each column must contain each listed number exactly once.\nIn a black clue cell, the upper number gives the sum of adjacent filled numbers, and the white dots give how many adjacent cells contain numbers; no dots means the amount is unknown.",
     "tableRuleSource": "src/puzzles/registry.tsx",
     "englishSource": "app-registry",
     "sourceUrl": null

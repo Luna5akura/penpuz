@@ -17,6 +17,8 @@ const notePuzzleTypes: PuzzleType[] = [
   'slither',
   'lits',
   'lakes',
+  'tapa',
+  'magic-summer',
   'domino-search',
   'snail',
   'slovak-sums',

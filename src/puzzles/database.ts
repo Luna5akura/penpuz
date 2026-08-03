@@ -335,6 +335,14 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'https://puzz.link/p?tapa/6/6/1ia71a86gaaajjafhad6g7g42j22g4321',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?magic-summer/5/5/3/15,6,15,15,15/15,6,15,15,15/1h3./2h.1/h.12/3.g2g/.g2g3',
+    difficulty: '简单',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?slither/8/8/55a5agaaaaga555aj555ahag5aga',
     difficulty: '困难',
   },
@@ -380,6 +388,30 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?magic-snail/8/8/4/zr.i3j.g1l.n.n.n.l4g.j2i./',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?slovak-sums/8/8/4/g-16o-11o-30o-35-3ao-4fo-3bo-16g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://127.0.0.1:8080/p.html?slovak-sums/8/8/4/h-25h-1ah-25l-16-1bl-1aj-15l-10jbl-25-20l-10hbh-20h',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://127.0.0.1:8080/p.html?slovak-sums/8/8/4/i-20l-2bh-30i-16j-2bn-25-2an-2aj-20i-15h-10l-1bi',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?tapa/9/9/za72hbmnbllallaanbmhafbqz',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?slovak-sums/8/8/4/l-25g-20h-35l-2bh-26n-35h-35n-21h-30l-3fh-20g-2al',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?tapa/10/10/q6h7h7qa9gaer5haajbnh6rafga9qaah5hafq',
     difficulty: '困难',
   },
 

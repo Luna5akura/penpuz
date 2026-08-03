@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { NoteReplayCellMark } from '@/notes/types';
 import {
   commonBoardChrome,
@@ -21,7 +22,10 @@ import { countPlacedDominoPairs, getDominoPairKey } from '@/puzzles/DominoSearch
 import { getMagicSnailBoundaryLines } from '@/puzzles/MagicSnail/utils';
 import { getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
 import { getTrialLevelColors } from '@/puzzles/trialStyles';
+import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
+import TapaClue from '@/puzzles/Tapa/TapaClue';
 import type { PuzzleData, PuzzleType, YajilinDirection } from '@/puzzles/types';
+import { Button } from '../ui/button';
 
 interface NotePuzzleBoardProps {
   puzzle?: PuzzleData;
@@ -78,6 +82,19 @@ function getGridValue(snapshot: unknown, row: number, col: number) {
   const rowValues = grid[row];
   if (!Array.isArray(rowValues)) return undefined;
   return rowValues[col];
+}
+
+function getCandidateValues(snapshot: unknown, row: number, col: number) {
+  const candidates = asRecord(snapshot)?.candidates;
+  if (!Array.isArray(candidates)) return [];
+
+  const rowValues = candidates[row];
+  if (!Array.isArray(rowValues)) return [];
+
+  const values = rowValues[col];
+  if (!Array.isArray(values)) return [];
+
+  return values.filter((value): value is number => Number.isFinite(value));
 }
 
 function getNumberMatrixValue(snapshot: unknown, key: string, row: number, col: number) {
@@ -167,10 +184,75 @@ function getSnapshotTrialColor(
   itemKey: string,
   levelKeys: string[],
   tone: 'line' | 'text',
-  fallback: string
+  fallback: string,
+  visibleTrialLevel = Number.POSITIVE_INFINITY
 ) {
-  const trialColors = getTrialLevelColors(getFirstRecordLevel(snapshot, itemKey, levelKeys));
+  const trialLevel = getFirstRecordLevel(snapshot, itemKey, levelKeys);
+  if (trialLevel > visibleTrialLevel) return 'transparent';
+
+  const trialColors = getTrialLevelColors(trialLevel);
   return trialColors?.[tone] ?? fallback;
+}
+
+function getMaxTrialLevel(snapshot: unknown) {
+  let maxLevel = 0;
+
+  const visit = (value: unknown, key: string, insideLevelField: boolean) => {
+    if (typeof value === 'number') {
+      if (insideLevelField && Number.isFinite(value)) {
+        maxLevel = Math.max(maxLevel, value);
+      }
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, key, insideLevelField));
+      return;
+    }
+
+    const record = asRecord(value);
+    if (!record) return;
+
+    Object.entries(record).forEach(([childKey, childValue]) => {
+      const childIsLevelField = insideLevelField || childKey.toLowerCase().includes('level');
+      visit(childValue, childKey, childIsLevelField);
+    });
+  };
+
+  visit(snapshot, '', false);
+  return Math.floor(maxLevel);
+}
+
+function getTrialDisplayLabel(visibleTrialLevel: number, maxTrialLevel: number) {
+  if (visibleTrialLevel <= 0) return '不显示试错';
+  if (visibleTrialLevel === 1) return '仅第1层试错';
+  if (visibleTrialLevel < maxTrialLevel) return `第1-${visibleTrialLevel}层试错`;
+  return `第1-${maxTrialLevel}层试错`;
+}
+
+function SnapshotCandidates({
+  values,
+  cellSize,
+  color,
+}: {
+  values: number[];
+  cellSize: number;
+  color: string;
+}) {
+  const columns = Math.min(3, Math.max(values.length, 1));
+
+  return (
+    <span
+      className="grid w-[78%] min-w-0 place-items-center text-center tabular-nums"
+      style={{
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        color,
+        ...getBoardTextStyle(cellSize, 0.25, 10, 1),
+      }}
+    >
+      {values.map((value) => <span key={value}>{value}</span>)}
+    </span>
+  );
 }
 
 function isNumberValue(value: unknown): value is number {
@@ -210,15 +292,6 @@ function renderKurarinClue(color: 'black' | 'white' | 'gray', cellSize: number) 
         background: fill,
       }}
     />
-  );
-}
-
-function renderSlovakClue(sum: number, count: number) {
-  return (
-    <span className="flex flex-col items-center justify-center text-[0.72em] leading-none">
-      <span>{sum}</span>
-      <span className="mt-0.5 border-t border-white/70 px-1 pt-0.5">{count}</span>
-    </span>
   );
 }
 
@@ -297,6 +370,18 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
       const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
+    case 'tapa': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      return clue
+        ? { tone: 'clue', content: <TapaClue clue={clue} cellSize={cellSize} />, locked: true }
+        : { tone: 'cell' };
+    }
+    case 'magic-summer': {
+      const cell = puzzle.cells[row]?.[col] ?? null;
+      if (cell === 'block') return { tone: 'marked', content: '×', locked: true };
+      if (typeof cell === 'number') return { tone: 'prefilled', content: cell, locked: true };
+      return { tone: 'cell' };
+    }
     case 'domino-search': {
       const value = puzzle.numbers[row]?.[col] ?? null;
       return value === null ? { tone: 'shaded', locked: true } : { tone: 'cell', content: value, locked: true };
@@ -310,7 +395,11 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
     case 'slovak-sums': {
       const cell = puzzle.cells[row]?.[col] ?? null;
       if (cell && typeof cell === 'object') {
-        return { tone: 'shaded', content: renderSlovakClue(cell.sum, cell.count), locked: true, fontRatio: 0.82 };
+        return {
+          tone: 'shaded',
+          content: <SlovakSumsClue sum={cell.sum} count={cell.count} cellSize={cellSize} />,
+          locked: true,
+        };
       }
       return { tone: 'cell' };
     }
@@ -319,9 +408,16 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
   }
 }
 
-function getSnapshotCellView(puzzleType: PuzzleType, snapshot: unknown, row: number, col: number): CellView | null {
+function getSnapshotCellView(
+  puzzleType: PuzzleType,
+  snapshot: unknown,
+  row: number,
+  col: number,
+  visibleTrialLevel: number
+): CellView | null {
   const value = getGridValue(snapshot, row, col);
   if (value === undefined || value === null || value === 0) return null;
+  if (getCellTrialLevel(snapshot, row, col) > visibleTrialLevel) return null;
 
   if (puzzleType === 'snail') {
     if (value === 'circle') return { tone: 'cell' };
@@ -329,7 +425,7 @@ function getSnapshotCellView(puzzleType: PuzzleType, snapshot: unknown, row: num
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
-  if (puzzleType === 'fillomino' || puzzleType === 'slovak-sums') {
+  if (puzzleType === 'fillomino' || puzzleType === 'slovak-sums' || puzzleType === 'magic-summer') {
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
@@ -388,11 +484,21 @@ function getSnapshotCellTrialStyle(
   value: unknown,
   row: number,
   col: number,
+  visibleTrialLevel: number,
+  hasCandidates = false,
   locked?: boolean
 ): CSSProperties | undefined {
-  if (locked || value === undefined || value === null || value === 0) return undefined;
+  if (
+    locked ||
+    (!hasCandidates && (value === undefined || value === null || value === 0))
+  ) {
+    return undefined;
+  }
 
-  const trialColors = getTrialLevelColors(getCellTrialLevel(snapshot, row, col));
+  const trialLevel = getCellTrialLevel(snapshot, row, col);
+  if (trialLevel > visibleTrialLevel) return undefined;
+
+  const trialColors = getTrialLevelColors(trialLevel);
   if (!trialColors) return undefined;
 
   if (puzzleType === 'akari') {
@@ -611,7 +717,17 @@ function getThinCellCenterLinePoints(key: string, cellSize: number) {
   return { x1, y1, x2: x1, y2: y1 + cellSize };
 }
 
-function DominoOutlineOverlay({ keys, cellSize, snapshot }: { keys: string[]; cellSize: number; snapshot: unknown }) {
+function DominoOutlineOverlay({
+  keys,
+  cellSize,
+  snapshot,
+  visibleTrialLevel,
+}: {
+  keys: string[];
+  cellSize: number;
+  snapshot: unknown;
+  visibleTrialLevel: number;
+}) {
   if (keys.length === 0) return null;
 
   return (
@@ -630,7 +746,7 @@ function DominoOutlineOverlay({ keys, cellSize, snapshot }: { keys: string[]; ce
             key={`domino-outline-${key}`}
             {...rect}
             fill="none"
-            stroke={getSnapshotTrialColor(snapshot, key, ['levels'], 'line', woodBoardTheme.ink)}
+            stroke={getSnapshotTrialColor(snapshot, key, ['levels'], 'line', woodBoardTheme.ink, visibleTrialLevel)}
             strokeWidth={getRoomBoundaryStrokeWidth()}
             strokeLinejoin="miter"
           />
@@ -757,11 +873,13 @@ function StarbattleDots({
   vertexDots,
   cellSize,
   snapshot,
+  visibleTrialLevel,
 }: {
   edgeDots: string[];
   vertexDots: string[];
   cellSize: number;
   snapshot: unknown;
+  visibleTrialLevel: number;
 }) {
   if (edgeDots.length === 0 && vertexDots.length === 0) return null;
 
@@ -784,7 +902,14 @@ function StarbattleDots({
             cx={cx}
             cy={cy}
             r={dotRadius}
-            fill={getSnapshotTrialColor(snapshot, key, ['edgeDotLevels'], 'line', woodBoardTheme.border)}
+            fill={getSnapshotTrialColor(
+              snapshot,
+              key,
+              ['edgeDotLevels'],
+              'line',
+              woodBoardTheme.border,
+              visibleTrialLevel
+            )}
           />
         );
       })}
@@ -800,7 +925,14 @@ function StarbattleDots({
             cx={BOARD_PADDING + col * cellSize}
             cy={BOARD_PADDING + row * cellSize}
             r={dotRadius}
-            fill={getSnapshotTrialColor(snapshot, key, ['vertexDotLevels'], 'line', woodBoardTheme.border)}
+            fill={getSnapshotTrialColor(
+              snapshot,
+              key,
+              ['vertexDotLevels'],
+              'line',
+              woodBoardTheme.border,
+              visibleTrialLevel
+            )}
           />
         );
       })}
@@ -820,6 +952,12 @@ export default function NotePuzzleBoard({
 }: NotePuzzleBoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+  const maxTrialLevel = useMemo(() => getMaxTrialLevel(snapshot), [snapshot]);
+  const [visibleTrialLevel, setVisibleTrialLevel] = useState(maxTrialLevel);
+
+  useEffect(() => {
+    setVisibleTrialLevel(maxTrialLevel);
+  }, [maxTrialLevel]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -921,21 +1059,52 @@ export default function NotePuzzleBoard({
               Array.from({ length: width }, (_, col) => {
                 const base = getCellView(activePuzzle, row, col, cellSize);
                 const snapshotValue = getGridValue(snapshot, row, col);
-                const snapshotView = getSnapshotCellView(puzzleType, snapshot, row, col);
-                const legacyView = snapshotView ? null : getLegacyMarkView(markMap.get(getLocalCellKey(row, col)));
-                const view = mergeCellViews(base, snapshotView ?? legacyView);
-                const slitherMark = isSlither ? getSlitherCellMark(snapshot, row, col) : null;
-                const snailMark = puzzleType === 'snail' && (snapshotValue === 'circle' || snapshotValue === 'cross')
+                const candidateValues = getCandidateValues(snapshot, row, col);
+                const snapshotTrialLevel = getCellTrialLevel(snapshot, row, col);
+                const snapshotTrialVisible = snapshotTrialLevel <= visibleTrialLevel;
+                const snapshotView = getSnapshotCellView(
+                  puzzleType,
+                  snapshot,
+                  row,
+                  col,
+                  visibleTrialLevel
+                );
+                const candidateView = snapshotView || candidateValues.length === 0 || !snapshotTrialVisible
+                  ? null
+                  : {
+                      tone: 'cell' as const,
+                      content: (
+                        <SnapshotCandidates
+                          values={candidateValues}
+                          cellSize={cellSize}
+                          color={getTrialLevelColors(snapshotTrialLevel)?.text ?? woodBoardTheme.border}
+                        />
+                      ),
+                    };
+                const snapshotOverlay = snapshotView ?? candidateView;
+                const legacyView = snapshotOverlay ? null : getLegacyMarkView(markMap.get(getLocalCellKey(row, col)));
+                const view = mergeCellViews(base, snapshotOverlay ?? legacyView);
+                const slitherMark = isSlither && snapshotTrialVisible
+                  ? getSlitherCellMark(snapshot, row, col)
+                  : null;
+                const snailMark = puzzleType === 'snail' && snapshotTrialVisible &&
+                  (snapshotValue === 'circle' || snapshotValue === 'cross')
+                  ? snapshotValue
+                  : null;
+                const slovakMark = puzzleType === 'slovak-sums' && snapshotTrialVisible &&
+                  (snapshotValue === 'circle' || snapshotValue === 'cross')
                   ? snapshotValue
                   : null;
                 const slitherMarkKey = `${row},${col}`;
-                const centerMark = slitherMark ?? snailMark;
+                const centerMark = slitherMark ?? snailMark ?? slovakMark;
                 const trialStyle = getSnapshotCellTrialStyle(
                   puzzleType,
                   snapshot,
                   snapshotValue,
                   row,
                   col,
+                  visibleTrialLevel,
+                  candidateValues.length > 0,
                   base.locked
                 );
                 const cellStyle: CSSProperties = {
@@ -958,14 +1127,22 @@ export default function NotePuzzleBoard({
                         mark={centerMark}
                         cellSize={cellSize}
                         color={
-                          snailMark
-                            ? getSnapshotTrialColor(snapshot, slitherMarkKey, ['levels'], 'text', woodBoardTheme.border)
+                          snailMark || slovakMark
+                            ? getSnapshotTrialColor(
+                                snapshot,
+                                slitherMarkKey,
+                                ['levels'],
+                                'text',
+                                woodBoardTheme.border,
+                                visibleTrialLevel
+                              )
                             : getSnapshotTrialColor(
                                 snapshot,
                                 slitherMarkKey,
                                 ['cellMarkLevels'],
                                 'text',
-                                woodBoardTheme.border
+                                woodBoardTheme.border,
+                                visibleTrialLevel
                               )
                         }
                       />
@@ -983,7 +1160,16 @@ export default function NotePuzzleBoard({
           <LineOverlay
             keys={deepLines}
             cellSize={cellSize}
-            stroke={(key) => getSnapshotTrialColor(snapshot, key, ['deepLineLevels'], 'line', woodBoardTheme.border)}
+            stroke={(key) =>
+              getSnapshotTrialColor(
+                snapshot,
+                key,
+                ['deepLineLevels'],
+                'line',
+                woodBoardTheme.border,
+                visibleTrialLevel
+              )
+            }
             strokeWidth={getRoomBoundaryStrokeWidth()}
             getPoints={getCellBoundaryLinePoints}
             keyPrefix="deep"
@@ -991,16 +1177,39 @@ export default function NotePuzzleBoard({
           <LineOverlay
             keys={thinLines}
             cellSize={cellSize}
-            stroke={(key) => getSnapshotTrialColor(snapshot, key, ['thinLineLevels'], 'line', woodBoardTheme.thinLine)}
+            stroke={(key) =>
+              getSnapshotTrialColor(
+                snapshot,
+                key,
+                ['thinLineLevels'],
+                'line',
+                woodBoardTheme.thinLine,
+                visibleTrialLevel
+              )
+            }
             strokeWidth={2}
             getPoints={getThinCellCenterLinePoints}
             keyPrefix="thin"
           />
-          <DominoOutlineOverlay keys={dominoOutlineKeys} cellSize={cellSize} snapshot={snapshot} />
+          <DominoOutlineOverlay
+            keys={dominoOutlineKeys}
+            cellSize={cellSize}
+            snapshot={snapshot}
+            visibleTrialLevel={visibleTrialLevel}
+          />
           <LineOverlay
             keys={centerLoopKeys}
             cellSize={cellSize}
-            stroke={(key) => getSnapshotTrialColor(snapshot, key, ['loopEdgeLevels'], 'line', woodBoardTheme.ink)}
+            stroke={(key) =>
+              getSnapshotTrialColor(
+                snapshot,
+                key,
+                ['loopEdgeLevels'],
+                'line',
+                woodBoardTheme.ink,
+                visibleTrialLevel
+              )
+            }
             strokeWidth={getLoopLineStrokeWidth(cellSize, 0.1, 4)}
             getPoints={getCellCenterLinePoints}
             keyPrefix="center-loop"
@@ -1008,7 +1217,16 @@ export default function NotePuzzleBoard({
           <LineOverlay
             keys={centerPathKeys}
             cellSize={cellSize}
-            stroke={(key) => getSnapshotTrialColor(snapshot, key, ['lineEdgeLevels'], 'line', woodBoardTheme.ink)}
+            stroke={(key) =>
+              getSnapshotTrialColor(
+                snapshot,
+                key,
+                ['lineEdgeLevels'],
+                'line',
+                woodBoardTheme.ink,
+                visibleTrialLevel
+              )
+            }
             strokeWidth={getLoopLineStrokeWidth(cellSize, 0.1, 4)}
             getPoints={getCellCenterLinePoints}
             keyPrefix="center-path"
@@ -1016,7 +1234,16 @@ export default function NotePuzzleBoard({
           <LineOverlay
             keys={gridLineKeys}
             cellSize={cellSize}
-            stroke={(key) => getSnapshotTrialColor(snapshot, key, ['lineLevels'], 'line', woodBoardTheme.ink)}
+            stroke={(key) =>
+              getSnapshotTrialColor(
+                snapshot,
+                key,
+                ['lineLevels'],
+                'line',
+                woodBoardTheme.ink,
+                visibleTrialLevel
+              )
+            }
             strokeWidth={getLoopLineStrokeWidth(cellSize, 0.1, 4)}
             getPoints={getGridLinePoints}
             keyPrefix="grid"
@@ -1032,7 +1259,8 @@ export default function NotePuzzleBoard({
                 key,
                 isDominoSearch ? ['levels'] : ['crossedEdgeLevels'],
                 'text',
-                woodBoardTheme.border
+                woodBoardTheme.border,
+                visibleTrialLevel
               )
             }
           />
@@ -1041,11 +1269,56 @@ export default function NotePuzzleBoard({
             cellSize={cellSize}
             getPoints={getGridLinePoints}
             keyPrefix="grid-cross"
-            stroke={(key) => getSnapshotTrialColor(snapshot, key, ['crossedLevels'], 'text', woodBoardTheme.border)}
+            stroke={(key) =>
+              getSnapshotTrialColor(
+                snapshot,
+                key,
+                ['crossedLevels'],
+                'text',
+                woodBoardTheme.border,
+                visibleTrialLevel
+              )
+            }
           />
-          <StarbattleDots edgeDots={edgeDots} vertexDots={vertexDots} cellSize={cellSize} snapshot={snapshot} />
+          <StarbattleDots
+            edgeDots={edgeDots}
+            vertexDots={vertexDots}
+            cellSize={cellSize}
+            snapshot={snapshot}
+            visibleTrialLevel={visibleTrialLevel}
+          />
         </div>
       </div>
+
+      {maxTrialLevel > 0 ? (
+        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground" aria-live="polite">
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            disabled={visibleTrialLevel <= 0}
+            onClick={() => setVisibleTrialLevel((current) => Math.max(0, current - 1))}
+            aria-label="减少显示的试错层级"
+            title="减少显示的试错层级"
+          >
+            <ChevronLeft />
+          </Button>
+          <span className="min-w-28 text-center tabular-nums">
+            {getTrialDisplayLabel(visibleTrialLevel, maxTrialLevel)}
+          </span>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="ghost"
+            disabled={visibleTrialLevel >= maxTrialLevel}
+            onClick={() => setVisibleTrialLevel((current) => Math.min(maxTrialLevel, current + 1))}
+            aria-label="增加显示的试错层级"
+            title="增加显示的试错层级"
+          >
+            <ChevronRight />
+          </Button>
+        </div>
+      ) : null}
 
       {dominoListItems ? (
         <div className="flex max-w-full flex-wrap justify-center gap-1 text-xs">

@@ -54,6 +54,10 @@ export const messages = {
       confirmView: '查看',
       revealAnswerPrompt: '查看答案？',
       numberRange: (min: number, max: number) => `填入数字范围：${min}~${max}`,
+      numberInputModes: {
+        normal: '正常',
+        candidates: '候选数',
+      },
       starbattleQuota: (count: number) => `每行 / 每列 / 每区 = ${count} ★`,
       delete: '删除',
       touchModes: {
@@ -132,6 +136,10 @@ export const messages = {
       confirmView: 'Show',
       revealAnswerPrompt: 'Show answer?',
       numberRange: (min: number, max: number) => `Fill numbers: ${min}-${max}`,
+      numberInputModes: {
+        normal: 'Normal',
+        candidates: 'Candidates',
+      },
       starbattleQuota: (count: number) => `Each row / column / region = ${count} ★`,
       delete: 'Delete',
       touchModes: {

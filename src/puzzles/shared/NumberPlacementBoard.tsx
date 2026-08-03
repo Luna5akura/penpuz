@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, t
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import { Button } from '@/components/ui/button';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
+import { getKeyboardDigit, isKeyboardInputTarget } from '@/lib/keyboard';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
@@ -26,10 +27,19 @@ export interface NumberPlacementValidationResult {
 }
 
 export type NumberPlacementCellValue = number | 'circle' | 'cross' | null;
+export type NumberPlacementInputMode = 'select' | 'cycle' | 'candidates';
+
+export interface NumberPlacementOutsideClues {
+  top?: (number | null)[];
+  bottom?: (number | null)[];
+  left?: (number | null)[];
+  right?: (number | null)[];
+}
 
 interface NumberPlacementSnapshot {
   grid: NumberPlacementCellValue[][];
   levels: number[][];
+  candidates: number[][][];
 }
 
 interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: number }> {
@@ -44,11 +54,14 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   renderBlockedCell?: (row: number, col: number, cellSize: number) => ReactNode;
   renderOverlay?: (cellSize: number, boardWidthPx: number, boardHeightPx: number) => ReactNode;
   renderCellValue?: (value: NumberPlacementCellValue, cellSize: number, row: number, col: number) => ReactNode;
+  renderCandidates?: (values: number[], cellSize: number, row: number, col: number) => ReactNode;
   getCellTone?: (row: number, col: number, value: NumberPlacementCellValue) => BoardCellTone;
   extraCellValues?: Array<Exclude<NumberPlacementCellValue, number | null>>;
-  cellInputMode?: 'select' | 'cycle';
+  cellInputMode?: NumberPlacementInputMode;
   cycleValues?: NumberPlacementCellValue[];
+  inputModeOptions?: Array<{ mode: NumberPlacementInputMode; label: string }>;
   showValueButtons?: boolean;
+  outsideClues?: NumberPlacementOutsideClues;
   initialSnapshot?: unknown;
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
@@ -59,9 +72,16 @@ const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 const EMPTY_EXTRA_CELL_VALUES: Array<Exclude<NumberPlacementCellValue, number | null>> = [];
 const EMPTY_CYCLE_VALUES: NumberPlacementCellValue[] = [];
+const EMPTY_FIXED_VALUE = () => null;
+const EMPTY_BLOCKED_CELL = () => false;
+const KEYBOARD_ENTRY_TIMEOUT_MS = 1000;
 
 function createEmptyNumberGrid(width: number, height: number): NumberPlacementCellValue[][] {
   return Array.from({ length: height }, () => Array(width).fill(null));
+}
+
+function createEmptyCandidateGrid(width: number, height: number): number[][][] {
+  return Array.from({ length: height }, () => Array.from({ length: width }, () => []));
 }
 
 function normalizeNumberPlacementSnapshot(
@@ -78,6 +98,7 @@ function normalizeNumberPlacementSnapshot(
   const fallback = {
     grid: createEmptyNumberGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
+    candidates: createEmptyCandidateGrid(width, height),
   };
   const source = snapshot as Partial<NumberPlacementSnapshot> | null | undefined;
   const grid = sanitizeMatrix(source?.grid, fallback.grid, (value) => {
@@ -91,12 +112,23 @@ function normalizeNumberPlacementSnapshot(
   const levels = sanitizeMatrix(source?.levels, fallback.levels, (value, fallbackCell) =>
     typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
   );
+  const candidates = Array.from({ length: height }, (_, row) =>
+    Array.from({ length: width }, (_, col) => {
+      const candidateCell = Array.isArray(source?.candidates?.[row]?.[col])
+        ? source.candidates[row][col]
+        : [];
+      return Array.from(
+        new Set(candidateCell.filter((value): value is number => Number.isInteger(value) && numberSet.has(value)))
+      ).sort((a, b) => numbers.indexOf(a) - numbers.indexOf(b));
+    })
+  );
 
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {
       if (isBlockedCell(row, col)) {
         grid[row][col] = null;
         levels[row][col] = 0;
+        candidates[row][col] = [];
         continue;
       }
 
@@ -104,11 +136,14 @@ function normalizeNumberPlacementSnapshot(
       if (fixedValue !== null) {
         grid[row][col] = fixedValue;
         levels[row][col] = 0;
+        candidates[row][col] = [];
+      } else if (grid[row][col] !== null) {
+        candidates[row][col] = [];
       }
     }
   }
 
-  return { grid, levels };
+  return { grid, levels, candidates };
 }
 
 export default function NumberPlacementBoard<TPuzzle extends { width: number; height: number }>({
@@ -118,16 +153,19 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   resetToken,
   onComplete,
   validate,
-  getFixedValue = () => null,
-  isBlockedCell = () => false,
+  getFixedValue = EMPTY_FIXED_VALUE,
+  isBlockedCell = EMPTY_BLOCKED_CELL,
   renderBlockedCell,
   renderOverlay,
   renderCellValue,
+  renderCandidates,
   getCellTone,
   extraCellValues = EMPTY_EXTRA_CELL_VALUES,
   cellInputMode = 'select',
   cycleValues = EMPTY_CYCLE_VALUES,
+  inputModeOptions,
   showValueButtons = true,
+  outsideClues,
   initialSnapshot,
   onSnapshotChange,
   fixedCellSize,
@@ -138,8 +176,16 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     typeof window === 'undefined' ? 1024 : window.innerWidth
   );
   const [selectedCell, setSelectedCell] = useState<CellCoord | null>(null);
+  const [activeCellInputMode, setActiveCellInputMode] = useState<NumberPlacementInputMode>(cellInputMode);
   const boardRef = useRef<HTMLDivElement>(null);
+  const keyboardEntryRef = useRef<{ row: number; col: number; text: string; timestamp: number } | null>(null);
   const hasCompleted = useRef(false);
+  const resetBoardRef = useRef<() => void>(() => {});
+  const initialSnapshotRef = useRef(initialSnapshot);
+
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
 
   const createInitialSnapshot = useCallback<() => NumberPlacementSnapshot>(
     () => normalizeNumberPlacementSnapshot(null, width, height, numbers, getFixedValue, isBlockedCell, extraCellValues),
@@ -148,7 +194,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const getResetSnapshot = useCallback(
     () =>
       normalizeNumberPlacementSnapshot(
-        initialSnapshot,
+        initialSnapshotRef.current,
         width,
         height,
         numbers,
@@ -156,7 +202,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         isBlockedCell,
         extraCellValues
       ),
-    [extraCellValues, getFixedValue, height, initialSnapshot, isBlockedCell, numbers, width]
+    [extraCellValues, getFixedValue, height, isBlockedCell, numbers, width]
   );
 
   const history = usePuzzleHistory<NumberPlacementSnapshot>(createInitialSnapshot(), {
@@ -199,6 +245,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   );
   const grid = normalizedSnapshot.grid;
   const levels = normalizedSnapshot.levels;
+  const candidates = normalizedSnapshot.candidates;
   const validationGrid = useMemo(
     () => grid.map((rowValues) => rowValues.map((value) => (typeof value === 'number' ? value : null))),
     [grid]
@@ -209,6 +256,13 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width }),
     [fixedCellSize, viewportWidth, width]
   );
+  const outsideClueSize = outsideClues ? Math.max(24, Math.floor(cellSize * 0.62)) : 0;
+  const outsideLeft = outsideClues?.left ? outsideClueSize : 0;
+  const outsideRight = outsideClues?.right ? outsideClueSize : 0;
+  const outsideTop = outsideClues?.top ? outsideClueSize : 0;
+  const outsideBottom = outsideClues?.bottom ? outsideClueSize : 0;
+  const gridLeft = BOARD_PADDING + outsideLeft;
+  const gridTop = BOARD_PADDING + outsideTop;
   const selectedEditable = !!selectedCell && !isBlockedCell(selectedCell.row, selectedCell.col) &&
     getFixedValue(selectedCell.row, selectedCell.col) === null;
 
@@ -225,8 +279,12 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   }, [getResetSnapshot, reset]);
 
   useEffect(() => {
-    resetBoard();
-  }, [puzzle, resetBoard, resetToken]);
+    resetBoardRef.current = resetBoard;
+  }, [resetBoard]);
+
+  useEffect(() => {
+    resetBoardRef.current();
+  }, [puzzle, resetToken]);
 
   useEffect(() => {
     if (!validation.valid || hasCompleted.current) return;
@@ -251,11 +309,57 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
 
       const nextGrid = current.grid.map((rowValues) => [...rowValues]);
       const nextLevels = current.levels.map((rowValues) => [...rowValues]);
+      const nextCandidates = current.candidates.map((rowValues) => rowValues.map((values) => [...values]));
       nextGrid[row][col] = value;
       nextLevels[row][col] = value === null ? 0 : trialActive ? currentTrialLevel : 0;
-      return { grid: nextGrid, levels: nextLevels };
+      nextCandidates[row][col] = [];
+      if (current.grid[row][col] === value && current.candidates[row][col].length === 0) return current;
+      return { grid: nextGrid, levels: nextLevels, candidates: nextCandidates };
     });
   }, [applyChange, currentTrialLevel, extraCellValues, getFixedValue, height, isBlockedCell, numbers, trialActive, width]);
+
+  const toggleCandidate = useCallback((row: number, col: number, number: number) => {
+    if (isBlockedCell(row, col) || getFixedValue(row, col) !== null) return;
+
+    applyChange((currentSnapshot) => {
+      const current = normalizeNumberPlacementSnapshot(
+        currentSnapshot,
+        width,
+        height,
+        numbers,
+        getFixedValue,
+        isBlockedCell,
+        extraCellValues
+      );
+      if (!numbers.includes(number)) return current;
+      if (current.grid[row][col] !== null && current.candidates[row][col].length === 0) return current;
+
+      const currentCandidates = new Set(current.candidates[row][col]);
+      if (currentCandidates.has(number)) {
+        currentCandidates.delete(number);
+      } else {
+        currentCandidates.add(number);
+      }
+
+      const nextCandidates = current.candidates.map((rowValues) => rowValues.map((values) => [...values]));
+      nextCandidates[row][col] = numbers.filter((value) => currentCandidates.has(value));
+      const nextLevels = current.levels.map((rowValues) => [...rowValues]);
+      nextLevels[row][col] = nextCandidates[row][col].length > 0
+        ? trialActive ? currentTrialLevel : current.levels[row][col]
+        : 0;
+      return { ...current, candidates: nextCandidates, levels: nextLevels };
+    });
+  }, [
+    applyChange,
+    currentTrialLevel,
+    extraCellValues,
+    getFixedValue,
+    height,
+    isBlockedCell,
+    numbers,
+    trialActive,
+    width,
+  ]);
 
   const cycleCellValue = useCallback((row: number, col: number, direction: 1 | -1) => {
     if (isBlockedCell(row, col) || getFixedValue(row, col) !== null || cycleValues.length === 0) return;
@@ -281,9 +385,11 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
 
       const nextGrid = current.grid.map((rowValues) => [...rowValues]);
       const nextLevels = current.levels.map((rowValues) => [...rowValues]);
+      const nextCandidates = current.candidates.map((rowValues) => rowValues.map((values) => [...values]));
       nextGrid[row][col] = nextValue;
       nextLevels[row][col] = nextValue === null ? 0 : trialActive ? currentTrialLevel : 0;
-      return { grid: nextGrid, levels: nextLevels };
+      nextCandidates[row][col] = [];
+      return { grid: nextGrid, levels: nextLevels, candidates: nextCandidates };
     });
   }, [
     applyChange,
@@ -300,34 +406,78 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isKeyboardInputTarget(event.target)) return;
       if (!selectedEditable || event.altKey || event.ctrlKey || event.metaKey) return;
 
-      if (event.key === 'Backspace' || event.key === 'Delete' || event.key === '0') {
+      const value = getKeyboardDigit(event);
+      if (event.key === 'Backspace' || event.key === 'Delete' || value === 0) {
         event.preventDefault();
+        keyboardEntryRef.current = null;
         setCellValue(selectedCell.row, selectedCell.col, null);
         return;
       }
 
-      const value = Number(event.key);
+      if (value === null) return;
+
+      if (activeCellInputMode === 'candidates') {
+        keyboardEntryRef.current = null;
+        if (!numbers.includes(value)) return;
+        event.preventDefault();
+        toggleCandidate(selectedCell.row, selectedCell.col, value);
+        return;
+      }
+
+      const now = Date.now();
+      const previousEntry = keyboardEntryRef.current;
+      const canAppend = previousEntry !== null &&
+        previousEntry.row === selectedCell.row &&
+        previousEntry.col === selectedCell.col &&
+        now - previousEntry.timestamp <= KEYBOARD_ENTRY_TIMEOUT_MS;
+      const nextText = canAppend ? `${previousEntry.text}${value}` : String(value);
+      const nextNumber = Number(nextText);
+      const hasAllowedPrefix = numbers.some((number) => String(number).startsWith(nextText));
+
+      if (hasAllowedPrefix) {
+        event.preventDefault();
+        keyboardEntryRef.current = {
+          row: selectedCell.row,
+          col: selectedCell.col,
+          text: nextText,
+          timestamp: now,
+        };
+        if (numbers.includes(nextNumber)) {
+          setCellValue(selectedCell.row, selectedCell.col, nextNumber);
+        }
+        return;
+      }
+
+      keyboardEntryRef.current = null;
       if (numbers.includes(value)) {
         event.preventDefault();
+        keyboardEntryRef.current = {
+          row: selectedCell.row,
+          col: selectedCell.col,
+          text: String(value),
+          timestamp: now,
+        };
         setCellValue(selectedCell.row, selectedCell.col, value);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [numbers, selectedCell, selectedEditable, setCellValue]);
+  }, [activeCellInputMode, numbers, selectedCell, selectedEditable, setCellValue, toggleCandidate]);
 
   const handleCellPointerDown = (row: number, col: number, event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
+    keyboardEntryRef.current = null;
     safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
-    if (cellInputMode === 'cycle') {
+    if (activeCellInputMode === 'cycle') {
       if (isBlockedCell(row, col) || getFixedValue(row, col) !== null) return;
       if (event.button !== 0 && event.button !== 2) return;
 
       cycleCellValue(row, col, event.button === 2 ? -1 : 1);
-      setSelectedCell(null);
+      setSelectedCell({ row, col });
       return;
     }
 
@@ -341,8 +491,32 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
 
   const boardWidthPx = width * cellSize;
   const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const outerWidth = boardWidthPx + outsideLeft + outsideRight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const outerHeight = boardHeightPx + outsideTop + outsideBottom + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const outsideClueTextStyle = getBoardTextStyle(cellSize, 0.48, 14);
+
+  const renderOutsideClue = (
+    value: number | null | undefined,
+    left: number,
+    top: number,
+    key: string
+  ) => (
+    value === null || value === undefined ? null : (
+      <span
+        key={key}
+        className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+        style={{
+          left: `${left}px`,
+          top: `${top}px`,
+          color: woodBoardTheme.border,
+          ...outsideClueTextStyle,
+        }}
+      >
+        {value}
+      </span>
+    )
+  );
+
   return (
     <div className="flex flex-col items-center gap-3">
       <div
@@ -358,8 +532,8 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         <div
           className="absolute grid"
           style={{
-            left: `${BOARD_PADDING}px`,
-            top: `${BOARD_PADDING}px`,
+            left: `${gridLeft}px`,
+            top: `${gridTop}px`,
             gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
           }}
         >
@@ -369,7 +543,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               const fixedValue = getFixedValue(row, col);
               const blocked = isBlockedCell(row, col);
               const editable = !blocked && fixedValue === null;
-              const selected = cellInputMode !== 'cycle' && selectedCell?.row === row && selectedCell?.col === col;
+              const selected = activeCellInputMode !== 'cycle' && selectedCell?.row === row && selectedCell?.col === col;
               const trialColors = getTrialLevelColors(levels[row][col]);
               const tone = getCellTone?.(row, col, value) ?? (
                 blocked ? 'shaded' : fixedValue !== null ? 'prefilled' : 'cell'
@@ -397,18 +571,58 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                     outlineOffset: selected ? '-4px' : undefined,
                   }}
                 >
-                  {blocked ? renderBlockedCell?.(row, col, cellSize) : renderCellValue?.(value, cellSize, row, col) ?? value}
+                  {blocked
+                    ? renderBlockedCell?.(row, col, cellSize)
+                    : candidates[row][col].length > 0
+                      ? renderCandidates?.(candidates[row][col], cellSize, row, col) ?? candidates[row][col].join(' ')
+                      : renderCellValue?.(value, cellSize, row, col) ?? value}
                 </div>
               );
             })
           )}
         </div>
+        {outsideClues ? (
+          <div className="pointer-events-none absolute inset-0">
+            {outsideClues.top?.map((value, col) =>
+              renderOutsideClue(
+                value,
+                gridLeft + (col + 0.5) * cellSize,
+                BOARD_PADDING + outsideTop / 2,
+                `top-${col}`
+              )
+            )}
+            {outsideClues.bottom?.map((value, col) =>
+              renderOutsideClue(
+                value,
+                gridLeft + (col + 0.5) * cellSize,
+                gridTop + boardHeightPx + outsideBottom / 2,
+                `bottom-${col}`
+              )
+            )}
+            {outsideClues.left?.map((value, row) =>
+              renderOutsideClue(
+                value,
+                BOARD_PADDING + outsideLeft / 2,
+                gridTop + (row + 0.5) * cellSize,
+                `left-${row}`
+              )
+            )}
+            {outsideClues.right?.map((value, row) =>
+              renderOutsideClue(
+                value,
+                gridLeft + boardWidthPx + outsideRight / 2,
+                gridTop + (row + 0.5) * cellSize,
+                `right-${row}`
+              )
+            )}
+          </div>
+        ) : null}
         {renderOverlay ? (
           <div
             className="pointer-events-none absolute"
             style={{
-              left: `${BOARD_PADDING}px`,
-              top: `${BOARD_PADDING}px`,
+              left: `${gridLeft}px`,
+              top: `${gridTop}px`,
               width: `${boardWidthPx}px`,
               height: `${boardHeightPx}px`,
             }}
@@ -418,15 +632,53 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         ) : null}
       </div>
 
+      {inputModeOptions && inputModeOptions.length > 0 ? (
+        <div className="flex flex-wrap justify-center gap-2">
+          {inputModeOptions.map((option) => (
+            <Button
+              key={option.mode}
+              variant={activeCellInputMode === option.mode ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setActiveCellInputMode(option.mode);
+                setSelectedCell(null);
+                keyboardEntryRef.current = null;
+              }}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+      ) : null}
+
       {showValueButtons ? (
         <div className="flex flex-wrap justify-center gap-2">
           {numbers.map((number) => (
             <Button
               key={number}
-              variant="outline"
+              variant={
+                activeCellInputMode === 'candidates' &&
+                selectedCell !== null &&
+                candidates[selectedCell.row][selectedCell.col].includes(number)
+                  ? 'default'
+                  : 'outline'
+              }
               size="sm"
-              disabled={!selectedEditable}
-              onClick={() => selectedCell && setCellValue(selectedCell.row, selectedCell.col, number)}
+              disabled={
+                !selectedEditable ||
+                (activeCellInputMode === 'candidates' &&
+                  selectedCell !== null &&
+                  grid[selectedCell.row][selectedCell.col] !== null &&
+                  candidates[selectedCell.row][selectedCell.col].length === 0)
+              }
+              onClick={() => {
+                if (!selectedCell) return;
+                if (activeCellInputMode === 'candidates') {
+                  toggleCandidate(selectedCell.row, selectedCell.col, number);
+                } else {
+                  setCellValue(selectedCell.row, selectedCell.col, number);
+                }
+              }}
               className="min-w-10 tabular-nums"
             >
               {number}

@@ -167,7 +167,7 @@ export default function MagicSnailBoard({
         extraCellValues={magicSnailExtraValues}
         cellInputMode="cycle"
         cycleValues={cycleValues}
-        showValueButtons={false}
+        showValueButtons
         initialSnapshot={initialSnapshot}
         onSnapshotChange={onSnapshotChange}
         fixedCellSize={fixedCellSize}
