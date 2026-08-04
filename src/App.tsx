@@ -1,7 +1,7 @@
 // src/App.tsx
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, CalendarDays, NotebookText } from 'lucide-react';
+import { BookOpen, CalendarDays, History, Languages, NotebookText } from 'lucide-react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
 import {
@@ -383,61 +383,53 @@ function App() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-foreground sm:text-4xl">{copy.app.siteTitle}</h1>
-              {isPuzzlePage && (
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-lg text-muted-foreground sm:text-xl">
-                  <span>{metadata.title}</span>
-                  {difficultyText && (
-                    <Badge
-                      variant="outline"
-                      className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                    >
-                      {difficultyText}
-                    </Badge>
-                  )}
-                </div>
-              )}
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               <Button
                 variant={isPuzzlePage ? 'default' : 'outline'}
+                size="icon"
                 onClick={handleOpenPuzzlePage}
-                className="min-w-32"
+                aria-label={copy.app.puzzleTab}
+                title={copy.app.puzzleTab}
               >
                 <CalendarDays />
-                {copy.app.puzzleTab}
               </Button>
               <Button
                 variant={!isPuzzlePage ? 'default' : 'outline'}
+                size="icon"
                 onClick={handleOpenNotesPage}
-                className="min-w-24"
+                aria-label={copy.app.notesTab}
+                title={copy.app.notesTab}
               >
                 <NotebookText />
-                {copy.app.notesTab}
               </Button>
               <Button
                 variant="outline"
+                size="icon"
                 onClick={toggleLocale}
-                className="min-w-24"
                 aria-label={copy.app.languageButtonLabel}
                 title={copy.app.languageButtonLabel}
               >
-                {copy.app.languageButton}
+                <Languages />
               </Button>
               <Button
                 variant="outline"
+                size="icon"
                 onClick={() => setRuleReferenceOpen(true)}
-                className="min-w-28"
+                aria-label={copy.app.rulesReference}
+                title={copy.app.rulesReference}
               >
                 <BookOpen />
-                {copy.app.rulesReference}
               </Button>
               <Button
                 variant="outline"
+                size="icon"
                 onClick={handleOpenHistory}
-                className="min-w-32"
                 disabled={!isPuzzlePage || isDirectPuzzle}
+                aria-label={copy.app.viewHistory}
+                title={copy.app.viewHistory}
               >
-                {copy.app.viewHistory}
+                <History />
               </Button>
             </div>
           </div>

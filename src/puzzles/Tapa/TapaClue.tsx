@@ -31,15 +31,18 @@ export default function TapaClue({
   const values = getTapaClueValues(clue);
   const positions = cluePositions[Math.min(values.length, 4) as 1 | 2 | 3 | 4];
   const textStyle = values.length === 1
-    ? getBoardTextStyle(cellSize, 0.68, 22)
+    ? getBoardTextStyle(cellSize, 0.68, 6)
     : values.length === 2
-      ? getBoardTextStyle(cellSize, 0.48, 16)
+      ? getBoardTextStyle(cellSize, 0.48, 6)
       : values.length === 3
-        ? getBoardTextStyle(cellSize, 0.4, 14)
-        : getBoardTextStyle(cellSize, 0.34, 12);
+        ? getBoardTextStyle(cellSize, 0.4, 6)
+        : getBoardTextStyle(cellSize, 0.34, 6);
 
   return (
-    <span className="relative block h-full w-full" aria-label={values.join(', ')}>
+    <span
+      className="relative block h-full w-full overflow-hidden"
+      aria-label={values.join(', ')}
+    >
       {values.slice(0, 4).map((value, index) => {
         const position = positions[index];
         return (

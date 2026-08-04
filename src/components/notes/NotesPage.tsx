@@ -612,12 +612,12 @@ function renderPost(
   actions?: ReactNode
 ) {
   return (
-    <article className="min-w-0 border bg-card">
+    <article className="min-w-0">
       <header className="border-b px-4 py-4 sm:px-5">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{post.title[locale]}</h2>
-            <p className="mt-2 text-muted-foreground">{post.summary[locale]}</p>
+            <p className="mt-2 text-base leading-7 text-muted-foreground">{post.summary[locale]}</p>
           </div>
           <div className="flex shrink-0 flex-col gap-2 text-sm text-muted-foreground sm:items-end sm:text-right">
             <div>{labels.byline(post.author, post.date)}</div>
@@ -626,13 +626,13 @@ function renderPost(
         </div>
       </header>
 
-      <div className="space-y-4 px-4 py-4 sm:px-5">
+      <div className="space-y-8 px-1 py-6 sm:px-2">
         {post.blocks.map((block, index) => {
           if (block.type === 'text') {
             return (
               <section key={`text-${index}`} className="space-y-3">
                 {block.body[locale].split(/\n{2,}/).map((paragraph, paragraphIndex) => (
-                  <p key={paragraphIndex} className="break-words text-base leading-8 text-foreground [overflow-wrap:anywhere]">
+                  <p key={paragraphIndex} className="break-words text-lg leading-8 text-foreground [overflow-wrap:anywhere]">
                     {paragraph}
                   </p>
                 ))}

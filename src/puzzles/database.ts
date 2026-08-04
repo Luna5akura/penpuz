@@ -414,6 +414,14 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?tapa/10/10/q6h7h7qa9gaer5haajbnh6rafga9qaah5hafq',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?tapa/11/11/la8h3iaazgafg6galg4ta7malta8gaegbngbnzgbni3h3l',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?tapa/12/12/xagmbng6kaeoaelalgafj4nalnaan5j6gbnlbnoabkaggafmafx',
+    difficulty: '困难',
+  },
 
 
 

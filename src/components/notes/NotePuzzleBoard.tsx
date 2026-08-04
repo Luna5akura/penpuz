@@ -1147,7 +1147,9 @@ export default function NotePuzzleBoard({
                         }
                       />
                     ) : null}
-                    <span className="relative z-10">{view.content}</span>
+                    <span className="relative z-10 flex h-full w-full items-center justify-center">
+                      {view.content}
+                    </span>
                   </div>
                 );
               })
