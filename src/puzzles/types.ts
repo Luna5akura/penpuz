@@ -188,6 +188,22 @@ export interface MagicSummerPuzzleData {
   cells: MagicSummerCell[][];
 }
 
+export interface SkyscrapersClues {
+  top: (number | null)[];
+  bottom: (number | null)[];
+  left: (number | null)[];
+  right: (number | null)[];
+}
+
+export interface SkyscrapersPuzzleData {
+  type: 'skyscrapers';
+  width: number;
+  height: number;
+  numbers: number[];
+  clues: SkyscrapersClues;
+  givens: (number | null)[][];
+}
+
 export interface DominoSearchPuzzleData {
   type: 'domino-search';
   width: number;
@@ -242,6 +258,7 @@ export type PuzzleData =
   | LakesPuzzleData
   | TapaPuzzleData
   | MagicSummerPuzzleData
+  | SkyscrapersPuzzleData
   | DominoSearchPuzzleData
   | MagicSnailPuzzleData
   | SlovakSumsPuzzleData;
@@ -394,6 +411,14 @@ export type PuzzleExample =
       columnSums: (number | null)[];
       cells: MagicSummerCell[][];
       correctGrid: (number | null)[][];
+    }
+  | {
+      puzzleType: 'skyscrapers';
+      width: number;
+      height: number;
+      numbers: number[];
+      clues: SkyscrapersClues;
+      correctGrid: number[][];
     }
   | {
       puzzleType: 'domino-search';

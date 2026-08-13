@@ -15,6 +15,7 @@ import LitsBoard from './Lits/Lits';
 import LakesBoard from './Lakes/Lakes';
 import TapaBoard from './Tapa/Tapa';
 import MagicSummerBoard from './MagicSummer/MagicSummer';
+import SkyscrapersBoard from './Skyscrapers/Skyscrapers';
 import DominoSearchBoard from './DominoSearch/DominoSearch';
 import MagicSnailBoard from './MagicSnail/MagicSnail';
 import SlovakSumsBoard from './SlovakSums/SlovakSums';
@@ -30,6 +31,7 @@ import AkariExample from '../components/examples/AkariExample';
 import KurarinExample from '../components/examples/KurarinExample';
 import WalkwalkExample from '../components/examples/WalkwalkExample';
 import AdditionalPuzzleExample from '../components/examples/AdditionalPuzzleExample';
+import SkyscrapersExample from '../components/examples/SkyscrapersExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
@@ -46,6 +48,7 @@ import { parseLitsLink } from './Lits/utils';
 import { parseLakesLink } from './Lakes/utils';
 import { parseTapaLink } from './Tapa/utils';
 import { parseMagicSummerLink } from './MagicSummer/utils';
+import { parseSkyscrapersLink } from './Skyscrapers/utils';
 import { parseDominoSearchLink } from './DominoSearch/utils';
 import { parseMagicSnailLink } from './MagicSnail/utils';
 import { parseSlovakSumsLink } from './SlovakSums/utils';
@@ -71,6 +74,7 @@ import type {
   SlitherlinkPuzzleData,
   SlovakSumsPuzzleData,
   MagicSummerPuzzleData,
+  SkyscrapersPuzzleData,
   TapaPuzzleData,
   WalkwalkPuzzleData,
   YajilinPuzzleData,
@@ -132,6 +136,20 @@ const magicSummerExampleCorrectGrid: (number | null)[][] = [
   [null, 1, 2, null, 3],
 ];
 
+const SKYSCRAPERS_EXAMPLE_LINK = 'https://puzz.link/p?skyscrapers/4/4/k13h4j3g';
+const skyscrapersExamplePuzzle = parseSkyscrapersLink(SKYSCRAPERS_EXAMPLE_LINK);
+
+if (!skyscrapersExamplePuzzle) {
+  throw new Error('Failed to parse the built-in Skyscrapers example puzzle.');
+}
+
+const skyscrapersExampleCorrectGrid = [
+  [2, 1, 4, 3],
+  [1, 2, 3, 4],
+  [4, 3, 1, 2],
+  [3, 4, 2, 1],
+];
+
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
   startTime: number;
@@ -165,6 +183,7 @@ type PuzzleRegistry = {
   lakes: PuzzleRegistryEntry<LakesPuzzleData>;
   tapa: PuzzleRegistryEntry<TapaPuzzleData>;
   'magic-summer': PuzzleRegistryEntry<MagicSummerPuzzleData>;
+  skyscrapers: PuzzleRegistryEntry<SkyscrapersPuzzleData>;
   'domino-search': PuzzleRegistryEntry<DominoSearchPuzzleData>;
   snail: PuzzleRegistryEntry<MagicSnailPuzzleData>;
   'slovak-sums': PuzzleRegistryEntry<SlovakSumsPuzzleData>;
@@ -1434,7 +1453,7 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'tapa',
       name: {
-        'zh-CN': 'Tapa',
+        'zh-CN': '土派回路',
         en: 'Tapa',
       },
       rulesTitle: {
@@ -1575,6 +1594,79 @@ export const puzzleRegistry: PuzzleRegistry = {
             columnSums: example.columnSums,
             cells: example.cells,
           }}
+          correctGrid={example.correctGrid}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  skyscrapers: {
+    parsePuzzLink: parseSkyscrapersLink,
+    template: {
+      type: 'skyscrapers',
+      name: {
+        'zh-CN': '摩天楼',
+        en: 'Skyscrapers',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在每个空格中填入 1 到 N 的数字，使每行和每列都不能重复数字。',
+          '每个数字代表对应高度的摩天楼；盘面外的数字表示从该方向能看到的摩天楼数量。',
+          '从某个方向观察时，较高的摩天楼会遮挡其后较矮的摩天楼；空格不会遮挡视线。',
+        ],
+        en: [
+          'Fill every cell with a number from 1 to N so that numbers do not repeat in any row or column.',
+          'Each number represents a building height; an outside clue gives the number of buildings visible from that side.',
+          'A taller building blocks shorter buildings behind it, while empty cells do not block the view.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'skyscrapers',
+        width: skyscrapersExamplePuzzle.width,
+        height: skyscrapersExamplePuzzle.height,
+        numbers: skyscrapersExamplePuzzle.numbers,
+        clues: skyscrapersExamplePuzzle.clues,
+        correctGrid: skyscrapersExampleCorrectGrid,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <SkyscrapersBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'skyscrapers') {
+        throw new Error('Skyscrapers template example type mismatch.');
+      }
+
+      return (
+        <SkyscrapersExample
+          width={example.width}
+          height={example.height}
+          clues={example.clues}
           correctGrid={example.correctGrid}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
@@ -1831,6 +1923,8 @@ export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
     'magic-snail': 'snail',
     magic: 'magic-summer',
     slovaksums: 'slovak-sums',
+    skyscraper: 'skyscrapers',
+    building: 'skyscrapers',
   };
   if (type in aliases) {
     return aliases[type];

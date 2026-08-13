@@ -574,7 +574,11 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                   {blocked
                     ? renderBlockedCell?.(row, col, cellSize)
                     : candidates[row][col].length > 0
-                      ? renderCandidates?.(candidates[row][col], cellSize, row, col) ?? candidates[row][col].join(' ')
+                      ? (
+                        <span style={{ color: trialColors?.text ?? woodBoardTheme.border }}>
+                          {renderCandidates?.(candidates[row][col], cellSize, row, col) ?? candidates[row][col].join(' ')}
+                        </span>
+                      )
                       : renderCellValue?.(value, cellSize, row, col) ?? value}
                 </div>
               );

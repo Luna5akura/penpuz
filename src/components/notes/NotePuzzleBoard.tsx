@@ -382,6 +382,10 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
       if (typeof cell === 'number') return { tone: 'prefilled', content: cell, locked: true };
       return { tone: 'cell' };
     }
+    case 'skyscrapers': {
+      const given = puzzle.givens[row]?.[col] ?? null;
+      return given === null ? { tone: 'cell' } : { tone: 'prefilled', content: given, locked: true };
+    }
     case 'domino-search': {
       const value = puzzle.numbers[row]?.[col] ?? null;
       return value === null ? { tone: 'shaded', locked: true } : { tone: 'cell', content: value, locked: true };
@@ -425,7 +429,12 @@ function getSnapshotCellView(
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
-  if (puzzleType === 'fillomino' || puzzleType === 'slovak-sums' || puzzleType === 'magic-summer') {
+  if (
+    puzzleType === 'fillomino' ||
+    puzzleType === 'slovak-sums' ||
+    puzzleType === 'magic-summer' ||
+    puzzleType === 'skyscrapers'
+  ) {
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
@@ -500,6 +509,13 @@ function getSnapshotCellTrialStyle(
 
   const trialColors = getTrialLevelColors(trialLevel);
   if (!trialColors) return undefined;
+
+  if (puzzleType === 'skyscrapers') {
+    return {
+      background: trialColors.softFill,
+      color: trialColors.text,
+    };
+  }
 
   if (puzzleType === 'akari') {
     return {
@@ -1020,6 +1036,14 @@ export default function NotePuzzleBoard({
         });
       })()
     : null;
+  const outsideClues = activePuzzle?.type === 'skyscrapers' ? activePuzzle.clues : null;
+  const outsideClueSize = outsideClues ? Math.max(24, Math.floor(cellSize * 0.62)) : 0;
+  const outsideLeft = outsideClues ? outsideClueSize : 0;
+  const outsideRight = outsideClues ? outsideClueSize : 0;
+  const outsideTop = outsideClues ? outsideClueSize : 0;
+  const outsideBottom = outsideClues ? outsideClueSize : 0;
+  const gridLeft = BOARD_PADDING + outsideLeft;
+  const gridTop = BOARD_PADDING + outsideTop;
   const crossedEdges = getStringArray(snapshot, 'crossedEdges');
   const deepLines = getStringArray(snapshot, 'deepLines');
   const thinLines = getStringArray(snapshot, 'thinLines');
@@ -1031,8 +1055,8 @@ export default function NotePuzzleBoard({
   const gridLineKeys = isSlither ? lineEdges : [];
   const centerCrossKeys = isSlither ? [] : crossedEdges;
   const gridCrossKeys = isSlither ? crossedEdges : [];
-  const boardWidth = width * cellSize;
-  const boardHeight = height * cellSize;
+  const boardWidth = width * cellSize + outsideLeft + outsideRight;
+  const boardHeight = height * cellSize + outsideTop + outsideBottom;
   const frameWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const frameHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const frameStyle: CSSProperties = {
@@ -1050,8 +1074,8 @@ export default function NotePuzzleBoard({
           <div
             className="absolute grid"
             style={{
-              left: `${BOARD_PADDING}px`,
-              top: `${BOARD_PADDING}px`,
+              left: `${gridLeft}px`,
+              top: `${gridTop}px`,
               gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
             }}
           >
@@ -1155,6 +1179,75 @@ export default function NotePuzzleBoard({
               })
             )}
           </div>
+
+          {outsideClues ? (
+            <div className="pointer-events-none absolute inset-0">
+              {outsideClues.top.map((value, col) =>
+                value === null ? null : (
+                  <span
+                    key={`top-${col}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                    style={{
+                      left: `${gridLeft + (col + 0.5) * cellSize}px`,
+                      top: `${BOARD_PADDING + outsideTop / 2}px`,
+                      color: woodBoardTheme.border,
+                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                    }}
+                  >
+                    {value}
+                  </span>
+                )
+              )}
+              {outsideClues.bottom.map((value, col) =>
+                value === null ? null : (
+                  <span
+                    key={`bottom-${col}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                    style={{
+                      left: `${gridLeft + (col + 0.5) * cellSize}px`,
+                      top: `${gridTop + height * cellSize + outsideBottom / 2}px`,
+                      color: woodBoardTheme.border,
+                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                    }}
+                  >
+                    {value}
+                  </span>
+                )
+              )}
+              {outsideClues.left.map((value, row) =>
+                value === null ? null : (
+                  <span
+                    key={`left-${row}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                    style={{
+                      left: `${BOARD_PADDING + outsideLeft / 2}px`,
+                      top: `${gridTop + (row + 0.5) * cellSize}px`,
+                      color: woodBoardTheme.border,
+                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                    }}
+                  >
+                    {value}
+                  </span>
+                )
+              )}
+              {outsideClues.right.map((value, row) =>
+                value === null ? null : (
+                  <span
+                    key={`right-${row}`}
+                    className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                    style={{
+                      left: `${gridLeft + width * cellSize + outsideRight / 2}px`,
+                      top: `${gridTop + (row + 0.5) * cellSize}px`,
+                      color: woodBoardTheme.border,
+                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                    }}
+                  >
+                    {value}
+                  </span>
+                )
+              )}
+            </div>
+          ) : null}
 
           {regionIds ? <RegionBoundaries regionIds={regionIds} width={width} height={height} cellSize={cellSize} /> : null}
           {isSlither ? <SlitherDots width={width} height={height} cellSize={cellSize} /> : null}

@@ -422,6 +422,15 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?tapa/12/12/xagmbng6kaeoaelalgafj4nalnaan5j6gbnlbnoabkaggafmafx',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://puzz.link/p?skyscrapers/4/4/k13h4j3g',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?skyscrapers/5/5/g3g1h3g5h4l2g',
+    difficulty: '简单',
+  },
+
 
 
 

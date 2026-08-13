@@ -79,6 +79,13 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
           ? `${puzzle.rowSums.filter((value) => value !== null).length + puzzle.columnSums.filter((value) => value !== null).length} 个外侧和数`
           : `${puzzle.rowSums.filter((value) => value !== null).length + puzzle.columnSums.filter((value) => value !== null).length} outside sums`,
       ];
+    case 'skyscrapers':
+      return [
+        isZh ? `${puzzle.numbers.length} 种楼高` : `${puzzle.numbers.length} building heights`,
+        isZh
+          ? `${Object.values(puzzle.clues).flat().filter((value) => value !== null).length} 个外部线索`
+          : `${Object.values(puzzle.clues).flat().filter((value) => value !== null).length} outside clues`,
+      ];
     case 'domino-search':
       return [
         isZh ? `${puzzle.dominoes.length} 个待找骨牌` : `${puzzle.dominoes.length} dominoes to find`,
