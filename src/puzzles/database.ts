@@ -430,9 +430,18 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?skyscrapers/5/5/g3g1h3g5h4l2g',
     difficulty: '简单',
   },
-
-
-
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?skyscrapers/6/6/j422o5336j',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?skyscrapers/6/6/g35g3253g5i3g33i3g3g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?skyscrapers/7/7/i3g5224g3i5g34g6h2g25g2',
+    difficulty: '困难',
+  },
 
 
 
