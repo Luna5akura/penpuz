@@ -429,10 +429,15 @@ function getSnapshotCellView(
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
+  if (puzzleType === 'magic-summer') {
+    if (value === 'circle') return { tone: 'cell' };
+    if (value === 'cross') return { tone: 'marked' };
+    return isNumberValue(value) ? { tone: 'cell', content: value } : null;
+  }
+
   if (
     puzzleType === 'fillomino' ||
     puzzleType === 'slovak-sums' ||
-    puzzleType === 'magic-summer' ||
     puzzleType === 'skyscrapers'
   ) {
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
@@ -1119,8 +1124,12 @@ export default function NotePuzzleBoard({
                   (snapshotValue === 'circle' || snapshotValue === 'cross')
                   ? snapshotValue
                   : null;
+                const magicSummerMark = puzzleType === 'magic-summer' && snapshotTrialVisible &&
+                  (snapshotValue === 'circle' || snapshotValue === 'cross')
+                  ? snapshotValue
+                  : null;
                 const slitherMarkKey = `${row},${col}`;
-                const centerMark = slitherMark ?? snailMark ?? slovakMark;
+                const centerMark = slitherMark ?? snailMark ?? slovakMark ?? magicSummerMark;
                 const trialStyle = getSnapshotCellTrialStyle(
                   puzzleType,
                   snapshot,
@@ -1151,7 +1160,7 @@ export default function NotePuzzleBoard({
                         mark={centerMark}
                         cellSize={cellSize}
                         color={
-                          snailMark || slovakMark
+                          snailMark || slovakMark || magicSummerMark
                             ? getSnapshotTrialColor(
                                 snapshot,
                                 slitherMarkKey,

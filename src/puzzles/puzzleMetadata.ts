@@ -72,13 +72,17 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
       return [isZh
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个数字线索`
         : `${matrixCount(puzzle.clues, (value) => value !== null)} clues`];
-    case 'magic-summer':
+    case 'magic-summer': {
+      const magicSummerClues = puzzle.clues
+        ? Object.values(puzzle.clues).flat()
+        : [...puzzle.rowSums, ...puzzle.columnSums];
       return [
         isZh ? `${puzzle.numbers.length} 个可填数码` : `${puzzle.numbers.length} available digits`,
         isZh
-          ? `${puzzle.rowSums.filter((value) => value !== null).length + puzzle.columnSums.filter((value) => value !== null).length} 个外侧和数`
-          : `${puzzle.rowSums.filter((value) => value !== null).length + puzzle.columnSums.filter((value) => value !== null).length} outside sums`,
+          ? `${magicSummerClues.filter((value) => value !== null).length} 个外侧和数`
+          : `${magicSummerClues.filter((value) => value !== null).length} outside sums`,
       ];
+    }
     case 'skyscrapers':
       return [
         isZh ? `${puzzle.numbers.length} 种楼高` : `${puzzle.numbers.length} building heights`,

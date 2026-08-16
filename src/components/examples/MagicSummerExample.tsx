@@ -30,8 +30,14 @@ function MagicSummerDiagram({
   puzzle: MagicSummerPuzzleData;
   values?: (number | null)[][];
 }) {
-  const boardWidth = puzzle.width * CELL_SIZE + CLUE_GUTTER;
-  const boardHeight = puzzle.height * CELL_SIZE + CLUE_GUTTER;
+  const clues = puzzle.clues ?? {
+    top: puzzle.columnSums,
+    bottom: Array<number | null>(puzzle.width).fill(null),
+    left: puzzle.rowSums,
+    right: Array<number | null>(puzzle.height).fill(null),
+  };
+  const boardWidth = puzzle.width * CELL_SIZE + CLUE_GUTTER * 2;
+  const boardHeight = puzzle.height * CELL_SIZE + CLUE_GUTTER * 2;
 
   return (
     <div
@@ -84,7 +90,7 @@ function MagicSummerDiagram({
       </div>
 
       <div className="pointer-events-none absolute inset-0">
-        {puzzle.columnSums.map((value, col) => (
+        {clues.top.map((value, col) => (
           value === null ? null : (
             <span
               key={`top-${col}`}
@@ -100,13 +106,45 @@ function MagicSummerDiagram({
             </span>
           )
         ))}
-        {puzzle.rowSums.map((value, row) => (
+        {clues.bottom.map((value, col) => (
+          value === null ? null : (
+            <span
+              key={`bottom-${col}`}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 ${boardClassNames.cellText}`}
+              style={{
+                left: `${commonBoardChrome.padding + CLUE_GUTTER + (col + 0.5) * CELL_SIZE}px`,
+                top: `${commonBoardChrome.padding + CLUE_GUTTER + puzzle.height * CELL_SIZE + CLUE_GUTTER / 2}px`,
+                color: woodBoardTheme.border,
+                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+              }}
+            >
+              {value}
+            </span>
+          )
+        ))}
+        {clues.left.map((value, row) => (
           value === null ? null : (
             <span
               key={`left-${row}`}
               className={`absolute -translate-x-1/2 -translate-y-1/2 ${boardClassNames.cellText}`}
               style={{
                 left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
+                top: `${commonBoardChrome.padding + CLUE_GUTTER + (row + 0.5) * CELL_SIZE}px`,
+                color: woodBoardTheme.border,
+                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+              }}
+            >
+              {value}
+            </span>
+          )
+        ))}
+        {clues.right.map((value, row) => (
+          value === null ? null : (
+            <span
+              key={`right-${row}`}
+              className={`absolute -translate-x-1/2 -translate-y-1/2 ${boardClassNames.cellText}`}
+              style={{
+                left: `${commonBoardChrome.padding + CLUE_GUTTER + puzzle.width * CELL_SIZE + CLUE_GUTTER / 2}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER + (row + 0.5) * CELL_SIZE}px`,
                 color: woodBoardTheme.border,
                 ...getBoardTextStyle(CELL_SIZE, 0.48, 14),

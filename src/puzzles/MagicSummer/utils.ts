@@ -1,4 +1,4 @@
-import type { MagicSummerCell, MagicSummerPuzzleData } from '../types';
+import type { MagicSummerCell, MagicSummerClues, MagicSummerPuzzleData } from '../types';
 import type { NumberPlacementValidationResult } from '../shared/NumberPlacementBoard';
 import {
   decodeCustomPayload,
@@ -9,6 +9,11 @@ import {
 
 interface MagicSummerPayload {
   numbers?: unknown;
+  clues?: unknown;
+  top?: unknown;
+  bottom?: unknown;
+  left?: unknown;
+  right?: unknown;
   rowSums?: unknown;
   rowClues?: unknown;
   rows?: unknown;
@@ -17,6 +22,43 @@ interface MagicSummerPayload {
   columns?: unknown;
   cells?: unknown;
   grid?: unknown;
+}
+
+function createEmptyCells(width: number, height: number): MagicSummerCell[][] {
+  return Array.from({ length: height }, () => Array<MagicSummerCell>(width).fill(null));
+}
+
+function createEmptyClueLine(length: number): (number | null)[] {
+  return Array<number | null>(length).fill(null);
+}
+
+function createMagicSummerPuzzle({
+  width,
+  height,
+  numbers,
+  rowSums,
+  columnSums,
+  cells,
+  clues,
+}: {
+  width: number;
+  height: number;
+  numbers: number[];
+  rowSums: (number | null)[];
+  columnSums: (number | null)[];
+  cells: MagicSummerCell[][];
+  clues?: MagicSummerClues;
+}): MagicSummerPuzzleData {
+  return {
+    type: 'magic-summer',
+    width,
+    height,
+    numbers,
+    rowSums,
+    columnSums,
+    cells,
+    ...(clues ? { clues } : {}),
+  };
 }
 
 function parseNumbers(candidate: unknown): number[] | null {
@@ -63,6 +105,27 @@ function parseLineSums(candidate: unknown, length: number): (number | null)[] | 
     if (!normalized || normalized === '.' || normalized === '-' || normalized === 'x') return null;
     return /^\d+$/u.test(normalized) ? Number(normalized) : null;
   });
+}
+
+function parseClues(candidate: unknown, width: number, height: number): MagicSummerClues | null {
+  if (candidate && typeof candidate === 'object' && !Array.isArray(candidate)) {
+    const value = candidate as Record<string, unknown>;
+    const top = parseLineSums(value.top, width);
+    const bottom = parseLineSums(value.bottom, width);
+    const left = parseLineSums(value.left, height);
+    const right = parseLineSums(value.right, height);
+    return top && bottom && left && right ? { top, bottom, left, right } : null;
+  }
+
+  if (Array.isArray(candidate) && candidate.length === 4) {
+    const top = parseLineSums(candidate[0], width);
+    const bottom = parseLineSums(candidate[1], width);
+    const left = parseLineSums(candidate[2], height);
+    const right = parseLineSums(candidate[3], height);
+    return top && bottom && left && right ? { top, bottom, left, right } : null;
+  }
+
+  return null;
 }
 
 function parseCells(
@@ -159,9 +222,7 @@ function parseCompactMagicSummer(
   if (!numbers || !rowSums || !columnSums) return null;
 
   const cells = parseCompactCellRows(parts.slice(6), width, height, new Set(numbers));
-  return cells
-    ? { type: 'magic-summer', width, height, numbers, rowSums, columnSums, cells }
-    : null;
+  return cells ? createMagicSummerPuzzle({ width, height, numbers, rowSums, columnSums, cells }) : null;
 }
 
 function parsePayload(
@@ -171,16 +232,181 @@ function parsePayload(
   fallbackNumbers: number[] | null
 ): MagicSummerPuzzleData | null {
   const numbers = parseNumbers(payload.numbers) ?? fallbackNumbers;
-  const rowSums = parseLineSums(payload.rowSums ?? payload.rowClues ?? payload.rows, height);
+  const clues = parseClues(
+    payload.clues ?? {
+      top: payload.top,
+      bottom: payload.bottom,
+      left: payload.left,
+      right: payload.right,
+    },
+    width,
+    height
+  );
+  const rowSums = parseLineSums(payload.rowSums ?? payload.rowClues ?? payload.rows, height) ?? clues?.left ?? null;
   const columnSums = parseLineSums(
     payload.columnSums ?? payload.columnClues ?? payload.columns,
     width
-  );
+  ) ?? clues?.top ?? null;
   const cells = parseCells(payload.cells ?? payload.grid, width, height, new Set(numbers ?? []));
 
   return numbers && rowSums && columnSums && cells
-    ? { type: 'magic-summer', width, height, numbers, rowSums, columnSums, cells }
+    ? createMagicSummerPuzzle({ width, height, numbers, rowSums, columnSums, cells, clues })
     : null;
+}
+
+function readNumber16(encoded: string, index: number): [number, number] {
+  const char = encoded[index];
+  if (!char) return [-1, 0];
+  if ((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
+    return [parseInt(char, 16), 1];
+  }
+  if (char === '.') return [-2, 1];
+
+  const lengths: Record<string, number> = {
+    '-': 2,
+    '+': 3,
+    '=': 3,
+    '%': 3,
+    '@': 3,
+    '*': 4,
+    '$': 5,
+  };
+  const payloadLength = lengths[char];
+  if (!payloadLength) return [-1, 0];
+
+  const end = index + payloadLength + 1;
+  if (end > encoded.length) return [-1, 0];
+  const payload = parseInt(encoded.slice(index + 1, end), 16);
+  if (!Number.isFinite(payload)) return [-1, 0];
+
+  if (char === '=') return [payload + 4096, payloadLength + 1];
+  if (char === '%' || char === '@') return [payload + 8192, payloadLength + 1];
+  if (char === '*') return [payload + 12240, payloadLength + 1];
+  if (char === '$') return [payload + 77776, payloadLength + 1];
+  return [payload, payloadLength + 1];
+}
+
+function decodePzprNumber16Line(encoded: string, count: number): { values: (number | null)[]; consumed: number } | null {
+  const values = createEmptyClueLine(count);
+  let slot = 0;
+  let index = 0;
+
+  while (index < encoded.length && slot < count) {
+    const char = encoded[index];
+    const [value, consumed] = readNumber16(encoded, index);
+
+    if (value >= 0) {
+      values[slot] = value;
+      slot++;
+      index += consumed;
+      continue;
+    }
+
+    if (value === -2) {
+      slot++;
+      index += consumed;
+      continue;
+    }
+
+    if (char >= 'g' && char <= 'z') {
+      slot += parseInt(char, 36) - 15;
+      index++;
+      continue;
+    }
+
+    return null;
+  }
+
+  return slot >= count ? { values, consumed: index } : null;
+}
+
+function decodePzprMagicSummerCells(
+  encoded: string,
+  width: number,
+  height: number,
+  allowedNumbers: Set<number>
+): MagicSummerCell[][] | null {
+  const cells = createEmptyCells(width, height);
+  const totalCells = width * height;
+  let cellIndex = 0;
+  let index = 0;
+
+  while (index < encoded.length && cellIndex < totalCells) {
+    const char = encoded[index];
+    const [value, consumed] = readNumber16(encoded, index);
+
+    if (value >= 0) {
+      if (!allowedNumbers.has(value)) return null;
+      cells[Math.floor(cellIndex / width)][cellIndex % width] = value;
+      cellIndex++;
+      index += consumed;
+      continue;
+    }
+
+    if (value === -2) {
+      cells[Math.floor(cellIndex / width)][cellIndex % width] = 'block';
+      cellIndex++;
+      index += consumed;
+      continue;
+    }
+
+    if (char >= 'g' && char <= 'z') {
+      cellIndex += parseInt(char, 36) - 15;
+      index++;
+      continue;
+    }
+
+    return null;
+  }
+
+  return index === encoded.length && cellIndex <= totalCells ? cells : null;
+}
+
+function mergeOppositeClues(
+  primary: (number | null)[],
+  secondary: (number | null)[]
+): (number | null)[] | null {
+  if (primary.length !== secondary.length) return null;
+  return primary.map((value, index) => value ?? secondary[index] ?? null);
+}
+
+function parsePzprMagicSummer(
+  parts: string[],
+  width: number,
+  height: number
+): MagicSummerPuzzleData | null {
+  if (parts.length < 5) return null;
+
+  const numbers = parseNumbers(parts[3]);
+  if (!numbers) return null;
+
+  const encoded = parts.slice(4).join('');
+  const outside = decodePzprNumber16Line(encoded, 2 * (width + height));
+  if (!outside) return null;
+
+  const top = outside.values.slice(0, width);
+  const bottom = outside.values.slice(width, width * 2);
+  const left = outside.values.slice(width * 2, width * 2 + height);
+  const right = outside.values.slice(width * 2 + height);
+  const columnSums = mergeOppositeClues(top, bottom);
+  const rowSums = mergeOppositeClues(left, right);
+  if (!columnSums || !rowSums) return null;
+
+  const remaining = encoded.slice(outside.consumed);
+  const cells = remaining
+    ? decodePzprMagicSummerCells(remaining, width, height, new Set(numbers))
+    : createEmptyCells(width, height);
+  if (!cells) return null;
+
+  return createMagicSummerPuzzle({
+    width,
+    height,
+    numbers,
+    rowSums,
+    columnSums,
+    cells,
+    clues: { top, bottom, left, right },
+  });
 }
 
 export function parseMagicSummerLink(link: string): MagicSummerPuzzleData | null {
@@ -205,7 +431,7 @@ export function parseMagicSummerLink(link: string): MagicSummerPuzzleData | null
       }
     }
 
-    return parseCompactMagicSummer(parts, width, height);
+    return parseCompactMagicSummer(parts, width, height) ?? parsePzprMagicSummer(parts, width, height);
   } catch {
     return null;
   }
@@ -234,6 +460,15 @@ function getLineSum(values: (number | null)[]) {
   return getLineRuns(values).reduce((sum, value) => sum + value, 0);
 }
 
+function getMagicSummerClues(puzzle: MagicSummerPuzzleData): MagicSummerClues {
+  return puzzle.clues ?? {
+    top: puzzle.columnSums,
+    bottom: createEmptyClueLine(puzzle.width),
+    left: puzzle.rowSums,
+    right: createEmptyClueLine(puzzle.height),
+  };
+}
+
 function markMissingOrDuplicateDigits(
   badCells: Set<string>,
   values: (number | null)[],
@@ -257,6 +492,7 @@ export function validateMagicSummer(
   grid: (number | null)[][],
   puzzle: MagicSummerPuzzleData
 ): NumberPlacementValidationResult {
+  const clues = getMagicSummerClues(puzzle);
   const badCells = new Set<string>();
   let message: string | undefined;
   const setMessage = (nextMessage: string) => {
@@ -268,8 +504,12 @@ export function validateMagicSummer(
     if (markMissingOrDuplicateDigits(badCells, values, row, false, puzzle.numbers)) {
       setMessage('每一行都必须恰好包含一次每个指定数字');
     }
-    const expected = puzzle.rowSums[row];
-    if (expected !== null && getLineSum(values) !== expected) {
+    const leftExpected = clues.left[row];
+    const rightExpected = clues.right[row];
+    if (leftExpected !== null && getLineSum(values) !== leftExpected) {
+      setMessage('行外侧数字与该行连续数码组成的数字之和不符');
+    }
+    if (rightExpected !== null && getLineSum([...values].reverse()) !== rightExpected) {
       setMessage('行外侧数字与该行连续数码组成的数字之和不符');
     }
   }
@@ -279,8 +519,12 @@ export function validateMagicSummer(
     if (markMissingOrDuplicateDigits(badCells, values, col, true, puzzle.numbers)) {
       setMessage('每一列都必须恰好包含一次每个指定数字');
     }
-    const expected = puzzle.columnSums[col];
-    if (expected !== null && getLineSum(values) !== expected) {
+    const topExpected = clues.top[col];
+    const bottomExpected = clues.bottom[col];
+    if (topExpected !== null && getLineSum(values) !== topExpected) {
+      setMessage('列外侧数字与该列连续数码组成的数字之和不符');
+    }
+    if (bottomExpected !== null && getLineSum([...values].reverse()) !== bottomExpected) {
       setMessage('列外侧数字与该列连续数码组成的数字之和不符');
     }
   }

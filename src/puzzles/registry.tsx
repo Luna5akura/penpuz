@@ -1534,9 +1534,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在空格中填入给出的数码，使每个数码在每行和每列都恰好出现一次。',
-          '盘面外的数字表示该行或该列中所有连续数码段组成的多位数之和。',
-          '有叉标记的格子不能填数，部分数码可能已经给出。',
+          '在一些空格里填一个属于给出的列表中的数码，使得每个数码在每行和每列都恰好出现一次。',
+          '盘面外的数字表示此行或此列中所有数码组成的数字之和，其中每一段多个连续的有数码的格子从左到右或从上到下形成一个多位数。',
+          '有一些数码可能已经放入了盘面。有叉标记的格子不能填数。',
         ],
         en: [
           'Fill cells with digits from the given list so that every digit appears exactly once in each row and column.',
@@ -1563,6 +1563,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         numbers: magicSummerExamplePuzzle.numbers,
         rowSums: magicSummerExamplePuzzle.rowSums,
         columnSums: magicSummerExamplePuzzle.columnSums,
+        clues: magicSummerExamplePuzzle.clues,
         cells: magicSummerExamplePuzzle.cells,
         correctGrid: magicSummerExampleCorrectGrid,
       },
@@ -1592,6 +1593,7 @@ export const puzzleRegistry: PuzzleRegistry = {
             numbers: example.numbers,
             rowSums: example.rowSums,
             columnSums: example.columnSums,
+            clues: example.clues,
             cells: example.cells,
           }}
           correctGrid={example.correctGrid}

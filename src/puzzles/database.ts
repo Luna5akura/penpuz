@@ -339,10 +339,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
-    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?magic-summer/5/5/3/15,6,15,15,15/15,6,15,15,15/1h3./2h.1/h.12/3.g2g/.g2g3',
-    difficulty: '简单',
-  },
-  {
     puzzLink: 'http://localhost:8080/p.html?slither/8/8/55a5agaaaaga555aj555ahag5aga',
     difficulty: '困难',
   },
@@ -440,6 +436,14 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?skyscrapers/7/7/i3g5224g3i5g34g6h2g25g2',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/atol-solver/p.html?magic-summer/6/6/4/l-f4-49g-37-1cm-91-2eh-13g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?magic-summer/7/7/5/m+177g-45+1da-57o-33+22bi+141+165',
     difficulty: '困难',
   },
 

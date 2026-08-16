@@ -178,6 +178,13 @@ export interface TapaPuzzleData {
 
 export type MagicSummerCell = number | 'block' | null;
 
+export interface MagicSummerClues {
+  top: (number | null)[];
+  bottom: (number | null)[];
+  left: (number | null)[];
+  right: (number | null)[];
+}
+
 export interface MagicSummerPuzzleData {
   type: 'magic-summer';
   width: number;
@@ -185,6 +192,7 @@ export interface MagicSummerPuzzleData {
   numbers: number[];
   rowSums: (number | null)[];
   columnSums: (number | null)[];
+  clues?: MagicSummerClues;
   cells: MagicSummerCell[][];
 }
 
@@ -409,6 +417,7 @@ export type PuzzleExample =
       numbers: number[];
       rowSums: (number | null)[];
       columnSums: (number | null)[];
+      clues?: MagicSummerClues;
       cells: MagicSummerCell[][];
       correctGrid: (number | null)[][];
     }
