@@ -20,6 +20,7 @@ const notePuzzleTypes: PuzzleType[] = [
   'tapa',
   'magic-summer',
   'skyscrapers',
+  'battleship',
   'domino-search',
   'snail',
   'slovak-sums',

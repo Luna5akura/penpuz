@@ -28,6 +28,13 @@ export interface ShadingValidationResult {
   badCells: CellCoord[];
 }
 
+export interface ShadingBoardOutsideClues {
+  top?: (number | null)[];
+  bottom?: (number | null)[];
+  left?: (number | null)[];
+  right?: (number | null)[];
+}
+
 interface ShadingSnapshot {
   grid: ShadingCellState[][];
   levels: number[][];
@@ -45,10 +52,18 @@ interface ShadingBoardProps<TPuzzle extends { width: number; height: number }> {
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
   showValidationMessage?: boolean;
+  outsideClues?: ShadingBoardOutsideClues;
+  renderBoardAccessory?: (cellSize: number) => ReactNode;
   boundaries?: BoundarySegments;
   isLockedCell?: (row: number, col: number) => boolean;
   getCellTone?: (row: number, col: number, state: ShadingCellState) => BoardCellTone;
-  renderCellContent?: (row: number, col: number, state: ShadingCellState, cellSize: number) => ReactNode;
+  renderCellContent?: (
+    row: number,
+    col: number,
+    state: ShadingCellState,
+    cellSize: number,
+    grid: ShadingCellState[][]
+  ) => ReactNode;
 }
 
 const BOARD_PADDING = commonBoardChrome.padding;
@@ -85,6 +100,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   onSnapshotChange,
   fixedCellSize,
   showValidationMessage = false,
+  outsideClues,
+  renderBoardAccessory,
   boundaries,
   isLockedCell = () => false,
   getCellTone,
@@ -160,9 +177,25 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   const visibleValidation = showValidationMessage ? validation : null;
 
   const cellSize = useMemo(
-    () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width }),
-    [fixedCellSize, viewportWidth, width]
+    () => {
+      const horizontalOutsideClueCount = Number(!!outsideClues?.left) + Number(!!outsideClues?.right);
+      return getResponsiveCellSize({
+        fixedCellSize,
+        viewportWidth,
+        width,
+        extraWidth: horizontalOutsideClueCount * 24,
+        minCellSize: horizontalOutsideClueCount > 0 ? 24 : commonBoardChrome.minCellSize,
+      });
+    },
+    [fixedCellSize, outsideClues?.left, outsideClues?.right, viewportWidth, width]
   );
+  const outsideClueSize = outsideClues ? Math.max(24, Math.floor(cellSize * 0.62)) : 0;
+  const outsideLeft = outsideClues?.left ? outsideClueSize : 0;
+  const outsideRight = outsideClues?.right ? outsideClueSize : 0;
+  const outsideTop = outsideClues?.top ? outsideClueSize : 0;
+  const outsideBottom = outsideClues?.bottom ? outsideClueSize : 0;
+  const gridLeft = BOARD_PADDING + outsideLeft;
+  const gridTop = BOARD_PADDING + outsideTop;
 
   useEffect(() => {
     const updateSize = () => setViewportWidth(window.innerWidth);
@@ -229,15 +262,15 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
-    const x = clientX - rect.left - BOARD_BORDER - BOARD_PADDING;
-    const y = clientY - rect.top - BOARD_BORDER - BOARD_PADDING;
+    const x = clientX - rect.left - BOARD_BORDER - gridLeft;
+    const y = clientY - rect.top - BOARD_BORDER - gridTop;
     if (x < 0 || y < 0) return null;
 
     const row = Math.floor(y / cellSize);
     const col = Math.floor(x / cellSize);
     if (row < 0 || row >= height || col < 0 || col >= width) return null;
     return { row, col };
-  }, [cellSize, height, width]);
+  }, [cellSize, gridLeft, gridTop, height, width]);
 
   const applyDragToCell = useCallback((row: number, col: number) => {
     const current = pointerState.current;
@@ -323,9 +356,10 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
 
   const boardWidthPx = width * cellSize;
   const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const outerWidth = boardWidthPx + outsideLeft + outsideRight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const outerHeight = boardHeightPx + outsideTop + outsideBottom + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const crossFontSize = getBoardCrossFontSize(cellSize);
+  const outsideClueTextStyle = getBoardTextStyle(cellSize, 0.48, 14);
   const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
   const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
 
@@ -348,8 +382,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
         <div
           className="absolute grid"
           style={{
-            left: `${BOARD_PADDING}px`,
-            top: `${BOARD_PADDING}px`,
+            left: `${gridLeft}px`,
+            top: `${gridTop}px`,
             gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
           }}
         >
@@ -383,7 +417,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                     ...getBoardTextStyle(cellSize),
                   }}
                 >
-                  {renderCellContent?.(row, col, state, cellSize) ??
+                  {renderCellContent?.(row, col, state, cellSize, grid) ??
                     (isMarked ? (
                       <span style={getCrossMarkStyle(crossFontSize, trialColors?.text ?? woodBoardTheme.border)}>
                         ×
@@ -395,6 +429,67 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
           )}
         </div>
 
+        {outsideClues ? (
+          <div className="pointer-events-none absolute inset-0">
+            {outsideClues.top?.map((value, col) => value === null ? null : (
+              <span
+                key={`top-${col}`}
+                className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                style={{
+                  left: `${gridLeft + (col + 0.5) * cellSize}px`,
+                  top: `${BOARD_PADDING + outsideTop / 2}px`,
+                  color: woodBoardTheme.border,
+                  ...outsideClueTextStyle,
+                }}
+              >
+                {value}
+              </span>
+            ))}
+            {outsideClues.bottom?.map((value, col) => value === null ? null : (
+              <span
+                key={`bottom-${col}`}
+                className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                style={{
+                  left: `${gridLeft + (col + 0.5) * cellSize}px`,
+                  top: `${gridTop + boardHeightPx + outsideBottom / 2}px`,
+                  color: woodBoardTheme.border,
+                  ...outsideClueTextStyle,
+                }}
+              >
+                {value}
+              </span>
+            ))}
+            {outsideClues.left?.map((value, row) => value === null ? null : (
+              <span
+                key={`left-${row}`}
+                className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                style={{
+                  left: `${BOARD_PADDING + outsideLeft / 2}px`,
+                  top: `${gridTop + (row + 0.5) * cellSize}px`,
+                  color: woodBoardTheme.border,
+                  ...outsideClueTextStyle,
+                }}
+              >
+                {value}
+              </span>
+            ))}
+            {outsideClues.right?.map((value, row) => value === null ? null : (
+              <span
+                key={`right-${row}`}
+                className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
+                style={{
+                  left: `${gridLeft + boardWidthPx + outsideRight / 2}px`,
+                  top: `${gridTop + (row + 0.5) * cellSize}px`,
+                  color: woodBoardTheme.border,
+                  ...outsideClueTextStyle,
+                }}
+              >
+                {value}
+              </span>
+            ))}
+          </div>
+        ) : null}
+
         {boundaries ? (
           <svg
             className="pointer-events-none absolute left-0 top-0"
@@ -402,8 +497,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
             height={outerHeight - BOARD_BORDER * 2}
           >
             {boundaries.horizontal.map((segment) => {
-              const x1 = BOARD_PADDING + segment.col * cellSize;
-              const y = BOARD_PADDING + segment.row * cellSize;
+              const x1 = gridLeft + segment.col * cellSize;
+              const y = gridTop + segment.row * cellSize;
               const x2 = x1 + cellSize;
               return (
                 <line
@@ -419,8 +514,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
               );
             })}
             {boundaries.vertical.map((segment) => {
-              const x = BOARD_PADDING + segment.col * cellSize;
-              const y1 = BOARD_PADDING + segment.row * cellSize;
+              const x = gridLeft + segment.col * cellSize;
+              const y1 = gridTop + segment.row * cellSize;
               const y2 = y1 + cellSize;
               return (
                 <line
@@ -436,8 +531,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
               );
             })}
             {boundaries.horizontal.map((segment) => {
-              const x1 = BOARD_PADDING + segment.col * cellSize;
-              const y = BOARD_PADDING + segment.row * cellSize;
+              const x1 = gridLeft + segment.col * cellSize;
+              const y = gridTop + segment.row * cellSize;
               const x2 = x1 + cellSize;
               return (
                 <line
@@ -453,8 +548,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
               );
             })}
             {boundaries.vertical.map((segment) => {
-              const x = BOARD_PADDING + segment.col * cellSize;
-              const y1 = BOARD_PADDING + segment.row * cellSize;
+              const x = gridLeft + segment.col * cellSize;
+              const y1 = gridTop + segment.row * cellSize;
               const y2 = y1 + cellSize;
               return (
                 <line
@@ -472,6 +567,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
           </svg>
         ) : null}
       </div>
+
+      {renderBoardAccessory?.(cellSize)}
 
       <PuzzleAssistToolbar
         canUndo={canUndo}

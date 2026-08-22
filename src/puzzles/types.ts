@@ -212,6 +212,42 @@ export interface SkyscrapersPuzzleData {
   givens: (number | null)[][];
 }
 
+export type BattleshipSegment =
+  | 'unknown'
+  | 'up'
+  | 'down'
+  | 'left'
+  | 'right'
+  | 'center'
+  | 'single'
+  | 'up-left'
+  | 'up-right'
+  | 'down-left'
+  | 'down-right';
+
+export interface BattleshipCellClue {
+  row: number;
+  col: number;
+  kind: 'water' | 'ship';
+  segment?: BattleshipSegment;
+}
+
+export interface BattleshipShipShape {
+  width: number;
+  height: number;
+  cells: boolean[][];
+}
+
+export interface BattleshipPuzzleData {
+  type: 'battleship';
+  width: number;
+  height: number;
+  columnClues: (number | null)[];
+  rowClues: (number | null)[];
+  cellClues: BattleshipCellClue[];
+  fleet: BattleshipShipShape[];
+}
+
 export interface DominoSearchPuzzleData {
   type: 'domino-search';
   width: number;
@@ -267,6 +303,7 @@ export type PuzzleData =
   | TapaPuzzleData
   | MagicSummerPuzzleData
   | SkyscrapersPuzzleData
+  | BattleshipPuzzleData
   | DominoSearchPuzzleData
   | MagicSnailPuzzleData
   | SlovakSumsPuzzleData;
@@ -428,6 +465,16 @@ export type PuzzleExample =
       numbers: number[];
       clues: SkyscrapersClues;
       correctGrid: number[][];
+    }
+  | {
+      puzzleType: 'battleship';
+      width: number;
+      height: number;
+      columnClues: (number | null)[];
+      rowClues: (number | null)[];
+      cellClues: BattleshipCellClue[];
+      fleet: BattleshipShipShape[];
+      correctSolution: (0 | 1)[][];
     }
   | {
       puzzleType: 'domino-search';

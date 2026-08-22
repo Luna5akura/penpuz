@@ -16,6 +16,7 @@ import LakesBoard from './Lakes/Lakes';
 import TapaBoard from './Tapa/Tapa';
 import MagicSummerBoard from './MagicSummer/MagicSummer';
 import SkyscrapersBoard from './Skyscrapers/Skyscrapers';
+import BattleshipBoard from './Battleship/Battleship';
 import DominoSearchBoard from './DominoSearch/DominoSearch';
 import MagicSnailBoard from './MagicSnail/MagicSnail';
 import SlovakSumsBoard from './SlovakSums/SlovakSums';
@@ -32,6 +33,7 @@ import KurarinExample from '../components/examples/KurarinExample';
 import WalkwalkExample from '../components/examples/WalkwalkExample';
 import AdditionalPuzzleExample from '../components/examples/AdditionalPuzzleExample';
 import SkyscrapersExample from '../components/examples/SkyscrapersExample';
+import BattleshipExample from '../components/examples/BattleshipExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseYajilinLink } from './Yajilin/utils';
@@ -49,6 +51,7 @@ import { parseLakesLink } from './Lakes/utils';
 import { parseTapaLink } from './Tapa/utils';
 import { parseMagicSummerLink } from './MagicSummer/utils';
 import { parseSkyscrapersLink } from './Skyscrapers/utils';
+import { parseBattleshipLink } from './Battleship/utils';
 import { parseDominoSearchLink } from './DominoSearch/utils';
 import { parseMagicSnailLink } from './MagicSnail/utils';
 import { parseSlovakSumsLink } from './SlovakSums/utils';
@@ -56,6 +59,7 @@ import { normalizePuzzLinkDataPart } from './gridUtils';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
+  BattleshipPuzzleData,
   DominoSearchPuzzleData,
   FillominoPuzzleData,
   HeyawakePuzzleData,
@@ -150,6 +154,22 @@ const skyscrapersExampleCorrectGrid = [
   [3, 4, 2, 1],
 ];
 
+const BATTLESHIP_EXAMPLE_LINK = 'https://pzprxs.vercel.app/p?battleship/6/6/g12h2g30g3gk0r3w//c';
+const battleshipExamplePuzzle = parseBattleshipLink(BATTLESHIP_EXAMPLE_LINK);
+
+if (!battleshipExamplePuzzle) {
+  throw new Error('Failed to parse the built-in Battleship example puzzle.');
+}
+
+const battleshipExampleCorrectSolution: (0 | 1)[][] = [
+  [0, 0, 1, 0, 0, 0],
+  [1, 0, 1, 0, 0, 1],
+  [0, 0, 0, 0, 0, 0],
+  [1, 1, 0, 0, 0, 0],
+  [0, 0, 0, 1, 1, 1],
+  [1, 0, 0, 0, 0, 0],
+];
+
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
   startTime: number;
@@ -184,6 +204,7 @@ type PuzzleRegistry = {
   tapa: PuzzleRegistryEntry<TapaPuzzleData>;
   'magic-summer': PuzzleRegistryEntry<MagicSummerPuzzleData>;
   skyscrapers: PuzzleRegistryEntry<SkyscrapersPuzzleData>;
+  battleship: PuzzleRegistryEntry<BattleshipPuzzleData>;
   'domino-search': PuzzleRegistryEntry<DominoSearchPuzzleData>;
   snail: PuzzleRegistryEntry<MagicSnailPuzzleData>;
   'slovak-sums': PuzzleRegistryEntry<SlovakSumsPuzzleData>;
@@ -1670,6 +1691,86 @@ export const puzzleRegistry: PuzzleRegistry = {
           height={example.height}
           clues={example.clues}
           correctGrid={example.correctGrid}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  battleship: {
+    parsePuzzLink: parseBattleshipLink,
+    template: {
+      type: 'battleship',
+      name: {
+        'zh-CN': '战舰',
+        en: 'Battleships',
+      },
+      rulesTitle: {
+        'zh-CN': '游戏规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '把舰队中的所有船放入盘面；船可以旋转或镜像，每艘船必须恰好使用一次，且不能出现舰队之外的船形。',
+          '任意两艘不同的船不能横向、纵向或斜向接触。',
+          '盘面外的数字表示对应行或列内有船的格数。',
+          '盘面中可能给出带方向的船段、形状未知的灰色船段或单格船；水波符号所在格不能放船。',
+        ],
+        en: [
+          'Place every ship from the fleet into the grid. Ships may be rotated or mirrored, every ship must be used exactly once, and no extra ship shapes are allowed.',
+          'Two different ships cannot touch horizontally, vertically, or diagonally.',
+          'A number outside the grid gives the number of ship cells in that row or column.',
+          'Some oriented ship segments, gray segments of unknown shape, or single-cell ships may be given. A cell marked with water cannot contain a ship.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'battleship',
+        width: battleshipExamplePuzzle.width,
+        height: battleshipExamplePuzzle.height,
+        columnClues: battleshipExamplePuzzle.columnClues,
+        rowClues: battleshipExamplePuzzle.rowClues,
+        cellClues: battleshipExamplePuzzle.cellClues,
+        fleet: battleshipExamplePuzzle.fleet,
+        correctSolution: battleshipExampleCorrectSolution,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <BattleshipBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'battleship') {
+        throw new Error('Battleship template example type mismatch.');
+      }
+
+      return (
+        <BattleshipExample
+          width={example.width}
+          height={example.height}
+          columnClues={example.columnClues}
+          rowClues={example.rowClues}
+          cellClues={example.cellClues}
+          fleet={example.fleet}
+          correctSolution={example.correctSolution}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
         />

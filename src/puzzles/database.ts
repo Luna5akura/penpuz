@@ -446,6 +446,11 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?magic-summer/7/7/5/m+177g-45+1da-57o-33+22bi+141+165',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?battleship/9/9/234223211141152114zzg6zy//d',
+    difficulty: '困难',
+  },
+
 
 
 

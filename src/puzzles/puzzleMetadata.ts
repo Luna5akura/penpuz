@@ -90,6 +90,13 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
           ? `${Object.values(puzzle.clues).flat().filter((value) => value !== null).length} 个外部线索`
           : `${Object.values(puzzle.clues).flat().filter((value) => value !== null).length} outside clues`,
       ];
+    case 'battleship':
+      return [
+        isZh ? `${puzzle.fleet.length} 艘船` : `${puzzle.fleet.length} ships`,
+        isZh
+          ? `${puzzle.cellClues.length} 个盘内线索`
+          : `${puzzle.cellClues.length} in-grid clues`,
+      ];
     case 'domino-search':
       return [
         isZh ? `${puzzle.dominoes.length} 个待找骨牌` : `${puzzle.dominoes.length} dominoes to find`,

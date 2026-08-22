@@ -252,6 +252,8 @@ interface ResponsiveCellSizeOptions {
   viewportWidth: number;
   width: number;
   columnGap?: number;
+  extraWidth?: number;
+  minCellSize?: number;
 }
 
 export function getResponsiveCellSize({
@@ -259,6 +261,8 @@ export function getResponsiveCellSize({
   viewportWidth,
   width,
   columnGap = 0,
+  extraWidth = 0,
+  minCellSize = commonBoardChrome.minCellSize,
 }: ResponsiveCellSizeOptions) {
   if (fixedCellSize) return fixedCellSize;
 
@@ -267,11 +271,14 @@ export function getResponsiveCellSize({
     ? commonBoardChrome.mobileViewportPadding
     : commonBoardChrome.desktopViewportPadding;
   const boardChromeWidth = (commonBoardChrome.padding + commonBoardChrome.border) * 2;
-  const maxAvailableWidth = Math.max(0, viewportWidth - horizontalViewportPadding - boardChromeWidth);
+  const maxAvailableWidth = Math.max(
+    0,
+    viewportWidth - horizontalViewportPadding - boardChromeWidth - extraWidth
+  );
   const nextSize = Math.floor((maxAvailableWidth - (width - 1) * columnGap) / width);
 
   return Math.max(
-    commonBoardChrome.minCellSize,
+    minCellSize,
     Math.min(
       mobile ? commonBoardChrome.defaultMaxMobileCellSize : commonBoardChrome.maxDesktopCellSize,
       nextSize

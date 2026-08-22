@@ -24,6 +24,11 @@ import { getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey }
 import { getTrialLevelColors } from '@/puzzles/trialStyles';
 import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import TapaClue from '@/puzzles/Tapa/TapaClue';
+import {
+  BattleshipFleet,
+  BattleshipSegmentSymbol,
+  BattleshipWaterSymbol,
+} from '@/puzzles/Battleship/BattleshipVisuals';
 import type { PuzzleData, PuzzleType, YajilinDirection } from '@/puzzles/types';
 import { Button } from '../ui/button';
 
@@ -385,6 +390,17 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
     case 'skyscrapers': {
       const given = puzzle.givens[row]?.[col] ?? null;
       return given === null ? { tone: 'cell' } : { tone: 'prefilled', content: given, locked: true };
+    }
+    case 'battleship': {
+      const clue = puzzle.cellClues.find((item) => item.row === row && item.col === col);
+      if (!clue) return { tone: 'cell' };
+      return {
+        tone: 'clue',
+        content: clue.kind === 'water'
+          ? <BattleshipWaterSymbol cellSize={cellSize} />
+          : <BattleshipSegmentSymbol segment={clue.segment ?? 'unknown'} cellSize={cellSize} given />,
+        locked: true,
+      };
     }
     case 'domino-search': {
       const value = puzzle.numbers[row]?.[col] ?? null;
@@ -1041,7 +1057,16 @@ export default function NotePuzzleBoard({
         });
       })()
     : null;
-  const outsideClues = activePuzzle?.type === 'skyscrapers' ? activePuzzle.clues : null;
+  const outsideClues = activePuzzle?.type === 'skyscrapers'
+    ? activePuzzle.clues
+    : activePuzzle?.type === 'battleship'
+      ? {
+          top: activePuzzle.columnClues,
+          bottom: Array<number | null>(activePuzzle.width).fill(null),
+          left: activePuzzle.rowClues,
+          right: Array<number | null>(activePuzzle.height).fill(null),
+        }
+      : null;
   const outsideClueSize = outsideClues ? Math.max(24, Math.floor(cellSize * 0.62)) : 0;
   const outsideLeft = outsideClues ? outsideClueSize : 0;
   const outsideRight = outsideClues ? outsideClueSize : 0;
@@ -1393,6 +1418,10 @@ export default function NotePuzzleBoard({
           />
         </div>
       </div>
+
+      {activePuzzle?.type === 'battleship' ? (
+        <BattleshipFleet fleet={activePuzzle.fleet} boardCellSize={cellSize} compact />
+      ) : null}
 
       {maxTrialLevel > 0 ? (
         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground" aria-live="polite">
