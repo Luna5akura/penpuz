@@ -451,7 +451,7 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'https://pzprxs.vercel.app/p?battleship/9/9/111622223141114161zzzzg//d',
+    puzzLink: 'https://pzprxs.vercel.app/p?battleship/9/9/111622223141114161zg5zzy//d',
     difficulty: '困难',
   },
 
