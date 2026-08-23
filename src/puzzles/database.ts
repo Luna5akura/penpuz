@@ -450,6 +450,10 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?battleship/9/9/234223211141152114zzg6zy//d',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?battleship/9/9/111622223141114161zzzzg//d',
+    difficulty: '困难',
+  },
 
 
 
