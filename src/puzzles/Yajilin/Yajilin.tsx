@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import type { YajilinPuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { ClueArrow } from './ClueArrow';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import {
   boardClassNames,
   boardLayoutMetrics,
@@ -12,11 +14,13 @@ import {
   getBoardCrossFontSize,
   getBoardFixedTextStyle,
   getBoardFrameStyle,
+  getBoardGridSurfaceStyle,
   getCrossMarkStyle,
   getDirectionalClueNumberFontSize,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
+  getBoardTrialCellStyle,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -27,11 +31,13 @@ import {
   getYajilinEdgeKey,
   parseYajilinEdgeKey,
   type YajilinCellState,
+  type YajilinValidationResult,
   validateYajilin,
 } from './utils';
 import { getTrialLevelColors } from '../trialStyles';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import { filterValidCellEdgeKeys } from '../gridUtils';
 
 interface Props {
   puzzle: YajilinPuzzleData;
@@ -41,10 +47,20 @@ interface Props {
   initialSnapshot?: unknown;
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
+  showValidationMessage?: boolean;
+  /** Optional validator/renderer used by loop-and-shading variants. */
+  validateBoard?: (
+    grid: YajilinCellState[][],
+    loopEdges: Set<string>,
+    clues: YajilinPuzzleData['clues'],
+    width: number,
+    height: number
+  ) => YajilinValidationResult;
+  renderClue?: (clue: YajilinPuzzleData['clues'][number], cellSize: number) => ReactNode;
 }
 
 const BOARD_PADDING = commonBoardChrome.padding;
-const BOARD_GAP = 1;
+const BOARD_GAP = boardLayoutMetrics.cellGap;
 const BOARD_BORDER = commonBoardChrome.border;
 
 type PendingTap =
@@ -78,8 +94,8 @@ function normalizeYajilinSnapshot(snapshot: unknown, width: number, height: numb
     grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
       value === 0 || value === 1 || value === 2 ? value : 0
     ) as YajilinCellState[][],
-    loopEdges: sanitizeStringArray(source?.loopEdges),
-    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    loopEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.loopEdges), width, height),
+    crossedEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.crossedEdges), width, height),
     cellLevels: sanitizeMatrix(source?.cellLevels, fallback.cellLevels, (value, fallbackCell) =>
       typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
     ),
@@ -96,12 +112,13 @@ export default function YajilinBoard({
   initialSnapshot,
   onSnapshotChange,
   fixedCellSize,
+  showValidationMessage = false,
+  validateBoard,
+  renderClue,
 }: Props) {
   const { copy } = useI18n();
   const { width, height, clues } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -125,7 +142,7 @@ export default function YajilinBoard({
     pendingTap: null,
   });
   const hasCompleted = useRef(false);
-  const createInitialSnapshot = useCallback<YajilinSnapshot>(() => ({
+  const createInitialSnapshot = useCallback<() => YajilinSnapshot>(() => ({
     grid: createEmptyYajilinGrid(width, height),
     loopEdges: [],
     crossedEdges: [],
@@ -178,7 +195,7 @@ export default function YajilinBoard({
   const hasEdited = canUndo || canRedo || trialCheckpointCount > 0 || trialActive;
 
   const clueMap = useMemo(() => {
-    const map = new Map<string, (typeof clues)[number]>();
+    const map = new Map<string, (typeof clues)[number] & { index: number }>();
     clues.forEach((clue, index) => {
       map.set(`${clue.row},${clue.col}`, { ...clue, index });
     });
@@ -191,6 +208,7 @@ export default function YajilinBoard({
       fixedCellSize,
       viewportWidth,
       width,
+      containerWidth: true,
       columnGap: BOARD_GAP,
     });
   }, [fixedCellSize, viewportWidth, width]);
@@ -206,19 +224,13 @@ export default function YajilinBoard({
   }, [cellSize]);
 
   const validation = useMemo(
-    () => (hasEdited ? validateYajilin(grid, loopEdges, clues, width, height) : null),
-    [clues, grid, hasEdited, height, loopEdges, width]
+    () => (hasEdited
+      ? (validateBoard
+        ? validateBoard(grid, loopEdges, clues, width, height)
+        : validateYajilin(grid, loopEdges, clues, width, height))
+      : null),
+    [clues, grid, hasEdited, height, loopEdges, validateBoard, width]
   );
-
-  useEffect(() => {
-    const updateSize = () => {
-      setViewportWidth(window.innerWidth);
-    };
-
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -658,7 +670,7 @@ export default function YajilinBoard({
   const boardWidthPx = width * cellSize + (width - 1) * BOARD_GAP + BOARD_PADDING * 2;
   const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -681,7 +693,7 @@ export default function YajilinBoard({
           style={{
             gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
             gap: `${BOARD_GAP}px`,
-            background: woodBoardTheme.gridLine,
+            ...getBoardGridSurfaceStyle(),
           }}
         >
           {grid.flatMap((row, r) =>
@@ -691,11 +703,7 @@ export default function YajilinBoard({
               const isMarked = state === 2;
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const cellStyle = !clue && trialColors
-                ? isShaded
-                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
-                  : isMarked
-                    ? { background: trialColors.softFill, color: trialColors.text }
-                    : undefined
+                ? getBoardTrialCellStyle(trialColors, isShaded ? 'filled' : 'soft')
                 : undefined;
               return (
                 <div
@@ -706,15 +714,13 @@ export default function YajilinBoard({
                     height: `${cellSize}px`,
                     paddingTop: clue ? '0px' : '2px',
                     ...(clue
-                      ? {
-                          ...getBoardCellColors('clue'),
-                          background: woodBoardTheme.marked,
-                        }
+                      ? getBoardCellColors('clue')
                       : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                     ...cellStyle,
                   }}
                 >
                   {clue ? (
+                    renderClue ? renderClue(clue, cellSize) : (
                     <div className="relative w-full h-full">
                       <ClueArrow direction={clue.direction} cellSize={cellSize} />
                       <span
@@ -732,6 +738,7 @@ export default function YajilinBoard({
                         {clue.value}
                       </span>
                     </div>
+                    )
                   ) : isMarked ? (
                     <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
                   ) : null}
@@ -816,11 +823,7 @@ export default function YajilinBoard({
         {copy.shared.resetPuzzle}
       </button>
 
-      {/* {validation?.message && (
-        <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
-          {validation.message}
-        </div>
-      )} */}
+      {showValidationMessage ? <ValidationMessage message={validation?.message ?? undefined} /> : null}
     </div>
   );
 }

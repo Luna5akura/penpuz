@@ -1,4 +1,5 @@
 import type { KurarinClue, KurarinClueColor, KurarinPuzzleData, YajilinSolutionEdge } from '../types';
+import { isValidCellEdgeKey } from '../gridUtils';
 
 export type KurarinCellState = 0 | 1 | 2;
 
@@ -194,11 +195,19 @@ export function validateKurarin(
   const badClues = new Set<number>();
   const degree = Array.from({ length: height }, () => Array(width).fill(0));
   const adjacency = new Map<string, Set<string>>();
+  let invalidEdge = false;
+  let message: string | undefined;
+  const setMessage = (nextMessage: string) => {
+    if (!message) message = nextMessage;
+  };
   const addBadCell = (row: number, col: number) => badCells.add(clueKey(row, col));
 
   for (const key of loopEdges) {
     const edge = parseKurarinEdgeKey(key);
-    if (!edge) continue;
+    if (!edge || !isValidCellEdgeKey(key, width, height)) {
+      invalidEdge = true;
+      continue;
+    }
 
     degree[edge.r1][edge.c1] += 1;
     degree[edge.r2][edge.c2] += 1;
@@ -263,10 +272,14 @@ export function validateKurarin(
     if (clue.color === 'gray' && shaded !== unshaded) badClues.add(index);
   });
 
-  const valid = badCells.size === 0 && badClues.size === 0;
+  if (invalidEdge) setMessage('存档中存在无法识别的线段');
+  if (badCells.size > 0 || badClues.size > 0) {
+    setMessage('回路、涂黑或圆点约束尚未满足');
+  }
+  const valid = !message && badCells.size === 0 && badClues.size === 0;
   return {
     valid,
-    message: valid ? undefined : 'Loop, shading, or circle constraints are not satisfied yet.',
+    message,
     badCells: [...badCells].map((key) => {
       const [r, c] = key.split(',').map(Number);
       return { r, c };
@@ -303,11 +316,7 @@ export function detectKurarinHitTarget(
   }
 
   const threshold = Math.max(8, cellSize * 0.18);
-  const candidates: Array<{
-    distance: number;
-    edgeKey: string | null;
-    cells: [{ row: number; col: number }, { row: number; col: number }];
-  }> = [
+  const candidates = [
     {
       distance: Math.hypot(localX - centerX, localY),
       edgeKey: row > 0 ? getKurarinEdgeKey(row - 1, col, row, col) : null,
@@ -330,7 +339,11 @@ export function detectKurarinHitTarget(
     },
   ]
     .filter((item) => item.edgeKey !== null)
-    .sort((a, b) => a.distance - b.distance);
+    .sort((a, b) => a.distance - b.distance) as Array<{
+      distance: number;
+      edgeKey: string | null;
+      cells: [{ row: number; col: number }, { row: number; col: number }];
+    }>;
 
   const best = candidates[0];
   if (best && best.distance <= threshold && best.edgeKey) {

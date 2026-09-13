@@ -53,7 +53,16 @@ export const messages = {
       cancel: '取消',
       confirmView: '查看',
       revealAnswerPrompt: '查看答案？',
+      clearCell: '清空',
       numberRange: (min: number, max: number) => `填入数字范围：${min}~${max}`,
+      dots: (count: number) => `${count} 个点`,
+      trialDisplay: {
+        hidden: '不显示试错',
+        only: (level: number) => `仅第${level}层试错`,
+        range: (level: number) => `第1-${level}层试错`,
+        decrease: '减少显示的试错层级',
+        increase: '增加显示的试错层级',
+      },
       numberInputModes: {
         normal: '正常',
         candidates: '候选数',
@@ -64,6 +73,17 @@ export const messages = {
         number: '数字',
         boundary: '边界',
         mark: '标记',
+      },
+    },
+    puzzles: {
+      kakuro: {
+        across: '右',
+        down: '下',
+        blackCell: '黑格',
+      },
+      wolvesAndSheep: {
+        sheep: '羊',
+        wolf: '狼',
       },
     },
     assistToolbar: {
@@ -135,7 +155,16 @@ export const messages = {
       cancel: 'Cancel',
       confirmView: 'Show',
       revealAnswerPrompt: 'Show answer?',
+      clearCell: 'Clear',
       numberRange: (min: number, max: number) => `Fill numbers: ${min}-${max}`,
+      dots: (count: number) => `${count} dots`,
+      trialDisplay: {
+        hidden: 'Hide trial notes',
+        only: (level: number) => `Trial level ${level} only`,
+        range: (level: number) => `Trial levels 1-${level}`,
+        decrease: 'Show fewer trial levels',
+        increase: 'Show more trial levels',
+      },
       numberInputModes: {
         normal: 'Normal',
         candidates: 'Candidates',
@@ -146,6 +175,17 @@ export const messages = {
         number: 'Number',
         boundary: 'Boundary',
         mark: 'Mark',
+      },
+    },
+    puzzles: {
+      kakuro: {
+        across: 'Across',
+        down: 'Down',
+        blackCell: 'Black cell',
+      },
+      wolvesAndSheep: {
+        sheep: 'Sheep',
+        wolf: 'Wolf',
       },
     },
     assistToolbar: {

@@ -6,19 +6,32 @@ import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino }
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getKeyboardDigit, isKeyboardInputTarget } from '@/lib/keyboard';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import { getTrialLevelColors } from '../trialStyles';
 import {
   boardClassNames,
+  boardOverlayStyle,
   commonBoardChrome,
-  getBoardCellColors,
-  getBoardControlTextStyle,
+  getBoardCellStyle,
+  getBoardBoundaryStrokeWidth,
+  getBoardGridStrokeWidth,
+  getBoardNumpadPanelStyle,
+  getBoardNumpadButtonStyle,
+  getBoardNumpadDismissStyle,
+  getBoardNumpadHeaderStyle,
+  getBoardNumpadGridStyle,
+  getBoardModeButtonStyle,
+  getBoardRegionStrokeWidth,
+  getBoardThinStrokeWidth,
   getBoardFrameStyle,
   getBoardTextStyle,
+  getBoardTrialCellStyle,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import { filterValidInternalBoundaryEdgeKeys } from '../gridUtils';
 
 interface Props {
   puzzle: FillominoPuzzleData;
@@ -43,15 +56,20 @@ type FillominoSnapshot = {
 const BOARD_PADDING = commonBoardChrome.padding;
 const KEYBOARD_ENTRY_TIMEOUT_MS = 1000;
 
-function normalizeFillominoSnapshot(snapshot: unknown, fallback: FillominoSnapshot): FillominoSnapshot {
+function normalizeFillominoSnapshot(
+  snapshot: unknown,
+  fallback: FillominoSnapshot,
+  width: number,
+  height: number
+): FillominoSnapshot {
   const source = snapshot as Partial<FillominoSnapshot> | null | undefined;
 
   return {
     grid: sanitizeMatrix(source?.grid, fallback.grid, (value, fallbackCell) =>
       value === null || (typeof value === 'number' && Number.isFinite(value)) ? value : fallbackCell
     ),
-    thinLines: sanitizeStringArray(source?.thinLines),
-    deepLines: sanitizeStringArray(source?.deepLines),
+    thinLines: filterValidInternalBoundaryEdgeKeys(sanitizeStringArray(source?.thinLines), width, height),
+    deepLines: filterValidInternalBoundaryEdgeKeys(sanitizeStringArray(source?.deepLines), width, height),
     gridLevels: sanitizeMatrix(source?.gridLevels, fallback.gridLevels, (value, fallbackCell) =>
       typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
     ),
@@ -72,12 +90,11 @@ export default function FillominoBoard({
   const { width, height, clues } = puzzle;
 
   // ==================== 响应式尺寸 ====================
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const cellSize = useMemo(() => getResponsiveCellSize({
     viewportWidth,
     width,
+    containerWidth: true,
   }), [viewportWidth, width]);
 
   const [isTouchDevice, setIsTouchDevice] = useState(() =>
@@ -108,7 +125,7 @@ export default function FillominoBoard({
   const initialSnapshotRef = useRef(initialSnapshot);
   const resetBoardRef = useRef<() => void>(() => {});
 
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressThreshold = 500;
 
   const gap = 0;
@@ -120,7 +137,7 @@ export default function FillominoBoard({
 
   // ==================== 新增：防止重复完成 ====================
   const hasCompleted = useRef(false);
-  const createInitialSnapshot = useCallback<FillominoSnapshot>(() => ({
+  const createInitialSnapshot = useCallback<() => FillominoSnapshot>(() => ({
     grid: clues.map((row) => [...row]),
     thinLines: [],
     deepLines: [],
@@ -129,11 +146,11 @@ export default function FillominoBoard({
     deepLineLevels: {},
   }), [clues]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeFillominoSnapshot(initialSnapshotRef.current, createInitialSnapshot());
-  }, [createInitialSnapshot]);
+    return normalizeFillominoSnapshot(initialSnapshotRef.current, createInitialSnapshot(), width, height);
+  }, [createInitialSnapshot, height, width]);
   const history = usePuzzleHistory<FillominoSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...normalizeFillominoSnapshot(trialSnapshot, createInitialSnapshot()),
+      ...normalizeFillominoSnapshot(trialSnapshot, createInitialSnapshot(), width, height),
       gridLevels: createInitialSnapshot().gridLevels.map((row) => row.map(() => 0)),
       thinLineLevels: {},
       deepLineLevels: {},
@@ -161,8 +178,8 @@ export default function FillominoBoard({
     finishBatch,
   } = history;
   const normalizedSnapshot = useMemo(
-    () => normalizeFillominoSnapshot(snapshot, createInitialSnapshot()),
-    [createInitialSnapshot, snapshot]
+    () => normalizeFillominoSnapshot(snapshot, createInitialSnapshot(), width, height),
+    [createInitialSnapshot, height, snapshot, width]
   );
   const grid = normalizedSnapshot.grid;
   const thinLines = normalizedSnapshot.thinLines;
@@ -176,7 +193,6 @@ export default function FillominoBoard({
   // ==================== 窗口大小变化时实时调整 ====================
   useLayoutEffect(() => {
     const updateSize = () => {
-      setViewportWidth(window.innerWidth);
       setIsTouchDevice(window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 640);
     };
 
@@ -359,7 +375,7 @@ export default function FillominoBoard({
       if (val === null) val = increment > 0 ? 1 : 9;
       else val += increment;
       if (val < 1) val = null;
-      if (val > 99) val = 99;
+      if (val !== null && val > 99) val = 99;
       newGrid[r][c] = val;
       newGridLevels[r][c] = val === null ? 0 : trialActive ? currentTrialLevel : 0;
       return {
@@ -439,13 +455,13 @@ export default function FillominoBoard({
   const getLineStyle = useCallback((key: string): { stroke: string; strokeWidth: number } => {
     if (deepLineSet.has(key)) {
       const trialColors = getTrialLevelColors(deepLineLevels[key] ?? 0);
-      return { stroke: trialColors?.line ?? woodBoardTheme.deepLine, strokeWidth: 4 };
+      return { stroke: trialColors?.line ?? woodBoardTheme.deepLine, strokeWidth: getBoardRegionStrokeWidth(cellSize) };
     }
     if (autoThinLineSet.has(key)) {
-      return { stroke: woodBoardTheme.accentBorder, strokeWidth: 3 };
+      return { stroke: woodBoardTheme.accentBorder, strokeWidth: getBoardBoundaryStrokeWidth(cellSize) };
     }
-    return { stroke: woodBoardTheme.gridLine, strokeWidth: 1 };
-  }, [autoThinLineSet, deepLineLevels, deepLineSet]);
+    return { stroke: woodBoardTheme.gridLine, strokeWidth: getBoardGridStrokeWidth() };
+  }, [autoThinLineSet, cellSize, deepLineLevels, deepLineSet]);
 
   const alignStrokeCoordinate = useCallback((coordinate: number, strokeWidth: number) => (
     strokeWidth % 2 === 1 ? coordinate + 0.5 : coordinate
@@ -654,7 +670,7 @@ export default function FillominoBoard({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       {isTouchDevice && (
         <>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -668,11 +684,7 @@ export default function FillominoBoard({
                 type="button"
                 onClick={() => setMobileMode(mode)}
                 className="rounded-md border px-3 py-1.5 text-sm font-medium transition-colors"
-                style={{
-                  borderColor: woodBoardTheme.border,
-                  background: mobileMode === mode ? woodBoardTheme.shaded : woodBoardTheme.cell,
-                  color: mobileMode === mode ? woodBoardTheme.shadedText : woodBoardTheme.border,
-                }}
+                style={getBoardModeButtonStyle(mobileMode === mode)}
               >
                 {label}
               </button>
@@ -706,14 +718,14 @@ export default function FillominoBoard({
         >
           {grid.flatMap((row, r) =>
             row.map((value, c) => {
-              const isPreFilled = clues[r][c] !== null;
+              const isClue = clues[r][c] !== null;
               const trialColors = getTrialLevelColors(gridLevels[r][c]);
               return (
                 <div
                   key={`${r}-${c}`}
                   onPointerDown={(e) => handlePointerDown(r, c, e)}
                   onMouseEnter={() => {
-                    if (!isPreFilled) {
+                    if (!isClue) {
                       hoveredCellRef.current = { row: r, col: c };
                       keyboardEntryRef.current = null;
                     }
@@ -728,18 +740,8 @@ export default function FillominoBoard({
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
                     ...getBoardTextStyle(cellSize),
-                    ...(isPreFilled
-                      ? {
-                          ...getBoardCellColors('prefilled'),
-                          background: woodBoardTheme.marked,
-                        }
-                      : getBoardCellColors('cell')),
-                    ...(trialColors && !isPreFilled
-                      ? {
-                          background: trialColors.softFill,
-                          color: trialColors.text,
-                        }
-                      : {}),
+                    ...getBoardCellStyle(cellSize, isClue ? 'clue' : 'cell'),
+                    ...(trialColors && !isClue ? getBoardTrialCellStyle(trialColors, 'soft') : {}),
                   }}
                 >
                   {value ?? ''}
@@ -828,7 +830,7 @@ export default function FillominoBoard({
                 key={`thin-${key}`}
                 x1={x1} y1={y1} x2={x2} y2={y2}
                 stroke={getTrialLevelColors(thinLineLevels[key] ?? 0)?.line ?? woodBoardTheme.thinLine}
-                strokeWidth="2"
+                strokeWidth={getBoardThinStrokeWidth(cellSize)}
                 strokeLinecap="round"
               />
             );
@@ -843,53 +845,27 @@ export default function FillominoBoard({
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              background: woodBoardTheme.panel,
-              border: `3px solid ${woodBoardTheme.border}`,
-              borderRadius: '12px',
-              padding: '12px',
-              boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.2)',
+              ...getBoardNumpadPanelStyle(),
               zIndex: 9999,
               touchAction: 'none',
               userSelect: 'none',
-              maxWidth: '340px',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+            <div style={getBoardNumpadHeaderStyle()}>
               <button
                 onClick={closeNumpad}
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  ...getBoardControlTextStyle(24),
-                  color: woodBoardTheme.border,
-                  background: 'transparent',
-                  border: 'none',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  borderRadius: '50%',
-                }}
+                style={getBoardNumpadDismissStyle()}
               >
                 ✕
               </button>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: '8px' }}>
+            <div style={getBoardNumpadGridStyle()}>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                 <button
                   key={num}
                   onClick={() => handleNumpadInput(num)}
                   style={{
-                    width: '52px',
-                    height: '52px',
-                    ...getBoardControlTextStyle(24),
-                    ...getBoardCellColors('prefilled'),
-                    border: `2px solid ${woodBoardTheme.border}`,
-                    borderRadius: '8px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
+                    ...getBoardNumpadButtonStyle(cellSize),
                   }}
                 >
                   {num}
@@ -899,22 +875,13 @@ export default function FillominoBoard({
                 onClick={() => handleNumpadInput(null)}
                 style={{
                   gridColumn: 'span 3',
-                  height: '52px',
-                  ...getBoardControlTextStyle(20),
-                  background: woodBoardTheme.invalidSoft,
-                  border: `2px solid ${woodBoardTheme.border}`,
-                  borderRadius: '8px',
-                  color: woodBoardTheme.invalidText,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
+                  ...getBoardNumpadButtonStyle(cellSize, 'invalid', 20),
                 }}
               >
                 {copy.shared.delete}
               </button>
             </div>
-            <div onClick={closeNumpad} style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: -1 }} />
+            <div onClick={closeNumpad} style={boardOverlayStyle} />
           </div>
         )}
       </div>

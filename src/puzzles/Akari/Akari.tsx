@@ -1,12 +1,16 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { getTrialLevelColors } from '../trialStyles';
 import type { AkariPuzzleData } from '../types';
 import {
   boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardSymbolDiameter,
+  getBoardTrialCellStyle,
   getBoardCrossFontSize,
   getBoardFrameStyle,
   getBoardTextStyle,
@@ -86,9 +90,7 @@ export default function AkariBoard({
   validationHighlightMode = 'default',
 }: Props) {
   const { width, height, cells } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -198,15 +200,9 @@ export default function AkariBoard({
       fixedCellSize,
       viewportWidth,
       width,
+      containerWidth: true,
     });
   }, [fixedCellSize, viewportWidth, width]);
-
-  useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
@@ -408,12 +404,12 @@ export default function AkariBoard({
   const boardHeightPx = height * cellSize;
   const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const bulbDiameter = Math.max(20, Math.floor(cellSize * 0.8));
+  const bulbDiameter = getBoardSymbolDiameter(cellSize);
   const crossFontSize = getBoardCrossFontSize(cellSize);
   const clueTextStyle = getBoardTextStyle(cellSize);
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -467,7 +463,7 @@ export default function AkariBoard({
               const trialStyle = trialColors
                 ? {
                     ...getCellDividerStyle(),
-                    boxShadow: `inset 0 0 0 2px ${trialColors.line}`,
+                    ...getBoardTrialCellStyle(trialColors, 'line'),
                   }
                 : getCellDividerStyle();
 
@@ -501,7 +497,7 @@ export default function AkariBoard({
                         background:
                           validationHighlightMode === 'example' && hasConflictingBulb
                             ? getInvalidBoardCellColors('dark').background
-                            : woodBoardTheme.shaded,
+                            : getBoardCellColors('shaded').background,
                         display: 'block',
                       }}
                     />
@@ -530,11 +526,7 @@ export default function AkariBoard({
         onCommitTrial={commitTrial}
       />
 
-      {showValidationMessage && validation?.message ? (
-        <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
-          {validation.message}
-        </div>
-      ) : null}
+      {showValidationMessage ? <ValidationMessage message={validation?.message} /> : null}
     </div>
   );
 }

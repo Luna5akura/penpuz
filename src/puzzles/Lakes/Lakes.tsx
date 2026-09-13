@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import type { LakesPuzzleData } from '../types';
 import { getCellKey } from '../gridUtils';
-import { boardClassNames, getBoardTextStyle, woodBoardTheme } from '../boardTheme';
+import { boardClassNames, getBoardClueTextStyle } from '../boardTheme';
 import { validateLakes } from './utils';
 
 interface Props {
@@ -61,8 +61,7 @@ export default function LakesBoard({
           <span
             className={boardClassNames.cellText}
             style={{
-              ...getBoardTextStyle(cellSize),
-              color: woodBoardTheme.border,
+              ...getBoardClueTextStyle(cellSize),
             }}
           >
             {value}

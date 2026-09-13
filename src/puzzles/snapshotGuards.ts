@@ -19,9 +19,14 @@ export function sanitizeMatrix<T>(
   });
 }
 
-export function sanitizeStringArray(candidate: unknown): string[] {
+export function sanitizeStringArray(
+  candidate: unknown,
+  predicate?: (value: string) => boolean
+): string[] {
   if (!Array.isArray(candidate)) return [];
-  return candidate.filter((value): value is string => typeof value === 'string');
+  return candidate.filter(
+    (value): value is string => typeof value === 'string' && (predicate ? predicate(value) : true)
+  );
 }
 
 export function sanitizeNumberRecord(candidate: unknown): Record<string, number> {

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { KurarinClue, KurarinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import KurarinBoard from '../../puzzles/Kurarin/Kurarin';
 import {
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardClueCircleMetrics,
   getBoardFrameStyle,
+  getBoardGridSurfaceStyle,
   getKurarinClueColors,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
@@ -25,8 +27,8 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = 44;
-const GAP = 1;
+const CELL_SIZE = boardLayoutMetrics.loopExampleCellSize;
+const GAP = boardLayoutMetrics.cellGap;
 const PADDING = commonBoardChrome.padding;
 const BORDER = commonBoardChrome.border;
 
@@ -41,7 +43,6 @@ export default function KurarinExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<KurarinPuzzleData>(
@@ -58,27 +59,30 @@ export default function KurarinExample({
     <>
       <div className="flex flex-col xl:flex-row gap-10 justify-center">
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <KurarinBoard
             key={`kurarin-example-${width}-${height}`}
             puzzle={examplePuzzle}
             startTime={exampleStartTime}
+            resetToken={0}
             onComplete={() => setShowAnswer(true)}
             fixedCellSize={CELL_SIZE}
           />
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+          >
+            {!showAnswer ? (
               <div
                 className="relative"
                 style={{
@@ -93,19 +97,17 @@ export default function KurarinExample({
                   style={{
                     gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
                     gap: `${GAP}px`,
-                    background: woodBoardTheme.gridLine,
+                    ...getBoardGridSurfaceStyle(),
                   }}
                 >
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
                       key={index}
-                      style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, background: woodBoardTheme.cell }}
+                      style={{ width: `${CELL_SIZE}px`, height: `${CELL_SIZE}px`, ...getBoardCellColors('cell') }}
                     />
                   ))}
                 </div>
               </div>
-              <ExampleAnswerOverlay />
-            </div>
           ) : (
             <div
               className="relative"
@@ -121,7 +123,7 @@ export default function KurarinExample({
                 style={{
                   gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
                   gap: `${GAP}px`,
-                  background: woodBoardTheme.gridLine,
+                  ...getBoardGridSurfaceStyle(),
                 }}
               >
                 {Array.from({ length: height }).flatMap((_, r) =>
@@ -186,27 +188,19 @@ export default function KurarinExample({
                       key={`clue-${clue.row}-${clue.col}-${index}`}
                       cx={x}
                       cy={y}
-                      r={Math.max(8, Math.floor(CELL_SIZE * 0.16))}
+                    r={getBoardClueCircleMetrics(CELL_SIZE).radius}
                       fill={clueStyle.fill}
                       stroke={clueStyle.stroke}
-                      strokeWidth={Math.max(2, Math.floor(CELL_SIZE * 0.05))}
+                      strokeWidth={getBoardClueCircleMetrics(CELL_SIZE).strokeWidth}
                     />
                   );
                 })}
               </svg>
             </div>
           )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

@@ -3,16 +3,19 @@ import { ArrowDown, ArrowUp, Edit3, Eye, FileDown, FileText, Link2, Plus, Rotate
 import { useI18n } from '@/i18n/useI18n';
 import { setDocumentMetadata } from '@/lib/documentMetadata';
 import { cn } from '@/lib/utils';
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from '@/lib/safeStorage';
 import { notePosts } from '@/notes/posts';
 import { getNotePuzzleTypeName, notePuzzleTypeOptions } from '@/notes/puzzleTypeOptions';
 import type {
   DraftNotePostFile,
   NotePost,
   NotePostBlock,
+  NoteReplayCellMark,
   NoteReplayStep,
 } from '@/notes/types';
+import { asRecord, extractNotePost } from '@/notes/validation';
 import { getPuzzleMetadata } from '@/puzzles/puzzleMetadata';
-import { parsePuzzleLink, renderPuzzleBoard } from '@/puzzles/registry';
+import { isPuzzleData, isPuzzleType, parsePuzzleLink, renderPuzzleBoard } from '@/puzzles/registry';
 import type { PuzzleData, PuzzleType } from '@/puzzles/types';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -298,9 +301,41 @@ async function copyTextToClipboard(text: string) {
 function trimSteps(steps: NoteReplayStep[], width: number, height: number) {
   return steps.map((step) => ({
     ...step,
-    snapshot: undefined,
-    marks: (step.marks ?? []).filter((mark) => mark.row < height && mark.col < width),
+    // Snapshots are the source of truth for replay boards (in particular for
+    // Battleship, where the ship shape is derived from neighbouring cells).
+    // Keep them while loading/normalising a block; dropping them makes every
+    // replay step look like an empty board after it has been persisted.
+    marks: (step.marks ?? []).filter(
+      (mark) =>
+        mark !== null &&
+        typeof mark === 'object' &&
+        Number.isInteger(mark.row) &&
+        Number.isInteger(mark.col) &&
+        mark.row >= 0 &&
+        mark.col >= 0 &&
+        mark.row < height &&
+        mark.col < width
+    ),
   }));
+}
+
+/**
+ * A replay snapshot belongs to one exact puzzle definition. Once the puzzle
+ * identity or dimensions change, retaining those snapshots is more harmful
+ * than useful: they can render a valid-looking board for the wrong puzzle.
+ */
+function clearReplaySteps() {
+  return [] as NoteReplayStep[];
+}
+
+function normalizeReplaySteps(value: unknown, width: number, height: number) {
+  const steps = Array.isArray(value)
+    ? value
+      .map((step, index) => normalizeReplayStep(step, index))
+      .filter((step): step is NoteReplayStep => step !== null)
+    : [];
+
+  return trimSteps(steps, width, height);
 }
 
 function cloneUnknown<T>(value: T): T {
@@ -328,38 +363,6 @@ function getLocalizedValue(text: { 'zh-CN'?: string; en?: string } | undefined, 
   return text[key] ?? text[alternate] ?? fallback;
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value !== null && typeof value === 'object' ? value as Record<string, unknown> : null;
-}
-
-function isLocalizedText(value: unknown): value is { 'zh-CN': string; en: string } {
-  const record = asRecord(value);
-  return typeof record?.['zh-CN'] === 'string' && typeof record.en === 'string';
-}
-
-function isNotePost(value: unknown): value is NotePost {
-  const record = asRecord(value);
-  return (
-    typeof record?.id === 'string' &&
-    isLocalizedText(record.title) &&
-    isLocalizedText(record.summary) &&
-    typeof record.author === 'string' &&
-    typeof record.date === 'string' &&
-    Array.isArray(record.blocks)
-  );
-}
-
-function extractNotePost(payload: unknown): NotePost | null {
-  const record = asRecord(payload);
-  if (!record) return null;
-
-  if (record.schema === 'penpuz-note/v1' && isNotePost(record.post)) {
-    return record.post;
-  }
-
-  return isNotePost(record) ? record : null;
-}
-
 function getLatestStepSnapshot(steps: NoteReplayStep[]) {
   for (let index = steps.length - 1; index >= 0; index--) {
     if (steps[index].snapshot !== undefined) return steps[index].snapshot;
@@ -376,8 +379,13 @@ function postBlockToDraftBlock(block: NotePostBlock): DraftBlock {
     );
   }
 
-  const parsedPuzzle = block.puzzle ?? (block.puzzleLink ? parsePuzzleLink(block.puzzleLink) ?? undefined : undefined);
-  const steps = cloneUnknown(block.steps);
+  const storedPuzzle = isSerializablePuzzleData(block.puzzle) ? block.puzzle : undefined;
+  const parsedPuzzle = storedPuzzle ?? (block.puzzleLink ? parsePuzzleLink(block.puzzleLink) ?? undefined : undefined);
+  const steps = normalizeReplaySteps(
+    block.steps,
+    parsedPuzzle?.width ?? block.width,
+    parsedPuzzle?.height ?? block.height
+  );
 
   return {
     id: makeBlockId(),
@@ -417,12 +425,7 @@ function normalizeLocalizedText(value: unknown, fallbackZh: string, fallbackEn: 
 }
 
 function isSerializablePuzzleData(value: unknown): value is PuzzleData {
-  const record = asRecord(value);
-  return (
-    typeof record?.type === 'string' &&
-    typeof record.width === 'number' &&
-    typeof record.height === 'number'
-  );
+  return isPuzzleData(value);
 }
 
 function normalizeReplayStep(value: unknown, index: number): NoteReplayStep | null {
@@ -431,11 +434,34 @@ function normalizeReplayStep(value: unknown, index: number): NoteReplayStep | nu
 
   const title = normalizeLocalizedText(record.title, `步骤 ${index + 1}`, `Step ${index + 1}`);
   const note = normalizeLocalizedText(record.note, '', '');
+  const marks: NoteReplayCellMark[] | undefined = Array.isArray(record.marks)
+    ? record.marks.flatMap((mark) => {
+        const markRecord = asRecord(mark);
+        if (!markRecord) return [];
+
+        const { row, col, kind, label } = markRecord;
+        if (
+          typeof row !== 'number' || !Number.isInteger(row) ||
+          typeof col !== 'number' || !Number.isInteger(col) ||
+          (kind !== 'shade' && kind !== 'star' && kind !== 'path' && kind !== 'label')
+        ) {
+          return [];
+        }
+
+        return [{
+          row,
+          col,
+          kind: kind as NoteReplayCellMark['kind'],
+          ...(typeof label === 'string' ? { label } : {}),
+        }];
+      })
+    : undefined;
+
   return {
     title,
     note,
     ...(record.snapshot !== undefined ? { snapshot: record.snapshot } : {}),
-    ...(Array.isArray(record.marks) ? { marks: record.marks as NoteReplayStep['marks'] } : {}),
+    ...(marks ? { marks } : {}),
   };
 }
 
@@ -459,17 +485,18 @@ function normalizeStoredDraftBlock(value: unknown): DraftBlock | null {
   const linkedPuzzle = puzzleLink ? parsePuzzleLink(puzzleLink) ?? undefined : undefined;
   const storedPuzzle = isSerializablePuzzleData(record.puzzle) ? record.puzzle : undefined;
   const puzzle = storedPuzzle ?? linkedPuzzle;
-  const width = Math.min(12, Math.max(3, Math.floor(getRecordNumber(record, 'width', puzzle?.width ?? 5))));
-  const height = Math.min(12, Math.max(3, Math.floor(getRecordNumber(record, 'height', puzzle?.height ?? 5))));
-  const rawSteps = Array.isArray(record.steps) ? record.steps : [];
-  const steps = rawSteps
-    .map((step, index) => normalizeReplayStep(step, index))
-    .filter((step): step is NoteReplayStep => step !== null);
+  const width = puzzle
+    ? puzzle.width
+    : Math.min(12, Math.max(3, Math.floor(getRecordNumber(record, 'width', 5))));
+  const height = puzzle
+    ? puzzle.height
+    : Math.min(12, Math.max(3, Math.floor(getRecordNumber(record, 'height', 5))));
+  const steps = normalizeReplaySteps(record.steps, width, height);
 
   return {
     id: getRecordString(record, 'id') || makeBlockId(),
     type: 'puzzle-replay',
-    puzzleType: (typeof record.puzzleType === 'string' ? record.puzzleType : puzzle?.type ?? 'nurikabe') as PuzzleType,
+    puzzleType: puzzle?.type ?? (isPuzzleType(record.puzzleType) ? record.puzzleType : 'nurikabe'),
     puzzleLink,
     ...(puzzle ? { puzzle } : {}),
     importError: linkedPuzzle
@@ -525,31 +552,24 @@ function readStoredNoteEditorDraft() {
   if (typeof window === 'undefined') return null;
 
   try {
-    const raw = window.localStorage.getItem(NOTE_EDITOR_DRAFT_STORAGE_KEY);
+    const raw = readLocalStorage(NOTE_EDITOR_DRAFT_STORAGE_KEY);
     if (!raw) return null;
 
     const draft = normalizeStoredNoteEditorDraft(JSON.parse(raw) as unknown);
     if (!draft) {
-      window.localStorage.removeItem(NOTE_EDITOR_DRAFT_STORAGE_KEY);
+      removeLocalStorage(NOTE_EDITOR_DRAFT_STORAGE_KEY);
       return null;
     }
 
     return draft;
   } catch {
-    window.localStorage.removeItem(NOTE_EDITOR_DRAFT_STORAGE_KEY);
+    removeLocalStorage(NOTE_EDITOR_DRAFT_STORAGE_KEY);
     return null;
   }
 }
 
 function writeStoredNoteEditorDraft(draft: StoredNoteEditorDraft) {
-  if (typeof window === 'undefined') return false;
-
-  try {
-    window.localStorage.setItem(NOTE_EDITOR_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-    return true;
-  } catch {
-    return false;
-  }
+  return writeLocalStorage(NOTE_EDITOR_DRAFT_STORAGE_KEY, JSON.stringify(draft));
 }
 
 function formatAutosaveTime(value: string, locale: 'zh-CN' | 'en') {
@@ -601,7 +621,7 @@ function draftBlockToPostBlock(block: DraftBlock): NotePostBlock {
     title: makeLocalizedText(block.titleZh, block.titleEn),
     width: block.width,
     height: block.height,
-    steps: block.steps,
+    steps: normalizeReplaySteps(block.steps, block.width, block.height),
   };
 }
 
@@ -688,9 +708,14 @@ function NotesPage() {
   const { locale } = useI18n();
   const labels = noteCopy[locale];
   const restoredEditorDraft = useMemo(() => readStoredNoteEditorDraft(), []);
-  const shouldRestoreEditorMode = restoredEditorDraft?.mode === 'edit';
-  const [mode, setMode] = useState<NotesMode>(() => restoredEditorDraft?.mode ?? 'read');
+  const initialUrlPostId = findNotePostById(readNoteIdFromUrl())?.id ?? null;
+  const shouldRestoreEditorMode = restoredEditorDraft?.mode === 'edit' && !initialUrlPostId;
+  const [mode, setMode] = useState<NotesMode>(() => shouldRestoreEditorMode ? 'edit' : 'read');
   const [selectedPostId, setSelectedPostId] = useState(() => {
+    // A shared note URL is an explicit navigation target and must win over a
+    // stale autosaved selection from another editing session.
+    if (initialUrlPostId) return initialUrlPostId;
+
     const restoredPostId = restoredEditorDraft?.selectedPostId;
     return restoredPostId && notePosts.some((post) => post.id === restoredPostId)
       ? restoredPostId
@@ -869,7 +894,9 @@ function NotesPage() {
         boardSnapshot: undefined,
         boardResetToken: block.boardResetToken + 1,
         boardStartTime: Date.now(),
-        steps: trimSteps(block.steps, width, height),
+        stepNoteZh: '',
+        stepNoteEn: '',
+        steps: clearReplaySteps(),
       };
     });
   };
@@ -883,6 +910,9 @@ function NotesPage() {
       boardSnapshot: undefined,
       boardResetToken: block.boardResetToken + 1,
       boardStartTime: Date.now(),
+      stepNoteZh: '',
+      stepNoteEn: '',
+      steps: clearReplaySteps(),
     }));
   };
   const updateReplayPuzzleLink = (id: string, puzzleLink: string) => {
@@ -918,7 +948,9 @@ function NotesPage() {
         boardSnapshot: undefined,
         boardResetToken: block.boardResetToken + 1,
         boardStartTime: Date.now(),
-        steps: trimSteps(block.steps, puzzle.width, puzzle.height),
+        stepNoteZh: '',
+        stepNoteEn: '',
+        steps: clearReplaySteps(),
       };
     });
   };
@@ -1068,7 +1100,13 @@ function NotesPage() {
 
     const syncSelectedPostFromUrl = (preserveMode = false) => {
       const nextPost = findNotePostById(readNoteIdFromUrl());
-      if (!nextPost) return;
+      if (!nextPost) {
+        if (!preserveMode) {
+          setMode('read');
+          setSelectedPostId(notePosts[0]?.id ?? '');
+        }
+        return;
+      }
 
       if (!preserveMode) {
         setMode('read');

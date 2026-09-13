@@ -59,9 +59,10 @@ function parseLakesClues(candidate: unknown): NurikabeClue[] | null {
 
     if (!item || typeof item !== 'object') return null;
     const clue = item as Partial<NurikabeClue>;
-    if (!Number.isInteger(clue.row) || !Number.isInteger(clue.col)) return null;
-    if (clue.value !== '?' && (!Number.isInteger(clue.value) || clue.value < 0)) return null;
-    clues.push({ row: clue.row, col: clue.col, value: clue.value });
+    const { row, col, value } = clue;
+    if (typeof row !== 'number' || !Number.isInteger(row) || typeof col !== 'number' || !Number.isInteger(col)) return null;
+    if (value === undefined || (value !== '?' && (!Number.isInteger(value) || value < 0))) return null;
+    clues.push({ row, col, value });
   }
 
   return clues;

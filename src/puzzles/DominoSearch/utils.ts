@@ -187,10 +187,7 @@ export function detectDominoSearchBoundaryHitTarget(
   const localY = y - row * cellSize;
   const threshold = Math.max(7, cellSize * 0.16);
 
-  const candidates: Array<{
-    distance: number;
-    cells: [{ row: number; col: number }, { row: number; col: number }];
-  }> = [
+  const candidates = [
     {
       distance: Math.abs(localY),
       cells: [{ row: row - 1, col }, { row, col }],
@@ -211,7 +208,10 @@ export function detectDominoSearchBoundaryHitTarget(
     .filter(({ cells }) =>
       cells.every((cell) => cell.row >= 0 && cell.row < height && cell.col >= 0 && cell.col < width)
     )
-    .sort((left, right) => left.distance - right.distance);
+    .sort((left, right) => left.distance - right.distance) as Array<{
+      distance: number;
+      cells: [{ row: number; col: number }, { row: number; col: number }];
+    }>;
 
   const best = candidates[0];
   if (!best || best.distance > threshold) return null;

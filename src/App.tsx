@@ -1,7 +1,7 @@
 // src/App.tsx
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, CalendarDays, History, Languages, NotebookText } from 'lucide-react';
+import { BookOpen, CalendarDays, FlaskConical, History, Languages, NotebookText } from 'lucide-react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
 import {
@@ -23,12 +23,14 @@ import { Card } from './components/ui/card';
 const HISTORY_PAGE_SIZE = 5;
 const RuleQuickReferenceDialog = lazy(() => import('./components/RuleQuickReferenceDialog'));
 const NotesPage = lazy(() => import('./components/notes/NotesPage'));
+const DatabasePuzzleTestPage = lazy(() => import('./components/DatabasePuzzleTestPage'));
 
-type ActivePage = 'puzzle' | 'notes';
+type ActivePage = 'puzzle' | 'notes' | 'database-test';
 
 function readActivePageFromUrl(): ActivePage {
   if (typeof window === 'undefined') return 'puzzle';
   const params = new URLSearchParams(window.location.search);
+  if (params.get('page') === 'database-test' || params.get('page') === 'test') return 'database-test';
   return params.has('note') || params.get('page') === 'notes' ? 'notes' : 'puzzle';
 }
 
@@ -46,13 +48,17 @@ function pushAppPageUrl(page: ActivePage, currentDateStr?: string, todayDateStr?
         url.searchParams.set('date', currentDateStr);
       }
     }
-  } else {
+  } else if (page === 'notes') {
     url.searchParams.delete('date');
     if (url.searchParams.has('note')) {
       url.searchParams.delete('page');
     } else {
       url.searchParams.set('page', 'notes');
     }
+  } else {
+    url.searchParams.delete('date');
+    url.searchParams.delete('note');
+    url.searchParams.set('page', 'database-test');
   }
 
   const nextUrl = url.toString();
@@ -165,6 +171,11 @@ function App() {
     closeHistory();
     setActivePage('notes');
     pushAppPageUrl('notes');
+  }, [closeHistory]);
+  const handleOpenDatabaseTestPage = useCallback(() => {
+    closeHistory();
+    setActivePage('database-test');
+    pushAppPageUrl('database-test');
   }, [closeHistory]);
 
   const copyHistoryLink = useCallback(async (url: string, dateStr: string) => {
@@ -363,6 +374,14 @@ function App() {
     });
   }, [activePage, copy.app.siteTitle, daily, linkedPuzzle, locale]);
 
+  if (activePage === 'database-test') {
+    return (
+      <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading…</div>}>
+        <DatabasePuzzleTestPage />
+      </Suspense>
+    );
+  }
+
   if (!daily) return <div className="text-center py-12">{copy.app.loadingDailyPuzzle}</div>;
 
   const activePuzzle = linkedPuzzle ?? daily.puzzle;
@@ -395,13 +414,22 @@ function App() {
                 <CalendarDays />
               </Button>
               <Button
-                variant={!isPuzzlePage ? 'default' : 'outline'}
+                variant={activePage === 'notes' ? 'default' : 'outline'}
                 size="icon"
                 onClick={handleOpenNotesPage}
                 aria-label={copy.app.notesTab}
                 title={copy.app.notesTab}
               >
                 <NotebookText />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleOpenDatabaseTestPage}
+                aria-label={locale === 'zh-CN' ? '题库测试页' : 'Database test'}
+                title={locale === 'zh-CN' ? '题库测试页' : 'Database test'}
+              >
+                <FlaskConical />
               </Button>
               <Button
                 variant="outline"
@@ -481,7 +509,7 @@ function App() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex justify-center mb-12">
+                <div className="mb-12 flex w-full min-w-0 justify-center">
                   {renderBoard()}
                 </div>
               </>
@@ -619,11 +647,9 @@ function App() {
                                   </div>
                                 </div>
                                 <div className="shrink-0 text-right">
-                                  {duration && (
-                                    <div className="font-mono text-sm text-muted-foreground dark:text-gray-300">
-                                      {duration}
-                                    </div>
-                                  )}
+                                  <div className="h-5 font-mono text-sm text-muted-foreground dark:text-gray-300">
+                                    {duration ?? '\u00a0'}
+                                  </div>
                                   <Button
                                     variant="outline"
                                     size="sm"

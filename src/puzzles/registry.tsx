@@ -2,6 +2,9 @@ import type { ReactElement } from 'react';
 import NurikabeBoard from './Nurikabe/Nurikabe';
 import FillominoBoard from './Fillomino/Fillomino';
 import YajilinBoard from './Yajilin/Yajilin';
+import KoburinBoard from './Koburin/Koburin';
+import NeighborBoard from './Neighbor/Neighbor';
+import SkyNeighborBoard from './SkyNeighbor/SkyNeighbor';
 import StarbattleBoard from './Starbattle/Starbattle';
 import HeyawakeBoard from './Heyawake/Heyawake';
 import AqreBoard from './Aqre/Aqre';
@@ -20,9 +23,16 @@ import BattleshipBoard from './Battleship/Battleship';
 import DominoSearchBoard from './DominoSearch/DominoSearch';
 import MagicSnailBoard from './MagicSnail/MagicSnail';
 import SlovakSumsBoard from './SlovakSums/SlovakSums';
+import KakuroBoard from './Kakuro/Kakuro';
+import WolvesAndSheepBoard from './WolvesAndSheep/WolvesAndSheep';
+import ShapeMinesweeperBoard from './ShapeMinesweeper/ShapeMinesweeper';
+import CaveBoard from './Cave/Cave';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
+import KoburinExample from '../components/examples/KoburinExample';
+import NeighborExample from '../components/examples/NeighborExample';
+import SkyNeighborExample from '../components/examples/SkyNeighborExample';
 import StarbattleExample from '../components/examples/StarbattleExample';
 import HeyawakeExample from '../components/examples/HeyawakeExample';
 import AqreExample from '../components/examples/AqreExample';
@@ -82,10 +92,31 @@ import type {
   TapaPuzzleData,
   WalkwalkPuzzleData,
   YajilinPuzzleData,
+  KoburinPuzzleData,
+  NeighborPuzzleData,
+  NeighborDigit,
+  SkyNeighborPuzzleData,
+  KakuroPuzzleData,
+  WolvesAndSheepPuzzleData,
+  ShapeMinesweeperPuzzleData,
+  CavePuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
 import TapaExample from '../components/examples/TapaExample';
 import MagicSummerExample from '../components/examples/MagicSummerExample';
+import KakuroExample from '../components/examples/KakuroExample';
+import ShadingPuzzleExample from '../components/examples/ShadingPuzzleExample';
+import { parseKakuroLink } from './Kakuro/utils';
+import { parseWolvesAndSheepLink } from './WolvesAndSheep/utils';
+import { parseKoburinLink } from './Koburin/utils';
+import { parseNeighborLink, validateNeighbor } from './Neighbor/utils';
+import {
+  getSkyNeighborVisibilityClues,
+  parseSkyNeighborLink,
+  validateSkyNeighbor,
+} from './SkyNeighbor/utils';
+import { parseShapeMinesweeperLink } from './ShapeMinesweeper/utils';
+import { parseCaveLink } from './Cave/utils';
 
 const WALKWALK_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/5/5/8gh20v00l1g6m7l3g';
 const walkwalkExamplePuzzle = parseWalkwalkLink(WALKWALK_EXAMPLE_LINK);
@@ -170,6 +201,187 @@ const battleshipExampleCorrectSolution: (0 | 1)[][] = [
   [1, 0, 0, 0, 0, 0],
 ];
 
+const kakuroExamplePuzzle: KakuroPuzzleData = {
+  type: 'kakuro',
+  width: 6,
+  height: 6,
+  cells: [
+    [{ right: null, down: null }, { right: null, down: 7 }, { right: null, down: 13 }, { right: null, down: 16 }, { right: null, down: null }, { right: null, down: null }],
+    [{ right: 10, down: null }, null, null, null, { right: null, down: 29 }, { right: null, down: null }],
+    [{ right: 28, down: null }, null, null, null, null, { right: null, down: 6 }],
+    [{ right: 4, down: null }, null, null, { right: 12, down: 4 }, null, null],
+    [{ right: null, down: null }, { right: 11, down: null }, null, null, null, null],
+    [{ right: null, down: null }, { right: null, down: null }, { right: 10, down: null }, null, null, null],
+  ],
+  topClues: [null, null, null, null, null, null],
+  leftClues: [null, null, null, null, null, null],
+};
+
+const kakuroExampleCorrectGrid: (number | null)[][] = [
+  [null, null, null, null, null, null],
+  [null, 2, 1, 7, null, null],
+  [null, 4, 7, 9, 8, null],
+  [null, 1, 3, null, 9, 3],
+  [null, null, 2, 3, 5, 1],
+  [null, null, null, 1, 7, 2],
+];
+
+const wolvesAndSheepExamplePuzzle: WolvesAndSheepPuzzleData = {
+  type: 'wolvesandsheepfences',
+  width: 4,
+  height: 4,
+  clues: [
+    ['sheep', null, null, 3],
+    [null, 3, 'sheep', null],
+    [2, 'wolf', 3, null],
+    [null, null, null, 'wolf'],
+  ],
+};
+
+// WPF Puzzle GP 2015 Round 4, puzzles 19 and 20. The competition PDF uses
+// outlined gray cells and a small set of fixed digits; the compact links keep
+// those source puzzles reproducible without depending on a remote service.
+const NEIGHBOR_19_LINK =
+  'neighbor/9/9/' +
+  '............3.......2.......1...3.......2.......1...3.......2.......1............' +
+  '/111111101001110001011110001110111111110000101101111001100001111110101001000110000';
+const NEIGHBOR_20_LINK =
+  'neighbor/9/9/' +
+  '..........1.1...........2...1...........2...........3...2...........3.3..........' +
+  '/110100100110111101001001100110000101110001100111101110110011001000111010100011100';
+const neighbor19Puzzle = parseNeighborLink(NEIGHBOR_19_LINK);
+const neighbor20Puzzle = parseNeighborLink(NEIGHBOR_20_LINK);
+
+if (!neighbor19Puzzle || !neighbor20Puzzle) {
+  throw new Error('Failed to parse the built-in Neighbor example puzzles.');
+}
+
+const neighbor19CorrectGrid: NeighborDigit[][] = [
+  [1, 3, 2, 1, 3, 2, 1, 2, 3],
+  [2, 2, 1, 3, 1, 3, 3, 2, 1],
+  [2, 3, 2, 1, 3, 1, 1, 2, 3],
+  [3, 1, 3, 2, 1, 3, 2, 1, 2],
+  [1, 2, 3, 3, 2, 2, 1, 3, 1],
+  [2, 1, 2, 1, 3, 1, 3, 3, 2],
+  [3, 1, 1, 2, 2, 3, 2, 1, 3],
+  [1, 2, 1, 3, 2, 1, 3, 3, 2],
+  [3, 3, 3, 2, 1, 2, 2, 1, 1],
+];
+
+// Keep the built-in answer synchronized with the source PDF's rules.  This
+// is intentionally evaluated when the registry is created so an accidental
+// edit to the example cannot silently ship an impossible answer diagram.
+if (!validateNeighbor(neighbor19CorrectGrid, neighbor19Puzzle).valid) {
+  throw new Error('Built-in Neighbors example answer does not satisfy the PDF rules.');
+}
+
+// WPF Puzzle GP 2015 Round 4, puzzle 22 (Sky-neighbors). The outside clue
+// cells are represented explicitly because they participate in the same
+// white/gray adjacency rule as the 9×9 playable area.
+const SKY_NEIGHBOR_22_LINK =
+  'sky-neighbor/9/9/' +
+  '..........1.............................2.............................3..........' +
+  '/.G..GG.GG;GGGG.G...;.G.G...GG;.G..G..G.;.GG....G.;.G.G....G;.G.GGGG.G;GGG....GG;.G.G.GGGG/' +
+  // The booklet leaves all 36 outside answer cells blank.  Visibility values
+  // are calculated after the central grid is completed.
+  '........./........./........./........./' +
+  '010001111/010001111/011100010/001001111';
+const skyNeighbor22Puzzle = parseSkyNeighborLink(SKY_NEIGHBOR_22_LINK);
+
+if (!skyNeighbor22Puzzle) {
+  throw new Error('Failed to parse the built-in Sky-neighbors example puzzle.');
+}
+
+const skyNeighbor22CorrectGrid: NeighborDigit[][] = [
+  [2, 3, 2, 2, 1, 3, 1, 3, 1],
+  [3, 1, 3, 1, 3, 2, 1, 2, 2],
+  [1, 2, 1, 2, 3, 3, 2, 1, 3],
+  [1, 3, 1, 3, 1, 2, 2, 3, 2],
+  [3, 1, 2, 3, 2, 1, 3, 1, 2],
+  [3, 2, 3, 1, 2, 1, 3, 2, 1],
+  [2, 1, 3, 2, 1, 3, 1, 2, 3],
+  [1, 2, 1, 3, 3, 2, 2, 3, 1],
+  [2, 3, 2, 1, 2, 1, 3, 1, 3],
+];
+
+const skyNeighbor22Visibility = getSkyNeighborVisibilityClues(skyNeighbor22CorrectGrid);
+if (!skyNeighbor22Visibility || !validateSkyNeighbor(
+  skyNeighbor22CorrectGrid,
+  skyNeighbor22Puzzle,
+  skyNeighbor22Visibility
+).valid) {
+  throw new Error('Built-in Sky-neighbors example answer does not satisfy the PDF rules.');
+}
+
+
+const wolvesAndSheepExampleLoopEdges = [
+  'h-0-0', 'h-0-1', 'h-0-2', 'h-0-3',
+  'v-0-0', 'v-0-4',
+  'h-1-1', 'h-1-3',
+  'v-1-1', 'v-1-2', 'v-1-3',
+  'v-2-0', 'v-2-1', 'v-2-2', 'v-2-3',
+  'h-3-2',
+  'v-3-0', 'v-3-1',
+  'h-4-0',
+];
+
+const roundFiveShapes = [
+  { label: 'T', cells: [[true, true, true], [false, true, false]] },
+  { label: 'I', cells: [[true], [true], [true], [true]] },
+  { label: 'O', cells: [[true, true], [true, true]] },
+  { label: 'L', cells: [[true, false], [true, false], [true, true]] },
+  { label: 'S', cells: [[true, false, false], [true, true, true]] },
+] satisfies ShapeMinesweeperPuzzleData['shapes'];
+
+const shapeMinesweeperExamplePuzzle: ShapeMinesweeperPuzzleData = {
+  type: 'shape-minesweeper',
+  width: 8,
+  height: 8,
+  clues: [
+    [null, null, null, 0, null, null, null, null],
+    [null, null, null, null, null, null, 4, null],
+    [null, null, 2, null, null, null, null, null],
+    [0, null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null, 2],
+    [null, null, null, null, null, 0, null, null],
+    [null, 3, null, null, null, null, null, null],
+    [null, null, null, null, 0, null, null, null],
+  ],
+  shapes: roundFiveShapes,
+};
+
+const shapeMinesweeperExampleSolution: (0 | 1)[][] = [
+  [1, 1, 0, 0, 0, 0, 0, 1],
+  [1, 1, 0, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 1, 1, 0, 1],
+  [0, 0, 0, 1, 1, 0, 0, 1],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 1, 1, 1, 0, 0, 0, 1],
+  [0, 0, 1, 0, 0, 0, 0, 1],
+  [0, 0, 0, 0, 0, 0, 1, 1],
+];
+
+const caveExamplePuzzle: CavePuzzleData = {
+  type: 'cave',
+  width: 5,
+  height: 5,
+  clues: [
+    [null, null, null, 8, null],
+    [2, 3, null, 6, null],
+    [null, null, null, null, null],
+    [null, 2, null, 6, 3],
+    [null, 5, null, null, null],
+  ],
+};
+
+const caveExampleSolution: (0 | 1)[][] = [
+  [1, 0, 0, 0, 0],
+  [0, 0, 1, 0, 0],
+  [1, 1, 1, 0, 1],
+  [1, 0, 1, 0, 0],
+  [1, 0, 0, 0, 0],
+];
+
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
   startTime: number;
@@ -190,6 +402,9 @@ type PuzzleRegistry = {
   nurikabe: PuzzleRegistryEntry<NurikabePuzzleData>;
   fillomino: PuzzleRegistryEntry<FillominoPuzzleData>;
   yajilin: PuzzleRegistryEntry<YajilinPuzzleData>;
+  koburin: PuzzleRegistryEntry<KoburinPuzzleData>;
+  neighbor: PuzzleRegistryEntry<NeighborPuzzleData>;
+  'sky-neighbor': PuzzleRegistryEntry<SkyNeighborPuzzleData>;
   starbattle: PuzzleRegistryEntry<StarbattlePuzzleData>;
   heyawake: PuzzleRegistryEntry<HeyawakePuzzleData>;
   aqre: PuzzleRegistryEntry<AqrePuzzleData>;
@@ -208,6 +423,10 @@ type PuzzleRegistry = {
   'domino-search': PuzzleRegistryEntry<DominoSearchPuzzleData>;
   snail: PuzzleRegistryEntry<MagicSnailPuzzleData>;
   'slovak-sums': PuzzleRegistryEntry<SlovakSumsPuzzleData>;
+  kakuro: PuzzleRegistryEntry<KakuroPuzzleData>;
+  wolvesandsheepfences: PuzzleRegistryEntry<WolvesAndSheepPuzzleData>;
+  'shape-minesweeper': PuzzleRegistryEntry<ShapeMinesweeperPuzzleData>;
+  cave: PuzzleRegistryEntry<CavePuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -220,7 +439,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Nurikabe',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -236,12 +455,12 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（6×6）',
-        en: 'Example (6×6)',
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -303,7 +522,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Fillomino',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -321,8 +540,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Example (6×6)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -387,7 +606,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Yajilin',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -408,8 +627,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -482,6 +701,266 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  koburin: {
+    parsePuzzLink: parseKoburinLink,
+    template: {
+      type: 'koburin',
+      name: {
+        'zh-CN': '仙人指邻',
+        en: 'Koburin',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '画一条横平竖直地经过一些空格中心且不和自身交叉的单一回路，并把未经过的空格涂黑。',
+          '涂黑的格子不能正交相邻；带数字或问号的格子不能涂黑，也不属于回路。',
+          '数字表示与此格正交相邻的黑格数量；问号表示数量未知。',
+        ],
+        en: [
+          'Shade some cells and draw one non-branching, non-crossing loop through every remaining non-clue cell.',
+          'Shaded cells cannot be orthogonally adjacent. Numbered and question-mark cells are neither shaded nor part of the loop.',
+          'A number gives the count of shaded orthogonal neighbours; a question mark leaves that count unknown.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（9×9）',
+        en: 'Example (9×9)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'koburin',
+        width: 9,
+        height: 9,
+        clues: [
+          { row: 1, col: 2, value: 3 }, { row: 1, col: 4, value: 3 }, { row: 1, col: 6, value: 3 },
+          { row: 2, col: 1, value: 3 }, { row: 2, col: 3, value: 4 }, { row: 2, col: 5, value: 4 }, { row: 2, col: 7, value: 3 },
+          { row: 3, col: 2, value: 4 }, { row: 3, col: 4, value: 4 }, { row: 3, col: 6, value: 4 },
+          { row: 4, col: 1, value: 3 }, { row: 4, col: 3, value: 4 }, { row: 4, col: 5, value: 4 }, { row: 4, col: 7, value: 3 },
+          { row: 5, col: 2, value: 4 }, { row: 5, col: 4, value: 4 }, { row: 5, col: 6, value: 4 },
+          { row: 6, col: 1, value: 3 }, { row: 6, col: 3, value: 4 }, { row: 6, col: 5, value: 4 }, { row: 6, col: 7, value: 3 },
+          { row: 7, col: 2, value: 3 }, { row: 7, col: 4, value: 3 }, { row: 7, col: 6, value: 3 },
+        ],
+        shadedCells: [
+          { row: 1, col: 1 }, { row: 1, col: 3 }, { row: 1, col: 5 }, { row: 1, col: 7 },
+          { row: 2, col: 2 }, { row: 2, col: 4 }, { row: 2, col: 6 },
+          { row: 3, col: 1 }, { row: 3, col: 3 }, { row: 3, col: 5 }, { row: 3, col: 7 },
+          { row: 4, col: 2 }, { row: 4, col: 4 }, { row: 4, col: 6 },
+          { row: 5, col: 1 }, { row: 5, col: 3 }, { row: 5, col: 5 }, { row: 5, col: 7 },
+          { row: 6, col: 2 }, { row: 6, col: 4 }, { row: 6, col: 6 },
+          { row: 7, col: 1 }, { row: 7, col: 3 }, { row: 7, col: 5 }, { row: 7, col: 7 },
+        ],
+        loopEdges: [
+          { r1: 0, c1: 0, r2: 0, c2: 1 }, { r1: 0, c1: 1, r2: 0, c2: 2 },
+          { r1: 0, c1: 2, r2: 0, c2: 3 }, { r1: 0, c1: 3, r2: 0, c2: 4 },
+          { r1: 0, c1: 4, r2: 0, c2: 5 }, { r1: 0, c1: 5, r2: 0, c2: 6 },
+          { r1: 0, c1: 6, r2: 0, c2: 7 }, { r1: 0, c1: 7, r2: 0, c2: 8 },
+          { r1: 0, c1: 8, r2: 1, c2: 8 }, { r1: 1, c1: 8, r2: 2, c2: 8 },
+          { r1: 2, c1: 8, r2: 3, c2: 8 }, { r1: 3, c1: 8, r2: 4, c2: 8 },
+          { r1: 4, c1: 8, r2: 5, c2: 8 }, { r1: 5, c1: 8, r2: 6, c2: 8 },
+          { r1: 6, c1: 8, r2: 7, c2: 8 }, { r1: 7, c1: 8, r2: 8, c2: 8 },
+          { r1: 8, c1: 8, r2: 8, c2: 7 }, { r1: 8, c1: 7, r2: 8, c2: 6 },
+          { r1: 8, c1: 6, r2: 8, c2: 5 }, { r1: 8, c1: 5, r2: 8, c2: 4 },
+          { r1: 8, c1: 4, r2: 8, c2: 3 }, { r1: 8, c1: 3, r2: 8, c2: 2 },
+          { r1: 8, c1: 2, r2: 8, c2: 1 }, { r1: 8, c1: 1, r2: 8, c2: 0 },
+          { r1: 8, c1: 0, r2: 7, c2: 0 }, { r1: 7, c1: 0, r2: 6, c2: 0 },
+          { r1: 6, c1: 0, r2: 5, c2: 0 }, { r1: 5, c1: 0, r2: 4, c2: 0 },
+          { r1: 4, c1: 0, r2: 3, c2: 0 }, { r1: 3, c1: 0, r2: 2, c2: 0 },
+          { r1: 2, c1: 0, r2: 1, c2: 0 }, { r1: 1, c1: 0, r2: 0, c2: 0 },
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <KoburinBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'koburin') {
+        throw new Error('Koburin template example type mismatch.');
+      }
+
+      return (
+        <KoburinExample
+          width={example.width}
+          height={example.height}
+          clues={example.clues}
+          shadedCells={example.shadedCells}
+          loopEdges={example.loopEdges}
+          crossedEdges={example.crossedEdges}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  neighbor: {
+    parsePuzzLink: parseNeighborLink,
+    template: {
+      type: 'neighbor',
+      name: {
+        'zh-CN': '邻居',
+        en: 'Neighbors',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在每个格子中填入 1、2 或 3，每格一个数字，使每行、每列中每个数字恰好出现三次。部分数字已预先给出。',
+          '填完后，每个白格必须沿边至少接触一个与自身数字相同的格子。',
+          '每个灰色（带框）格子沿边不能接触任何与自身数字相同的格子。',
+        ],
+        en: [
+          'Place one of the digits 1, 2, or 3 into every cell. Each digit must appear exactly three times in every row and column; some digits are given.',
+          'Every white cell must touch at least one orthogonally adjacent cell containing the same digit.',
+          'A gray (outlined) cell may not touch any orthogonally adjacent cell containing the same digit.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（9×9，2015 WPF Puzzle GP 第 4 轮）',
+        en: 'Example (9×9, WPF Puzzle GP 2015 Round 4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'neighbor',
+        width: neighbor19Puzzle.width,
+        height: neighbor19Puzzle.height,
+        givens: neighbor19Puzzle.givens,
+        grayCells: neighbor19Puzzle.grayCells,
+        correctGrid: neighbor19CorrectGrid,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <NeighborBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'neighbor') {
+        throw new Error('Neighbor template example type mismatch.');
+      }
+
+      return (
+        <NeighborExample
+          width={example.width}
+          height={example.height}
+          givens={example.givens}
+          grayCells={example.grayCells}
+          correctGrid={example.correctGrid}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  'sky-neighbor': {
+    parsePuzzLink: parseSkyNeighborLink,
+    template: {
+      type: 'sky-neighbor',
+      name: {
+        'zh-CN': '摩天邻居',
+        en: 'Sky-neighbors',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在 9×9 大盘的每个格子中填入 1、2 或 3，使每行、每列中每个数字恰好出现三次。部分数字已预先给出。',
+          '每个白格必须沿边至少接触一个与自身数字相同的格子；每个灰色（带框）格子沿边不能接触同号格。外围格也遵守这条邻接规则。',
+          '9×9 大盘中的数字代表高度为 1、2、3 的摩天楼；盘面外四边的格子填写从对应方向看到的楼数，等高或更矮的楼会被前面的楼遮挡。',
+        ],
+        en: [
+          'Place one of the digits 1, 2, or 3 into every cell of the large 9×9 box. Each digit appears exactly three times in every row and column; some digits are given.',
+          'Every white cell, including an outside cell, must touch an orthogonally adjacent cell with the same number. A gray (outlined) cell may not touch an orthogonally adjacent cell with the same number.',
+          'The digits in the large box are skyscraper heights. Fill the outside cells with the number of skyscrapers visible from that direction; a skyscraper hides equal or shorter skyscrapers behind it.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（9×9，摩天邻居）',
+        en: 'Example (9×9 Sky-neighbors, WPF Puzzle GP 2015 Round 4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'sky-neighbor',
+        width: skyNeighbor22Puzzle.width,
+        height: skyNeighbor22Puzzle.height,
+        givens: skyNeighbor22Puzzle.givens,
+        grayCells: skyNeighbor22Puzzle.grayCells,
+        clues: skyNeighbor22Puzzle.clues,
+        outsideGrayCells: skyNeighbor22Puzzle.outsideGrayCells,
+        correctGrid: skyNeighbor22CorrectGrid,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <SkyNeighborBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'sky-neighbor') {
+        throw new Error('Sky-neighbors template example type mismatch.');
+      }
+
+      return (
+        <SkyNeighborExample
+          width={example.width}
+          height={example.height}
+          givens={example.givens}
+          grayCells={example.grayCells}
+          clues={example.clues}
+          outsideGrayCells={example.outsideGrayCells}
+          correctGrid={example.correctGrid}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
   starbattle: {
     parsePuzzLink: parseStarbattleLink,
     template: {
@@ -491,7 +970,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Star Battle',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -505,12 +984,12 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（4×4）',
-        en: 'Example (4×4)',
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -576,7 +1055,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Heyawake',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -597,8 +1076,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -667,7 +1146,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Aqre',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -683,12 +1162,12 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（5×5）',
-        en: 'Example (5×5)',
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -758,11 +1237,11 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: {
       type: 'mintonette',
       name: {
-        'zh-CN': '排球/数弯',
+        'zh-CN': '数弯',
         en: 'Mintonette',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -780,12 +1259,12 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（4×4）',
-        en: 'Example (4×4)',
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -869,7 +1348,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'NIKOJI',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -885,12 +1364,12 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（5×5）',
-        en: 'Example (5×5)',
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -951,7 +1430,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Akari',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -972,8 +1451,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -1038,7 +1517,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Kurarin',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1059,11 +1538,11 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩示例',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
-        'zh-CN': '答案',
+        'zh-CN': '正确答案',
         en: 'Answer',
       },
       example: {
@@ -1151,7 +1630,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Walkwalk',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1171,8 +1650,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Example (5×5)',
       },
       playableLabel: {
-        'zh-CN': '可游玩例题',
-        en: 'Playable example',
+        'zh-CN': '题面',
+        en: 'Puzzle',
       },
       answerLabel: {
         'zh-CN': '正确答案',
@@ -1249,7 +1728,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Slitherlink',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1320,7 +1799,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'LITS',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1398,7 +1877,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Lakes',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1478,7 +1957,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Tapa',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1550,7 +2029,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Magic Summer',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1633,7 +2112,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Skyscrapers',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1706,7 +2185,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Battleships',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1786,7 +2265,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Domino Search',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1868,7 +2347,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Magic Snail',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -1939,7 +2418,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         en: 'Slovak Sums',
       },
       rulesTitle: {
-        'zh-CN': '游戏规则',
+        'zh-CN': '规则',
         en: 'Rules',
       },
       rules: {
@@ -2008,17 +2487,567 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  kakuro: {
+    parsePuzzLink: parseKakuroLink,
+    template: {
+      type: 'kakuro',
+      name: {
+        'zh-CN': '数和',
+        en: 'Kakuro',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '在每个白格内填入一个 1~9 的数字。',
+          '每一段横向或纵向白格中的数字不能重复。',
+          '黑格中的右侧数字表示其右方横段的总和，下方数字表示其下方纵段的总和；最上边和最左边的黑格同样用于标记从边缘开始的横段或纵段。',
+        ],
+        en: [
+          'Fill every white cell with a digit from 1 to 9.',
+          'Digits may not repeat within a horizontal or vertical run.',
+          'The right clue in a black cell gives the sum of the run to its right, and the lower clue gives the sum of the run below it. Black cells on the top and left edges mark runs that start at the edge.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'kakuro',
+        width: kakuroExamplePuzzle.width,
+        height: kakuroExamplePuzzle.height,
+        cells: kakuroExamplePuzzle.cells,
+        topClues: kakuroExamplePuzzle.topClues,
+        leftClues: kakuroExamplePuzzle.leftClues,
+        correctGrid: kakuroExampleCorrectGrid,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <KakuroBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'kakuro') {
+        throw new Error('Kakuro template example type mismatch.');
+      }
+
+      return (
+        <KakuroExample
+          width={example.width}
+          height={example.height}
+          cells={example.cells}
+          topClues={example.topClues}
+          leftClues={example.leftClues}
+          correctGrid={example.correctGrid}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  wolvesandsheepfences: {
+    parsePuzzLink: parseWolvesAndSheepLink,
+    template: {
+      type: 'wolvesandsheepfences',
+      name: {
+        'zh-CN': '狼羊围栏',
+        en: 'Wolves and Sheep Fences',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '沿格子边缘画一条不分叉、不自交的单一回路。',
+          '数字表示其所在格子四周被回路经过的边数。',
+          '羊必须在回路内，狼必须在回路外。',
+        ],
+        en: [
+          'Draw a single loop along cell edges; it may not branch or cross itself.',
+          'A number gives the count of loop edges surrounding its cell.',
+          'Every sheep must be inside the loop, and every wolf must be outside it.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'wolvesandsheepfences',
+        width: wolvesAndSheepExamplePuzzle.width,
+        height: wolvesAndSheepExamplePuzzle.height,
+        clues: wolvesAndSheepExamplePuzzle.clues,
+        loopEdges: wolvesAndSheepExampleLoopEdges,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <WolvesAndSheepBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'wolvesandsheepfences') {
+        throw new Error('Wolves and Sheep Fences template example type mismatch.');
+      }
+
+      return (
+        <AdditionalPuzzleExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  'shape-minesweeper': {
+    parsePuzzLink: parseShapeMinesweeperLink,
+    template: {
+      type: 'shape-minesweeper',
+      name: {
+        'zh-CN': '形状扫雷',
+        en: 'Shape Minesweeper',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '将形状库中的所有形状各放入盘面一次；形状可以旋转或镜像。',
+          '形状不能覆盖数字格，不同形状之间不能正交或斜向接触。',
+          '数字表示周围八格（包括斜向相邻格）中被形状覆盖的格数。形状上的字母仅用于提交答案。',
+        ],
+        en: [
+          'Place every shape from the bank into the grid exactly once; shapes may be rotated or reflected.',
+          'Shapes may not cover numbered cells, and different shapes may not touch, even diagonally.',
+          'A number gives how many of its eight surrounding cells contain a shape part. Letters on the shapes are only answer-entry labels.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（8×8）',
+        en: 'Example (8×8)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'shape-minesweeper',
+        width: shapeMinesweeperExamplePuzzle.width,
+        height: shapeMinesweeperExamplePuzzle.height,
+        clues: shapeMinesweeperExamplePuzzle.clues,
+        shapes: shapeMinesweeperExamplePuzzle.shapes,
+        correctSolution: shapeMinesweeperExampleSolution,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <ShapeMinesweeperBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'shape-minesweeper') {
+        throw new Error('Shape Minesweeper template example type mismatch.');
+      }
+      return (
+        <ShadingPuzzleExample
+          puzzle={{
+            type: 'shape-minesweeper',
+            width: example.width,
+            height: example.height,
+            clues: example.clues,
+            shapes: example.shapes,
+          }}
+          correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
+  cave: {
+    parsePuzzLink: parseCaveLink,
+    template: {
+      type: 'cave',
+      name: {
+        'zh-CN': '山洞',
+        en: 'Cave',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '涂黑一些格子，使其余留白格组成一个正交连通的山洞；所有数字格都属于山洞。',
+          '不能有被山洞完全围住的涂黑区域；换言之，每一片涂黑格都必须能经由涂黑格正交连到盘面边缘。',
+          '数字表示从该格向上下左右直线可见的连续山洞格总数，数字格本身只计一次。',
+        ],
+        en: [
+          'Shade cells so the remaining unshaded cells form one orthogonally connected cave; every numbered cell belongs to the cave.',
+          'There may be no enclosed shaded area: every shaded component must connect edge-wise to the edge of the grid.',
+          'A number gives the total unshaded cells visible in straight lines vertically and horizontally, counting its own cell once.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      example: {
+        puzzleType: 'cave',
+        width: caveExamplePuzzle.width,
+        height: caveExamplePuzzle.height,
+        clues: caveExamplePuzzle.clues,
+        correctSolution: caveExampleSolution,
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <CaveBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'cave') {
+        throw new Error('Cave template example type mismatch.');
+      }
+      return (
+        <ShadingPuzzleExample
+          puzzle={{ type: 'cave', width: example.width, height: example.height, clues: example.clues }}
+          correctSolution={example.correctSolution}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+        />
+      );
+    },
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
   return puzzleRegistry[type].template;
 }
 
+/**
+ * Runtime counterpart of PuzzleType.  Puzzle types can arrive from URLs or
+ * imported note files, so callers must not rely on a TypeScript cast alone.
+ */
+export function isPuzzleType(value: unknown): value is PuzzleType {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(puzzleRegistry, value);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isPuzzleDimension(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value > 0 && value <= 100;
+}
+
+function isPuzzleMatrix(value: unknown, width: number, height: number) {
+  return Array.isArray(value) && value.length === height && value.every(
+    (row) => Array.isArray(row) && row.length === width
+  );
+}
+
+function isFiniteInteger(value: unknown, min = Number.MIN_SAFE_INTEGER): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= min;
+}
+
+function isNullableInteger(
+  value: unknown,
+  min = Number.MIN_SAFE_INTEGER,
+  max = Number.MAX_SAFE_INTEGER
+) {
+  return value === null || (isFiniteInteger(value, min) && value <= max);
+}
+
+function isCoordinate(value: unknown, width: number, height: number): value is { row: number; col: number } {
+  const record = isRecord(value) ? value : null;
+  return record !== null &&
+    isFiniteInteger(record.row, 0) && record.row < height &&
+    isFiniteInteger(record.col, 0) && record.col < width;
+}
+
+function isNumberArray(value: unknown, length?: number, min = Number.MIN_SAFE_INTEGER) {
+  return Array.isArray(value) &&
+    (length === undefined || value.length === length) &&
+    value.every((item) => isFiniteInteger(item, min));
+}
+
+function isNullableNumberArray(value: unknown, length: number, min = Number.MIN_SAFE_INTEGER) {
+  return Array.isArray(value) && value.length === length && value.every((item) => isNullableInteger(item, min));
+}
+
+function isTypedMatrix(
+  value: unknown,
+  width: number,
+  height: number,
+  predicate: (cell: unknown) => boolean
+) {
+  return isPuzzleMatrix(value, width, height) &&
+    (value as unknown[]).every((row) => (row as unknown[]).every(predicate));
+}
+
+function isCoordinateClueList(
+  value: unknown,
+  width: number,
+  height: number,
+  predicate: (clue: Record<string, unknown>) => boolean
+) {
+  if (!Array.isArray(value)) return false;
+  const coordinates = new Set<string>();
+  return value.every((item) => {
+    if (!isRecord(item) || !isCoordinate(item, width, height)) return false;
+    const key = `${item.row},${item.col}`;
+    // A coordinate clue list is a sparse map, not a multimap. Rejecting
+    // duplicates keeps imported data deterministic instead of silently
+    // shadowing one clue with another during rendering.
+    if (coordinates.has(key)) return false;
+    coordinates.add(key);
+    return predicate(item);
+  });
+}
+
+const BATTLESHIP_SEGMENTS = new Set([
+  'unknown', 'up', 'down', 'left', 'right', 'center', 'single',
+  'up-left', 'up-right', 'down-left', 'down-right',
+]);
+
+function isBattleshipFleet(value: unknown) {
+  return Array.isArray(value) && value.every((shape) => {
+    if (!isRecord(shape) || !isPuzzleDimension(shape.width) || !isPuzzleDimension(shape.height)) return false;
+    return isTypedMatrix(shape.cells, shape.width, shape.height, (cell) => typeof cell === 'boolean') &&
+      (shape.cells as boolean[][]).some((row) => row.some(Boolean));
+  });
+}
+
+function isShapeMinesweeperBank(value: unknown) {
+  return Array.isArray(value) && value.length > 0 && value.every((shape) => {
+    if (!isRecord(shape) || typeof shape.label !== 'string' || shape.label.trim() === '') return false;
+    if (!Array.isArray(shape.cells) || shape.cells.length === 0) return false;
+    const firstRow = shape.cells[0];
+    if (!Array.isArray(firstRow) || firstRow.length === 0) return false;
+    return shape.cells.every((row) =>
+      Array.isArray(row) && row.length === firstRow.length && row.every((cell) => typeof cell === 'boolean')
+    ) && shape.cells.some((row) => (row as boolean[]).some(Boolean));
+  });
+}
+
+/**
+ * Structural guard for puzzle data coming from imported notes/localStorage.
+ * Parsers already guarantee these shapes for URL puzzles; this guard keeps
+ * untrusted persisted objects from reaching a renderer with missing fields.
+ */
+export function isPuzzleData(value: unknown): value is PuzzleData {
+  if (!isRecord(value) || !isPuzzleType(value.type)) return false;
+  if (!isPuzzleDimension(value.width) || !isPuzzleDimension(value.height)) return false;
+
+  const width = value.width as number;
+  const height = value.height as number;
+
+  switch (value.type) {
+    case 'nurikabe':
+    case 'lakes':
+      return isCoordinateClueList(value.clues, width, height, (clue) =>
+        (clue.value === '?' || isFiniteInteger(clue.value, 0))
+      );
+    case 'yajilin':
+      return isCoordinateClueList(value.clues, width, height, (clue) =>
+        (clue.value === '?' || isFiniteInteger(clue.value, 0)) &&
+        (clue.direction === 'up' || clue.direction === 'right' || clue.direction === 'down' || clue.direction === 'left')
+      );
+    case 'koburin':
+      return isCoordinateClueList(value.clues, width, height, (clue) =>
+        clue.value === '?' || (isFiniteInteger(clue.value, 0) &&
+          clue.value <= (value.minesweeper === true ? 8 : 4))
+      ) && (value.minesweeper === undefined || typeof value.minesweeper === 'boolean');
+    case 'neighbor':
+      return width === 9 && height === 9 &&
+        isTypedMatrix(value.givens, width, height, (cell) => cell === null || isFiniteInteger(cell, 1) && cell <= 3) &&
+        isTypedMatrix(value.grayCells, width, height, (cell) => typeof cell === 'boolean');
+    case 'sky-neighbor': {
+      const outside = value.outsideGrayCells;
+      const clues = value.clues;
+      const validOutside = outside === undefined || (
+        isRecord(outside) &&
+        isTypedMatrix([outside.top], width, 1, (cell) => typeof cell === 'boolean') &&
+        isTypedMatrix([outside.bottom], width, 1, (cell) => typeof cell === 'boolean') &&
+        isTypedMatrix([outside.left], height, 1, (cell) => typeof cell === 'boolean') &&
+        isTypedMatrix([outside.right], height, 1, (cell) => typeof cell === 'boolean')
+      );
+      return width === 9 && height === 9 &&
+        isTypedMatrix(value.givens, width, height, (cell) => cell === null || isFiniteInteger(cell, 1) && cell <= 3) &&
+        isTypedMatrix(value.grayCells, width, height, (cell) => typeof cell === 'boolean') &&
+        isRecord(clues) &&
+        isNullableNumberArray(clues.top, width, 1) && (clues.top as unknown[]).every((clue) => clue === null || (clue as number) >= 1 && (clue as number) <= 3) &&
+        isNullableNumberArray(clues.right, height, 1) && (clues.right as unknown[]).every((clue) => clue === null || (clue as number) >= 1 && (clue as number) <= 3) &&
+        isNullableNumberArray(clues.bottom, width, 1) && (clues.bottom as unknown[]).every((clue) => clue === null || (clue as number) >= 1 && (clue as number) <= 3) &&
+        isNullableNumberArray(clues.left, height, 1) && (clues.left as unknown[]).every((clue) => clue === null || (clue as number) >= 1 && (clue as number) <= 3) &&
+        validOutside;
+    }
+    case 'mintonette':
+      return isCoordinateClueList(value.clues, width, height, (clue) => isNullableInteger(clue.value, 0));
+    case 'kurarin':
+      // Kurarin clues live on the puzzle's dot grid (2w-1 by 2h-1), not
+      // only on playable cell coordinates.  A clue may therefore sit on a
+      // cell centre, an edge midpoint, or an intersection.
+      return isCoordinateClueList(value.clues, width * 2 - 1, height * 2 - 1, (clue) =>
+        clue.color === 'black' || clue.color === 'white' || clue.color === 'gray'
+      );
+    case 'fillomino':
+      return isTypedMatrix(value.clues, width, height, (cell) => isNullableInteger(cell, 0));
+    case 'slither':
+      return isTypedMatrix(value.clues, width, height, (cell) => cell === null || (isFiniteInteger(cell, 0) && cell <= 4));
+    case 'wolvesandsheepfences':
+      return isTypedMatrix(value.clues, width, height, (cell) =>
+        cell === null || cell === 'sheep' || cell === 'wolf' || (isFiniteInteger(cell, 0) && cell <= 4)
+      );
+    case 'shape-minesweeper':
+      return isTypedMatrix(value.clues, width, height, (cell) =>
+        cell === null || (isFiniteInteger(cell, 0) && cell <= 8)
+      ) && isShapeMinesweeperBank(value.shapes);
+    case 'cave':
+      return isTypedMatrix(value.clues, width, height, (cell) => isNullableInteger(cell, 1));
+    case 'tapa':
+      return isTypedMatrix(value.clues, width, height, (cell) =>
+        cell === null || (Array.isArray(cell) && cell.every((item) => item === '?' || (isFiniteInteger(item, 0) && item <= 8)))
+      );
+    case 'starbattle':
+      return isFiniteInteger(value.starsPerUnit, 1) && isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, 0));
+    case 'heyawake':
+    case 'aqre':
+      return isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, 0)) &&
+        isCoordinateClueList(value.clues, width, height, (clue) => isFiniteInteger(clue.value, 0));
+    case 'nikoji':
+      return isTypedMatrix(value.letters, width, height, (cell) => cell === null || typeof cell === 'string');
+    case 'akari':
+      return isTypedMatrix(value.cells, width, height, (cell) =>
+        cell === null || cell === 'black' || (isFiniteInteger(cell, 0) && cell <= 4)
+      );
+    case 'walkwalk':
+      return isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, 0)) &&
+        isCoordinateClueList(value.clues, width, height, (clue) => isFiniteInteger(clue.value, 0));
+    case 'lits':
+      // -1 marks cells excluded by the encoded puzzle (they are not part of
+      // any region and are intentionally left unplayable).
+      return isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, -1));
+    case 'magic-summer':
+      return isNumberArray(value.numbers, undefined, 1) &&
+        isNullableNumberArray(value.rowSums, height, 0) &&
+        isNullableNumberArray(value.columnSums, width, 0) &&
+        isTypedMatrix(value.cells, width, height, (cell) =>
+          cell === null || cell === 'block' || isFiniteInteger(cell, 1)
+        ) &&
+        (value.clues === undefined || isRecord(value.clues));
+    case 'skyscrapers':
+      return isNumberArray(value.numbers, width, 1) &&
+        isTypedMatrix(value.givens, width, height, (cell) => isNullableInteger(cell, 1)) &&
+        isRecord(value.clues) &&
+        isNullableNumberArray(value.clues.top, width, 0) &&
+        isNullableNumberArray(value.clues.bottom, width, 0) &&
+        isNullableNumberArray(value.clues.left, height, 0) &&
+        isNullableNumberArray(value.clues.right, height, 0);
+    case 'battleship':
+      return isNullableNumberArray(value.columnClues, width, 0) &&
+        isNullableNumberArray(value.rowClues, height, 0) &&
+        isCoordinateClueList(value.cellClues, width, height, (clue) => {
+          if (clue.kind === 'water') return clue.segment === undefined;
+          return clue.kind === 'ship' &&
+            (clue.segment === undefined || BATTLESHIP_SEGMENTS.has(String(clue.segment)));
+        }) &&
+        isBattleshipFleet(value.fleet);
+    case 'domino-search':
+      return isTypedMatrix(value.numbers, width, height, (cell) => isNullableInteger(cell, 0)) &&
+        Array.isArray(value.dominoes) && value.dominoes.every((pair) =>
+          Array.isArray(pair) && pair.length === 2 && isFiniteInteger(pair[0], 0) && isFiniteInteger(pair[1], 0)
+        );
+    case 'snail':
+      return isNumberArray(value.numbers, undefined, 1) &&
+        isTypedMatrix(value.cells, width, height, (cell) => cell === null || cell === 'block' || isFiniteInteger(cell, 1)) &&
+        (value.start === undefined || isCoordinate(value.start, width, height));
+    case 'slovak-sums':
+      return isNumberArray(value.numbers, undefined, 1) &&
+        isTypedMatrix(value.cells, width, height, (cell) =>
+          cell === null || (isRecord(cell) && isNullableInteger(cell.sum, 0) && isFiniteInteger(cell.count, 0))
+        );
+    case 'kakuro':
+      return isTypedMatrix(value.cells, width, height, (cell) =>
+        cell === null || (
+          isRecord(cell) &&
+          isNullableInteger(cell.right, 0, 45) &&
+          isNullableInteger(cell.down, 0, 45)
+        )
+      ) &&
+        isNullableNumberArray(value.topClues, width, 0) &&
+        (value.topClues as unknown[]).every((clue) => clue === null || (typeof clue === 'number' && clue <= 45)) &&
+        isNullableNumberArray(value.leftClues, height, 0) &&
+        (value.leftClues as unknown[]).every((clue) => clue === null || (typeof clue === 'number' && clue <= 45));
+    default:
+      return false;
+  }
+}
+
 export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
   const dataPart = normalizePuzzLinkDataPart(link);
-  const type = dataPart.split('/')[0];
-  if (type in puzzleRegistry) {
-    return type as PuzzleType;
+  const type = dataPart.split('/')[0]?.trim().toLowerCase();
+  if (isPuzzleType(type)) {
+    return type;
   }
 
   const aliases: Record<string, PuzzleType> = {
@@ -2028,8 +3057,20 @@ export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
     slovaksums: 'slovak-sums',
     skyscraper: 'skyscrapers',
     building: 'skyscrapers',
+    neighbors: 'neighbor',
+    neighbours: 'neighbor',
+    neighbour: 'neighbor',
+    'sky-neighbors': 'sky-neighbor',
+    'sky-neighbours': 'sky-neighbor',
+    skyneighbor: 'sky-neighbor',
+    skyneighbors: 'sky-neighbor',
+    skyneighbours: 'sky-neighbor',
+    'sky-neighbour': 'sky-neighbor',
+    skyneighbour: 'sky-neighbor',
+    shapeminesweeper: 'shape-minesweeper',
+    'shape-minesweep': 'shape-minesweeper',
   };
-  if (type in aliases) {
+  if (Object.prototype.hasOwnProperty.call(aliases, type)) {
     return aliases[type];
   }
 

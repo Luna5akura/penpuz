@@ -1,27 +1,27 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { HeyawakePuzzleData } from '../../puzzles/types';
 import HeyawakeBoard from '../../puzzles/Heyawake/Heyawake';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardBoundaryStrokeMetrics,
   getBoardFrameStyle,
   getBoardTextStyle,
   getCellDividerStyle,
-  getOutlinedBorderStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getHeyawakeBoundarySegments } from '../../puzzles/Heyawake/utils';
 
-interface Props extends HeyawakePuzzleData {
+interface Props extends Omit<HeyawakePuzzleData, 'type'> {
   correctSolution: (0 | 1)[][];
   playableLabel: string;
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -35,7 +35,6 @@ export default function HeyawakeExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<HeyawakePuzzleData>(
@@ -54,14 +53,13 @@ export default function HeyawakeExample({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const boundaryStroke = 3;
-  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
 
   return (
     <>
       <div className="flex flex-col xl:flex-row gap-10 justify-center">
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <HeyawakeBoard
@@ -76,16 +74,17 @@ export default function HeyawakeExample({
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+          >
+            {!showAnswer ? (
               <div
-                className="dark:border-gray-700 dark:bg-gray-800"
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
@@ -100,19 +99,16 @@ export default function HeyawakeExample({
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
                       key={index}
-                      className="dark:bg-gray-800"
                       style={{
                         width: `${CELL_SIZE}px`,
                         height: `${CELL_SIZE}px`,
-                        background: woodBoardTheme.cell,
+                        ...getBoardCellColors('cell'),
                         ...getCellDividerStyle(),
                       }}
                     />
                   ))}
                 </div>
               </div>
-              <ExampleAnswerOverlay />
-            </div>
           ) : (
             <div
               className="relative"
@@ -231,17 +227,9 @@ export default function HeyawakeExample({
               </svg>
             </div>
           )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

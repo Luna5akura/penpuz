@@ -242,15 +242,17 @@ function parsePayload(
     width,
     height
   );
-  const rowSums = parseLineSums(payload.rowSums ?? payload.rowClues ?? payload.rows, height) ?? clues?.left ?? null;
+  const clueRowSums = clues ? mergeOppositeClues(clues.left, clues.right) : null;
+  const clueColumnSums = clues ? mergeOppositeClues(clues.top, clues.bottom) : null;
+  const rowSums = parseLineSums(payload.rowSums ?? payload.rowClues ?? payload.rows, height) ?? clueRowSums;
   const columnSums = parseLineSums(
     payload.columnSums ?? payload.columnClues ?? payload.columns,
     width
-  ) ?? clues?.top ?? null;
+  ) ?? clueColumnSums;
   const cells = parseCells(payload.cells ?? payload.grid, width, height, new Set(numbers ?? []));
 
   return numbers && rowSums && columnSums && cells
-    ? createMagicSummerPuzzle({ width, height, numbers, rowSums, columnSums, cells, clues })
+    ? createMagicSummerPuzzle({ width, height, numbers, rowSums, columnSums, cells, clues: clues ?? undefined })
     : null;
 }
 
@@ -461,7 +463,12 @@ function getLineSum(values: (number | null)[]) {
 }
 
 function getMagicSummerClues(puzzle: MagicSummerPuzzleData): MagicSummerClues {
-  return puzzle.clues ?? {
+  // Magic Summer clues are displayed in the canonical top/left gutters. The
+  // PuzzLink format may store them in the opposite (bottom/right) slots, but
+  // those slots use the same left-to-right / top-to-bottom line order. Use
+  // the merged row/column sums so validation follows the clues the player
+  // actually sees.
+  return {
     top: puzzle.columnSums,
     bottom: createEmptyClueLine(puzzle.width),
     left: puzzle.rowSums,
@@ -505,11 +512,7 @@ export function validateMagicSummer(
       setMessage('每一行都必须恰好包含一次每个指定数字');
     }
     const leftExpected = clues.left[row];
-    const rightExpected = clues.right[row];
     if (leftExpected !== null && getLineSum(values) !== leftExpected) {
-      setMessage('行外侧数字与该行连续数码组成的数字之和不符');
-    }
-    if (rightExpected !== null && getLineSum([...values].reverse()) !== rightExpected) {
       setMessage('行外侧数字与该行连续数码组成的数字之和不符');
     }
   }
@@ -520,11 +523,7 @@ export function validateMagicSummer(
       setMessage('每一列都必须恰好包含一次每个指定数字');
     }
     const topExpected = clues.top[col];
-    const bottomExpected = clues.bottom[col];
     if (topExpected !== null && getLineSum(values) !== topExpected) {
-      setMessage('列外侧数字与该列连续数码组成的数字之和不符');
-    }
-    if (bottomExpected !== null && getLineSum([...values].reverse()) !== bottomExpected) {
       setMessage('列外侧数字与该列连续数码组成的数字之和不符');
     }
   }

@@ -1,35 +1,69 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useI18n } from '@/i18n/useI18n';
 import type { NoteReplayCellMark } from '@/notes/types';
 import {
   commonBoardChrome,
   boardClassNames,
+  boardLayoutMetrics,
+  getBoardBoundaryStrokeMetrics,
   getBoardBoundaryStrokeWidth,
   getBoardCenterMarkMetrics,
   getBoardCellColors,
+  getBoardCellStyle,
+  getBoardCellOutlineRect,
   getBoardDotRadius,
   getBoardFrameStyle,
+  getBoardGridStyle,
+  getBoardDominoBadgeStyle,
+  getBoardGridStrokeWidth,
+  getBoardPanelColors,
+  getBoardThinStrokeWidth,
+  getBoardOutsideClueLayout,
+  getBoardOutsideClueGutter,
+  getBoardOutsideClueMaxDigits,
+  getBoardOutsideClueTextStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
+  getBoardTrialCellStyle,
   getLoopLineStrokeWidth,
   getLoopCrossStrokeWidth,
-  getOutlinedBorderStrokeWidth,
   getRoomBoundaryStrokeWidth,
+  getKurarinClueColors,
   woodBoardTheme,
   type BoardCellTone,
+  type BoardOutsideClues,
 } from '@/puzzles/boardTheme';
+import BoardCellOutline from '@/puzzles/shared/BoardCellOutline';
 import { countPlacedDominoPairs, getDominoPairKey } from '@/puzzles/DominoSearch/utils';
 import { getMagicSnailBoundaryLines } from '@/puzzles/MagicSnail/utils';
-import { getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
+import { getSkyNeighborDisplayClues } from '@/puzzles/SkyNeighbor/utils';
+import {
+  filterValidCellEdgeKeys,
+  filterValidGridLineEdgeKeys,
+  filterValidGridVertexKeys,
+  filterValidInternalBoundaryEdgeKeys,
+  getRegionBoundarySegments,
+  parseGridLineEdgeKey,
+  parseSolutionEdgeKey,
+} from '@/puzzles/gridUtils';
 import { getTrialLevelColors } from '@/puzzles/trialStyles';
 import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
+import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
+import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import TapaClue from '@/puzzles/Tapa/TapaClue';
 import {
   BattleshipFleet,
   BattleshipSegmentSymbol,
   BattleshipWaterSymbol,
 } from '@/puzzles/Battleship/BattleshipVisuals';
-import type { PuzzleData, PuzzleType, YajilinDirection } from '@/puzzles/types';
+import {
+  getBattleshipOccupiedGrid,
+  getBattleshipNeighborConnections,
+  getBattleshipWaterClueKeys,
+  inferBattleshipSegment,
+  isBattleshipSegmentResolved,
+} from '@/puzzles/Battleship/utils';
+import type { BattleshipPuzzleData, PuzzleData, PuzzleType, YajilinDirection } from '@/puzzles/types';
 import { Button } from '../ui/button';
 
 interface NotePuzzleBoardProps {
@@ -52,7 +86,14 @@ interface CellView {
 
 type SlitherCellMark = 'circle' | 'cross';
 
-const DEFAULT_CELL_SIZE = 38;
+interface BattleshipSnapshotContext {
+  puzzle: BattleshipPuzzleData;
+  grid: ReadonlyArray<ReadonlyArray<unknown>>;
+  occupied: boolean[][];
+  waterClueKeys: Set<string>;
+}
+
+const DEFAULT_CELL_SIZE = boardLayoutMetrics.replayCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -67,8 +108,16 @@ function getLocalCellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
-function makePositionMap<T extends { row: number; col: number }>(items: T[]) {
-  return new Map(items.map((item) => [getLocalCellKey(item.row, item.col), item]));
+function makePositionMap<T extends { row: number; col: number }>(items: readonly T[]) {
+  const map = new Map<string, T>();
+  // A puzzle should never contain duplicate clues at one coordinate. If a
+  // malformed payload does, keep the first item (the same item a historical
+  // `find()` lookup would have returned) and make the fallback deterministic.
+  for (const item of items) {
+    const key = getLocalCellKey(item.row, item.col);
+    if (!map.has(key)) map.set(key, item);
+  }
+  return map;
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -87,6 +136,36 @@ function getGridValue(snapshot: unknown, row: number, col: number) {
   const rowValues = grid[row];
   if (!Array.isArray(rowValues)) return undefined;
   return rowValues[col];
+}
+
+function getSkyNeighborSnapshotOutside(
+  snapshot: unknown,
+  width: number,
+  height: number
+): BoardOutsideClues | null {
+  const outside = asRecord(snapshot)?.outside;
+  if (!outside || typeof outside !== 'object' || Array.isArray(outside)) return null;
+
+  const readSide = (value: unknown, length: number) => {
+    if (!Array.isArray(value) || value.length !== length) return null;
+    const side = value.map((item) =>
+      item === null || item === undefined
+        ? null
+        : typeof item === 'number' && Number.isInteger(item) && item >= 1 && item <= 3
+          ? item
+          : Number.NaN
+    );
+    return side.some((item) => typeof item === 'number' && Number.isNaN(item))
+      ? null
+      : side as (number | null)[];
+  };
+
+  const source = outside as Record<string, unknown>;
+  const top = readSide(source.top, width);
+  const right = readSide(source.right, height);
+  const bottom = readSide(source.bottom, width);
+  const left = readSide(source.left, height);
+  return top && right && bottom && left ? { top, right, bottom, left } : null;
 }
 
 function getCandidateValues(snapshot: unknown, row: number, col: number) {
@@ -130,7 +209,7 @@ function getFirstRecordLevel(snapshot: unknown, itemKey: string, keys: string[])
 }
 
 function getSlitherCellMark(snapshot: unknown, row: number, col: number): SlitherCellMark | null {
-  const record = asRecord(snapshot)?.cellMarks;
+  const record = asRecord(asRecord(snapshot)?.cellMarks);
   if (!record) return null;
 
   const value = record[`${row},${col}`] ?? record[getLocalCellKey(row, col)];
@@ -228,11 +307,18 @@ function getMaxTrialLevel(snapshot: unknown) {
   return Math.floor(maxLevel);
 }
 
-function getTrialDisplayLabel(visibleTrialLevel: number, maxTrialLevel: number) {
-  if (visibleTrialLevel <= 0) return '不显示试错';
-  if (visibleTrialLevel === 1) return '仅第1层试错';
-  if (visibleTrialLevel < maxTrialLevel) return `第1-${visibleTrialLevel}层试错`;
-  return `第1-${maxTrialLevel}层试错`;
+function getTrialDisplayLabel(
+  visibleTrialLevel: number,
+  maxTrialLevel: number,
+  trialDisplay: {
+    hidden: string;
+    only: (level: number) => string;
+    range: (level: number) => string;
+  }
+) {
+  if (visibleTrialLevel <= 0) return trialDisplay.hidden;
+  if (visibleTrialLevel === 1) return trialDisplay.only(1);
+  return trialDisplay.range(Math.min(visibleTrialLevel, maxTrialLevel));
 }
 
 function SnapshotCandidates({
@@ -274,7 +360,7 @@ function renderMintonetteClue(value: number | null, cellSize: number) {
         width: `${diameter}px`,
         height: `${diameter}px`,
         borderColor: woodBoardTheme.border,
-        background: woodBoardTheme.panel,
+        ...getBoardPanelColors(),
         ...getBoardTextStyle(cellSize, 0.38, 14),
       }}
     >
@@ -285,7 +371,7 @@ function renderMintonetteClue(value: number | null, cellSize: number) {
 
 function renderKurarinClue(color: 'black' | 'white' | 'gray', cellSize: number) {
   const diameter = Math.max(10, Math.floor(cellSize * 0.58));
-  const fill = color === 'black' ? woodBoardTheme.shaded : color === 'gray' ? woodBoardTheme.marked : woodBoardTheme.whiteCell;
+  const fill = getKurarinClueColors(color).fill;
 
   return (
     <span
@@ -300,20 +386,27 @@ function renderKurarinClue(color: 'black' | 'white' | 'gray', cellSize: number) 
   );
 }
 
-function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, cellSize: number): CellView {
+function getCellView(
+  puzzle: PuzzleData | undefined,
+  row: number,
+  col: number,
+  cellSize: number,
+  battleshipOccupied?: boolean[][],
+  clueMap?: ReadonlyMap<string, unknown>
+): CellView {
   if (!puzzle) return { tone: 'cell' };
 
   switch (puzzle.type) {
     case 'nurikabe': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
     case 'fillomino': {
       const clue = puzzle.clues[row]?.[col] ?? null;
-      return clue !== null ? { tone: 'prefilled', content: clue, locked: true } : { tone: 'cell' };
+      return clue !== null ? { tone: 'clue', content: clue, locked: true } : { tone: 'cell' };
     }
     case 'yajilin': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue
         ? {
             tone: 'shaded',
@@ -328,18 +421,46 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
           }
         : { tone: 'cell' };
     }
+    case 'koburin': {
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
+      return clue
+        ? { tone: 'shaded', content: clue.value, locked: true }
+        : { tone: 'cell' };
+    }
+    case 'neighbor': {
+      const given = puzzle.givens[row]?.[col] ?? null;
+      if (given !== null) {
+        return {
+          tone: puzzle.grayCells[row]?.[col] ? 'outlined' : 'clue',
+          content: given,
+          locked: true,
+        };
+      }
+      return { tone: puzzle.grayCells[row]?.[col] ? 'outlined' : 'cell' };
+    }
+    case 'sky-neighbor': {
+      const given = puzzle.givens[row]?.[col] ?? null;
+      if (given !== null) {
+        return {
+          tone: puzzle.grayCells[row]?.[col] ? 'outlined' : 'clue',
+          content: given,
+          locked: true,
+        };
+      }
+      return { tone: puzzle.grayCells[row]?.[col] ? 'outlined' : 'cell' };
+    }
     case 'starbattle':
       return { tone: 'cell' };
     case 'heyawake': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
     case 'aqre': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
     case 'mintonette': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue
         ? { tone: 'cell', content: renderMintonetteClue(clue.value, cellSize), locked: true }
         : { tone: 'cell' };
@@ -354,17 +475,28 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
       return { tone: 'shaded', content: cell === 'black' ? undefined : cell, locked: true };
     }
     case 'kurarin': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue
         ? { tone: 'cell', content: renderKurarinClue(clue.color, cellSize), locked: true }
         : { tone: 'cell' };
     }
     case 'walkwalk': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
     case 'slither': {
       const clue = puzzle.clues[row]?.[col] ?? null;
+      return clue !== null ? { tone: 'cell', content: clue, locked: true } : { tone: 'cell' };
+    }
+    case 'wolvesandsheepfences': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      if (clue === 'sheep' || clue === 'wolf') {
+        return {
+          tone: 'cell',
+          content: <WolvesAndSheepSymbol kind={clue} cellSize={cellSize} />,
+          locked: true,
+        };
+      }
       return clue !== null ? { tone: 'cell', content: clue, locked: true } : { tone: 'cell' };
     }
     case 'lits': {
@@ -372,7 +504,7 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
       return excluded ? { tone: 'marked', content: '×', locked: true } : { tone: 'cell' };
     }
     case 'lakes': {
-      const clue = puzzle.clues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
     case 'tapa': {
@@ -392,13 +524,20 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
       return given === null ? { tone: 'cell' } : { tone: 'prefilled', content: given, locked: true };
     }
     case 'battleship': {
-      const clue = puzzle.cellClues.find((item) => item.row === row && item.col === col);
+      const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.cellClues)[number] | undefined;
       if (!clue) return { tone: 'cell' };
       return {
         tone: 'clue',
         content: clue.kind === 'water'
           ? <BattleshipWaterSymbol cellSize={cellSize} />
-          : <BattleshipSegmentSymbol segment={clue.segment ?? 'unknown'} cellSize={cellSize} given />,
+          : <BattleshipSegmentSymbol
+              segment={clue.segment ?? 'unknown'}
+              cellSize={cellSize}
+              given
+              neighbors={battleshipOccupied
+                ? getBattleshipNeighborConnections(battleshipOccupied, row, col)
+                : undefined}
+            />,
         locked: true,
       };
     }
@@ -409,7 +548,7 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
     case 'snail': {
       const cell = puzzle.cells[row]?.[col] ?? null;
       if (cell === 'block') return { tone: 'marked', content: '×', locked: true };
-      if (typeof cell === 'number') return { tone: 'prefilled', content: cell, locked: true };
+      if (typeof cell === 'number') return { tone: 'clue', content: cell, locked: true };
       return { tone: 'cell' };
     }
     case 'slovak-sums': {
@@ -423,6 +562,16 @@ function getCellView(puzzle: PuzzleData | undefined, row: number, col: number, c
       }
       return { tone: 'cell' };
     }
+    case 'kakuro': {
+      const clue = puzzle.cells[row]?.[col] ?? null;
+      return clue
+        ? {
+            tone: 'shaded',
+            content: <KakuroClue right={clue.right} down={clue.down} cellSize={cellSize} />,
+            locked: true,
+          }
+        : { tone: 'cell' };
+    }
     default:
       return { tone: 'cell' };
   }
@@ -433,7 +582,9 @@ function getSnapshotCellView(
   snapshot: unknown,
   row: number,
   col: number,
-  visibleTrialLevel: number
+  visibleTrialLevel: number,
+  cellSize: number,
+  battleshipContext?: BattleshipSnapshotContext
 ): CellView | null {
   const value = getGridValue(snapshot, row, col);
   if (value === undefined || value === null || value === 0) return null;
@@ -452,9 +603,12 @@ function getSnapshotCellView(
   }
 
   if (
+    puzzleType === 'kakuro' ||
     puzzleType === 'fillomino' ||
     puzzleType === 'slovak-sums' ||
-    puzzleType === 'skyscrapers'
+    puzzleType === 'skyscrapers' ||
+    puzzleType === 'neighbor' ||
+    puzzleType === 'sky-neighbor'
   ) {
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
@@ -467,6 +621,33 @@ function getSnapshotCellView(
 
   if (puzzleType === 'akari') {
     if (value === 1) return { tone: 'brightLit', content: '●', fontRatio: 0.72 };
+    if (value === 2) return { tone: 'marked', content: '×' };
+    return null;
+  }
+
+  if (puzzleType === 'battleship') {
+    if (value === 1 && battleshipContext) {
+      const trialLevel = getCellTrialLevel(snapshot, row, col);
+      return {
+        tone: 'cell',
+        content: (
+          <BattleshipSegmentSymbol
+            segment={inferBattleshipSegment(battleshipContext.occupied, row, col)}
+            cellSize={cellSize}
+            resolved={isBattleshipSegmentResolved(
+              battleshipContext.grid,
+              battleshipContext.puzzle,
+              battleshipContext.occupied,
+              row,
+              col,
+              battleshipContext.waterClueKeys
+            )}
+            color={getTrialLevelColors(trialLevel)?.line}
+            neighbors={getBattleshipNeighborConnections(battleshipContext.occupied, row, col)}
+          />
+        ),
+      };
+    }
     if (value === 2) return { tone: 'marked', content: '×' };
     return null;
   }
@@ -532,29 +713,18 @@ function getSnapshotCellTrialStyle(
   if (!trialColors) return undefined;
 
   if (puzzleType === 'skyscrapers') {
-    return {
-      background: trialColors.softFill,
-      color: trialColors.text,
-    };
+    return getBoardTrialCellStyle(trialColors, 'soft');
   }
 
   if (puzzleType === 'akari') {
-    return {
-      boxShadow: `inset 0 0 0 2px ${trialColors.line}`,
-    };
+    return getBoardTrialCellStyle(trialColors, 'line');
   }
 
-  if (value === 1) {
-    return {
-      background: trialColors.fill,
-      color: woodBoardTheme.shadedText,
-    };
+  if (puzzleType === 'battleship' && value === 1) {
+    return getBoardTrialCellStyle(trialColors, 'soft', trialColors.line);
   }
 
-  return {
-    background: trialColors.softFill,
-    color: trialColors.text,
-  };
+  return getBoardTrialCellStyle(trialColors, value === 1 ? 'filled' : 'soft');
 }
 
 function RegionBoundaries({
@@ -569,8 +739,7 @@ function RegionBoundaries({
   cellSize: number;
 }) {
   const boundaries = getRegionBoundarySegments(regionIds, width, height);
-  const strokeWidth = getRoomBoundaryStrokeWidth();
-  const outlineWidth = getOutlinedBorderStrokeWidth(strokeWidth);
+  const { strokeWidth, outlineWidth } = getBoardBoundaryStrokeMetrics(cellSize);
 
   return (
     <svg
@@ -640,6 +809,126 @@ function RegionBoundaries({
           />
         );
       })}
+    </svg>
+  );
+}
+
+function SkyNeighborOutsideCells({
+  puzzle,
+  cellSize,
+  outsideLeft,
+  outsideRight,
+  outsideTop,
+  outsideBottom,
+}: {
+  puzzle: Extract<PuzzleData, { type: 'sky-neighbor' }>;
+  cellSize: number;
+  outsideLeft: number;
+  outsideRight: number;
+  outsideTop: number;
+  outsideBottom: number;
+}) {
+  const outside = puzzle.outsideGrayCells ?? {
+    top: Array<boolean>(puzzle.width).fill(false),
+    right: Array<boolean>(puzzle.height).fill(false),
+    bottom: Array<boolean>(puzzle.width).fill(false),
+    left: Array<boolean>(puzzle.height).fill(false),
+  };
+  const gridLeft = BOARD_PADDING + outsideLeft;
+  const gridTop = BOARD_PADDING + outsideTop;
+  const rectangles: ReactNode[] = [];
+
+  const add = (
+    key: string,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    isGray: boolean,
+    isClue: boolean,
+  ) => {
+    const tone = isGray ? 'outlined' : isClue ? 'clue' : 'cell';
+    const fill = getBoardCellColors(tone).background;
+    rectangles.push(
+      <rect
+        key={`${key}-base`}
+        // SVG strokes are centered on the rectangle edge. Inset the one-pixel
+        // frame so its painted bounds stay exactly within the cell geometry,
+        // matching the CSS grid cells used by the main board.
+        x={x + 0.5}
+        y={y + 0.5}
+        width={Math.max(0, width - 1)}
+        height={Math.max(0, height - 1)}
+        fill={fill}
+        stroke={woodBoardTheme.gridLine}
+        strokeWidth={getBoardGridStrokeWidth()}
+      />
+    );
+    if (isGray) {
+      rectangles.push(
+        <rect
+          key={`${key}-outline`}
+          {...getBoardCellOutlineRect(x, y, width, height, cellSize)}
+        />
+      );
+    }
+  };
+
+  puzzle.clues.top.forEach((_, col) => add(
+    `top-${col}`,
+    gridLeft + col * cellSize,
+    BOARD_PADDING,
+    cellSize,
+    outsideTop,
+    outside.top[col] === true,
+    puzzle.clues.top[col] !== null
+  ));
+  puzzle.clues.bottom.forEach((_, col) => add(
+    `bottom-${col}`,
+    gridLeft + col * cellSize,
+    gridTop + puzzle.height * cellSize,
+    cellSize,
+    outsideBottom,
+    outside.bottom[col] === true,
+    puzzle.clues.bottom[col] !== null
+  ));
+  puzzle.clues.left.forEach((_, row) => add(
+    `left-${row}`,
+    BOARD_PADDING,
+    gridTop + row * cellSize,
+    outsideLeft,
+    cellSize,
+    outside.left[row] === true,
+    puzzle.clues.left[row] !== null
+  ));
+  puzzle.clues.right.forEach((_, row) => add(
+    `right-${row}`,
+    gridLeft + puzzle.width * cellSize,
+    gridTop + row * cellSize,
+    outsideRight,
+    cellSize,
+    outside.right[row] === true,
+    puzzle.clues.right[row] !== null
+  ));
+
+  return (
+    <svg
+      className="pointer-events-none absolute inset-0"
+      width={puzzle.width * cellSize + outsideLeft + outsideRight + BOARD_PADDING * 2}
+      height={puzzle.height * cellSize + outsideTop + outsideBottom + BOARD_PADDING * 2}
+      aria-hidden="true"
+    >
+      {rectangles}
+      <rect
+        x={gridLeft + (getRoomBoundaryStrokeWidth() + 1) / 2}
+        y={gridTop + (getRoomBoundaryStrokeWidth() + 1) / 2}
+        width={Math.max(0, puzzle.width * cellSize - (getRoomBoundaryStrokeWidth() + 1))}
+        height={Math.max(0, puzzle.height * cellSize - (getRoomBoundaryStrokeWidth() + 1))}
+        fill="none"
+        stroke={woodBoardTheme.border}
+        strokeWidth={getRoomBoundaryStrokeWidth()}
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   );
 }
@@ -987,8 +1276,62 @@ export default function NotePuzzleBoard({
   cellSize: requestedCellSize = DEFAULT_CELL_SIZE,
   ariaLabel,
 }: NotePuzzleBoardProps) {
+  const { copy } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [availableWidth, setAvailableWidth] = useState<number | null>(null);
+  const activePuzzle = puzzle?.type === puzzleType && puzzle.width === width && puzzle.height === height ? puzzle : undefined;
+  const clueMap = useMemo<ReadonlyMap<string, unknown>>(() => {
+    if (!activePuzzle) return new Map();
+
+    switch (activePuzzle.type) {
+      case 'nurikabe':
+      case 'yajilin':
+      case 'koburin':
+      case 'heyawake':
+      case 'aqre':
+      case 'mintonette':
+      case 'kurarin':
+      case 'walkwalk':
+      case 'lakes':
+        return makePositionMap<{ row: number; col: number }>(activePuzzle.clues);
+      case 'battleship':
+        return makePositionMap<{ row: number; col: number }>(activePuzzle.cellClues);
+      default:
+        return new Map();
+    }
+  }, [activePuzzle]);
+  const skyNeighborDisplayClues = useMemo(() => {
+    if (activePuzzle?.type !== 'sky-neighbor') return null;
+    const snapshotOutside = getSkyNeighborSnapshotOutside(
+      snapshot,
+      activePuzzle.width,
+      activePuzzle.height
+    );
+    const grid = Array.from({ length: activePuzzle.height }, (_, row) =>
+      Array.from({ length: activePuzzle.width }, (_, col) => {
+        const value = getGridValue(snapshot, row, col);
+        return typeof value === 'number' ? value : null;
+      })
+    );
+    return snapshotOutside ?? getSkyNeighborDisplayClues(grid, activePuzzle);
+  }, [activePuzzle, snapshot]);
+  const outsideClues: BoardOutsideClues | null = activePuzzle?.type === 'skyscrapers'
+    ? activePuzzle.clues
+    : activePuzzle?.type === 'sky-neighbor'
+      ? skyNeighborDisplayClues
+    : activePuzzle?.type === 'battleship'
+      ? {
+          top: activePuzzle.columnClues,
+          left: activePuzzle.rowClues,
+        }
+      : null;
+  const outsideDirectionCount = Number(outsideClues?.left !== undefined) +
+    Number(outsideClues?.right !== undefined) +
+    Number(outsideClues?.top !== undefined) +
+    Number(outsideClues?.bottom !== undefined);
+  const outsideHorizontalDirectionCount = Number(outsideClues?.left !== undefined) +
+    Number(outsideClues?.right !== undefined);
+  const outsideClueMaxDigits = getBoardOutsideClueMaxDigits(outsideClues);
   const maxTrialLevel = useMemo(() => getMaxTrialLevel(snapshot), [snapshot]);
   const [visibleTrialLevel, setVisibleTrialLevel] = useState(maxTrialLevel);
 
@@ -1018,24 +1361,44 @@ export default function NotePuzzleBoard({
   }, []);
 
   const cellSize = useMemo(() => {
-    if (!availableWidth || width <= 0) return requestedCellSize;
+    // Sky-neighbors uses the same base cell sizing as every other replay.
+    // Its outside ring remains square, but does not use a separate scale.
+    const sizeLimit = requestedCellSize;
+    const minimumCellSize = commonBoardChrome.minCellSize;
+    if (!availableWidth || width <= 0) return sizeLimit;
 
     const chromeWidth = (BOARD_PADDING + BOARD_BORDER) * 2;
-    const fittedCellSize = (availableWidth - chromeWidth) / width;
+    // A clue gutter is proportional to the cell size (with a 24px floor), so
+    // solve the fit once or twice instead of letting the thumbnail overflow
+    // its container on narrow screens.
+    let fittedCellSize = sizeLimit;
+    for (let iteration = 0; iteration < 2; iteration++) {
+      const clueGutter = outsideDirectionCount > 0
+        ? activePuzzle?.type === 'sky-neighbor'
+          ? fittedCellSize
+          : getBoardOutsideClueGutter(fittedCellSize, outsideClueMaxDigits)
+        : 0;
+      fittedCellSize = (availableWidth - chromeWidth - outsideHorizontalDirectionCount * clueGutter) / width;
+    }
 
-    if (!Number.isFinite(fittedCellSize) || fittedCellSize <= 0) return requestedCellSize;
-    return Math.min(requestedCellSize, fittedCellSize);
-  }, [availableWidth, requestedCellSize, width]);
+    if (!Number.isFinite(fittedCellSize) || fittedCellSize <= 0) return sizeLimit;
+    return Math.max(
+      minimumCellSize,
+      Math.min(sizeLimit, fittedCellSize)
+    );
+  }, [activePuzzle?.type, availableWidth, outsideClueMaxDigits, outsideDirectionCount, outsideHorizontalDirectionCount, requestedCellSize, width]);
 
-  const activePuzzle = puzzle?.type === puzzleType && puzzle.width === width && puzzle.height === height ? puzzle : undefined;
   const markMap = makePositionMap(marks);
   const regionIds = getRegionIds(activePuzzle);
-  const isSlither = activePuzzle?.type === 'slither' || (!activePuzzle && puzzleType === 'slither');
+  const isSlither = activePuzzle?.type === 'slither' || activePuzzle?.type === 'wolvesandsheepfences' ||
+    (!activePuzzle && (puzzleType === 'slither' || puzzleType === 'wolvesandsheepfences'));
   const isDominoSearch = activePuzzle?.type === 'domino-search' || (!activePuzzle && puzzleType === 'domino-search');
   const dominoes = activePuzzle?.type === 'domino-search' ? activePuzzle.dominoes : null;
-  const lineEdges = getStringArray(snapshot, 'lineEdges');
-  const loopEdges = getStringArray(snapshot, 'loopEdges');
-  const dominoEdges = getStringArray(snapshot, 'edges');
+  const lineEdges = isSlither
+    ? filterValidGridLineEdgeKeys(getStringArray(snapshot, 'lineEdges'), width, height)
+    : filterValidCellEdgeKeys(getStringArray(snapshot, 'lineEdges'), width, height);
+  const loopEdges = filterValidCellEdgeKeys(getStringArray(snapshot, 'loopEdges'), width, height);
+  const dominoEdges = filterValidCellEdgeKeys(getStringArray(snapshot, 'edges'), width, height);
   const placedDominoCounts = activePuzzle?.type === 'domino-search'
     ? countPlacedDominoPairs(dominoEdges, activePuzzle.numbers)
     : null;
@@ -1057,28 +1420,62 @@ export default function NotePuzzleBoard({
         });
       })()
     : null;
-  const outsideClues = activePuzzle?.type === 'skyscrapers'
-    ? activePuzzle.clues
-    : activePuzzle?.type === 'battleship'
-      ? {
-          top: activePuzzle.columnClues,
-          bottom: Array<number | null>(activePuzzle.width).fill(null),
-          left: activePuzzle.rowClues,
-          right: Array<number | null>(activePuzzle.height).fill(null),
-        }
-      : null;
-  const outsideClueSize = outsideClues ? Math.max(24, Math.floor(cellSize * 0.62)) : 0;
-  const outsideLeft = outsideClues ? outsideClueSize : 0;
-  const outsideRight = outsideClues ? outsideClueSize : 0;
-  const outsideTop = outsideClues ? outsideClueSize : 0;
-  const outsideBottom = outsideClues ? outsideClueSize : 0;
+  // Sky-neighbors renders a four-sided ring of actual cells.  Match the
+  // gutter dimensions to the central cell size so every square has exactly
+  // the same geometry at every responsive size.
+  const outsideClueLayout = activePuzzle?.type === 'sky-neighbor'
+    ? {
+        clueSize: cellSize,
+        left: outsideClues?.left !== undefined ? cellSize : 0,
+        right: outsideClues?.right !== undefined ? cellSize : 0,
+        top: outsideClues?.top !== undefined ? cellSize : 0,
+        bottom: outsideClues?.bottom !== undefined ? cellSize : 0,
+      }
+    : getBoardOutsideClueLayout(cellSize, outsideClues);
+  const outsideLeft = outsideClueLayout.left;
+  const outsideRight = outsideClueLayout.right;
+  const outsideTop = outsideClueLayout.top;
+  const outsideBottom = outsideClueLayout.bottom;
   const gridLeft = BOARD_PADDING + outsideLeft;
   const gridTop = BOARD_PADDING + outsideTop;
-  const crossedEdges = getStringArray(snapshot, 'crossedEdges');
-  const deepLines = getStringArray(snapshot, 'deepLines');
-  const thinLines = getStringArray(snapshot, 'thinLines');
-  const edgeDots = getStringArray(snapshot, 'edgeDots');
-  const vertexDots = getStringArray(snapshot, 'vertexDots');
+  const battleshipContext = useMemo<BattleshipSnapshotContext | undefined>(() => {
+    if (activePuzzle?.type !== 'battleship') return undefined;
+
+    const snapshotGrid = Array.from({ length: activePuzzle.height }, (_, row) =>
+      Array.from({ length: activePuzzle.width }, (_, col) => {
+        const value = getGridValue(snapshot, row, col);
+        return value === 1 || value === 2 ? value : 0;
+      })
+    );
+    const snapshotLevels = Array.from({ length: activePuzzle.height }, (_, row) =>
+      Array.from({ length: activePuzzle.width }, (_, col) => getCellTrialLevel(snapshot, row, col))
+    );
+
+    return {
+      puzzle: activePuzzle,
+      grid: snapshotGrid,
+      occupied: getBattleshipOccupiedGrid(snapshotGrid, activePuzzle, {
+        levels: snapshotLevels,
+        visibleTrialLevel,
+      }),
+      waterClueKeys: getBattleshipWaterClueKeys(activePuzzle),
+    };
+  }, [activePuzzle, snapshot, visibleTrialLevel]);
+  const crossedEdges = isSlither
+    ? filterValidGridLineEdgeKeys(getStringArray(snapshot, 'crossedEdges'), width, height)
+    : filterValidCellEdgeKeys(getStringArray(snapshot, 'crossedEdges'), width, height);
+  const deepLines = filterValidInternalBoundaryEdgeKeys(
+    getStringArray(snapshot, 'deepLines'),
+    width,
+    height
+  );
+  const thinLines = filterValidInternalBoundaryEdgeKeys(
+    getStringArray(snapshot, 'thinLines'),
+    width,
+    height
+  );
+  const edgeDots = filterValidGridLineEdgeKeys(getStringArray(snapshot, 'edgeDots'), width, height);
+  const vertexDots = filterValidGridVertexKeys(getStringArray(snapshot, 'vertexDots'), width, height);
   const dominoOutlineKeys = isDominoSearch ? dominoEdges : [];
   const centerLoopKeys = loopEdges;
   const centerPathKeys = isSlither ? [] : lineEdges;
@@ -1099,19 +1496,22 @@ export default function NotePuzzleBoard({
 
   return (
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-2">
-      <div className="w-full max-w-full overflow-hidden">
+      <div className="w-full max-w-full overflow-x-auto overflow-y-hidden overscroll-x-contain pb-1">
         <div className="relative mx-auto select-none" style={frameStyle} aria-label={ariaLabel}>
           <div
             className="absolute grid"
-            style={{
-              left: `${gridLeft}px`,
-              top: `${gridTop}px`,
-              gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-            }}
+            style={getBoardGridStyle(gridLeft, gridTop, width, cellSize)}
           >
             {Array.from({ length: height }, (_, row) =>
               Array.from({ length: width }, (_, col) => {
-                const base = getCellView(activePuzzle, row, col, cellSize);
+                const base = getCellView(
+                  activePuzzle,
+                  row,
+                  col,
+                  cellSize,
+                  battleshipContext?.occupied,
+                  clueMap
+                );
                 const snapshotValue = getGridValue(snapshot, row, col);
                 const candidateValues = getCandidateValues(snapshot, row, col);
                 const snapshotTrialLevel = getCellTrialLevel(snapshot, row, col);
@@ -1121,7 +1521,9 @@ export default function NotePuzzleBoard({
                   snapshot,
                   row,
                   col,
-                  visibleTrialLevel
+                  visibleTrialLevel,
+                  cellSize,
+                  battleshipContext
                 );
                 const candidateView = snapshotView || candidateValues.length === 0 || !snapshotTrialVisible
                   ? null
@@ -1166,10 +1568,7 @@ export default function NotePuzzleBoard({
                   base.locked
                 );
                 const cellStyle: CSSProperties = {
-                  width: `${cellSize}px`,
-                  height: `${cellSize}px`,
-                  ...getBoardCellColors(view.tone),
-                  ...getCellDividerStyle(),
+                  ...getBoardCellStyle(cellSize, view.tone),
                   ...trialStyle,
                   ...getBoardTextStyle(cellSize, view.fontRatio ?? 0.58, 15),
                 };
@@ -1180,6 +1579,7 @@ export default function NotePuzzleBoard({
                     className={boardClassNames.cellContent}
                     style={cellStyle}
                   >
+                    {view.tone === 'outlined' ? <BoardCellOutline cellSize={cellSize} /> : null}
                     {centerMark ? (
                       <SlitherCellMark
                         mark={centerMark}
@@ -1214,9 +1614,20 @@ export default function NotePuzzleBoard({
             )}
           </div>
 
+          {activePuzzle?.type === 'sky-neighbor' ? (
+            <SkyNeighborOutsideCells
+              puzzle={activePuzzle}
+              cellSize={cellSize}
+              outsideLeft={outsideLeft}
+              outsideRight={outsideRight}
+              outsideTop={outsideTop}
+              outsideBottom={outsideBottom}
+            />
+          ) : null}
+
           {outsideClues ? (
             <div className="pointer-events-none absolute inset-0">
-              {outsideClues.top.map((value, col) =>
+              {outsideClues.top?.map((value, col) =>
                 value === null ? null : (
                   <span
                     key={`top-${col}`}
@@ -1225,14 +1636,14 @@ export default function NotePuzzleBoard({
                       left: `${gridLeft + (col + 0.5) * cellSize}px`,
                       top: `${BOARD_PADDING + outsideTop / 2}px`,
                       color: woodBoardTheme.border,
-                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                      ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
                     }}
                   >
                     {value}
                   </span>
                 )
               )}
-              {outsideClues.bottom.map((value, col) =>
+              {outsideClues.bottom?.map((value, col) =>
                 value === null ? null : (
                   <span
                     key={`bottom-${col}`}
@@ -1241,14 +1652,14 @@ export default function NotePuzzleBoard({
                       left: `${gridLeft + (col + 0.5) * cellSize}px`,
                       top: `${gridTop + height * cellSize + outsideBottom / 2}px`,
                       color: woodBoardTheme.border,
-                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                      ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
                     }}
                   >
                     {value}
                   </span>
                 )
               )}
-              {outsideClues.left.map((value, row) =>
+              {outsideClues.left?.map((value, row) =>
                 value === null ? null : (
                   <span
                     key={`left-${row}`}
@@ -1257,14 +1668,14 @@ export default function NotePuzzleBoard({
                       left: `${BOARD_PADDING + outsideLeft / 2}px`,
                       top: `${gridTop + (row + 0.5) * cellSize}px`,
                       color: woodBoardTheme.border,
-                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                      ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
                     }}
                   >
                     {value}
                   </span>
                 )
               )}
-              {outsideClues.right.map((value, row) =>
+              {outsideClues.right?.map((value, row) =>
                 value === null ? null : (
                   <span
                     key={`right-${row}`}
@@ -1273,7 +1684,7 @@ export default function NotePuzzleBoard({
                       left: `${gridLeft + width * cellSize + outsideRight / 2}px`,
                       top: `${gridTop + (row + 0.5) * cellSize}px`,
                       color: woodBoardTheme.border,
-                      ...getBoardTextStyle(cellSize, 0.48, 14),
+                      ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
                     }}
                   >
                     {value}
@@ -1316,7 +1727,7 @@ export default function NotePuzzleBoard({
                 visibleTrialLevel
               )
             }
-            strokeWidth={2}
+            strokeWidth={getBoardThinStrokeWidth(cellSize)}
             getPoints={getThinCellCenterLinePoints}
             keyPrefix="thin"
           />
@@ -1431,13 +1842,13 @@ export default function NotePuzzleBoard({
             variant="ghost"
             disabled={visibleTrialLevel <= 0}
             onClick={() => setVisibleTrialLevel((current) => Math.max(0, current - 1))}
-            aria-label="减少显示的试错层级"
-            title="减少显示的试错层级"
+            aria-label={copy.shared.trialDisplay.decrease}
+            title={copy.shared.trialDisplay.decrease}
           >
             <ChevronLeft />
           </Button>
           <span className="min-w-28 text-center tabular-nums">
-            {getTrialDisplayLabel(visibleTrialLevel, maxTrialLevel)}
+            {getTrialDisplayLabel(visibleTrialLevel, maxTrialLevel, copy.shared.trialDisplay)}
           </span>
           <Button
             type="button"
@@ -1445,8 +1856,8 @@ export default function NotePuzzleBoard({
             variant="ghost"
             disabled={visibleTrialLevel >= maxTrialLevel}
             onClick={() => setVisibleTrialLevel((current) => Math.min(maxTrialLevel, current + 1))}
-            aria-label="增加显示的试错层级"
-            title="增加显示的试错层级"
+            aria-label={copy.shared.trialDisplay.increase}
+            title={copy.shared.trialDisplay.increase}
           >
             <ChevronRight />
           </Button>
@@ -1454,16 +1865,12 @@ export default function NotePuzzleBoard({
       ) : null}
 
       {dominoListItems ? (
-        <div className="flex max-w-full flex-wrap justify-center gap-1 text-xs">
+        <div className="flex w-full min-w-0 max-w-full self-stretch flex-wrap justify-center gap-1 overflow-hidden text-xs">
           {dominoListItems.map(({ left, right, index, used }) => (
             <span
               key={`${left}-${right}-${index}`}
-              className="border px-1.5 py-0.5 font-medium tabular-nums"
-              style={{
-                borderColor: used ? woodBoardTheme.border : woodBoardTheme.accentBorder,
-                background: used ? woodBoardTheme.shaded : woodBoardTheme.panel,
-                color: used ? woodBoardTheme.shadedText : woodBoardTheme.accentText,
-              }}
+              className="shrink-0 whitespace-nowrap border px-1.5 py-0.5 font-medium tabular-nums"
+              style={getBoardDominoBadgeStyle(used)}
             >
               {left}-{right}
             </span>

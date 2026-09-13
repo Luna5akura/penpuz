@@ -15,7 +15,11 @@ export function normalizePuzzLinkDataPart(link: string) {
   if (/%2f/i.test(dataPart)) {
     const firstQueryPart = dataPart.split('&')[0];
     dataPart = firstQueryPart.endsWith('=') ? firstQueryPart.slice(0, -1) : firstQueryPart;
-    dataPart = decodeURIComponent(dataPart);
+    try {
+      dataPart = decodeURIComponent(dataPart);
+    } catch {
+      return '';
+    }
   }
   if (dataPart.startsWith('p?')) dataPart = dataPart.slice(2);
   return dataPart;
@@ -37,7 +41,10 @@ function decodeBase64Url(input: string) {
     return globalThis.atob(padded);
   }
 
-  return Buffer.from(padded, 'base64').toString('binary');
+  // `atob` is available in every supported browser and in the current Node
+  // runtime. Do not depend on Node's Buffer here: this module is shipped to
+  // the browser and should remain portable to other runtimes and workers.
+  throw new Error('Base64 decoding is not available in this runtime.');
 }
 
 export function decodeCustomPayload<T>(encoded: string): T | null {
@@ -274,6 +281,108 @@ export function parseGridLineEdgeKey(key: string) {
     row: Number(match[2]),
     col: Number(match[3]),
   };
+}
+
+/**
+ * Check that a grid-line edge belongs to a board of the given dimensions.
+ *
+ * Grid-line keys are shared by Slitherlink variants and several replay
+ * renderers.  Parsing the shape alone is not enough: a persisted snapshot
+ * may contain a syntactically valid edge outside the board, which would
+ * otherwise be painted beyond the SVG frame (or counted by a validator).
+ */
+export function isValidGridLineEdgeKey(key: string, width: number, height: number) {
+  const edge = parseGridLineEdgeKey(key);
+  if (!edge || !isPositiveGridSize(width, height)) return false;
+
+  if (edge.orientation === 'h') {
+    return edge.row >= 0 && edge.row <= height && edge.col >= 0 && edge.col < width;
+  }
+
+  return edge.row >= 0 && edge.row < height && edge.col >= 0 && edge.col <= width;
+}
+
+/** Keep only unique, in-bounds grid-line keys from untrusted snapshots. */
+export function filterValidGridLineEdgeKeys(
+  keys: readonly string[],
+  width: number,
+  height: number
+) {
+  return Array.from(new Set(keys.filter((key) => isValidGridLineEdgeKey(key, width, height))));
+}
+
+/**
+ * Check a cell-centre edge (the `r,c-r,c` format used by Kurarin,
+ * Mintonette, Walkwalk, and Domino Search).  Parsing the four numbers is not
+ * enough: persisted snapshots can contain diagonal, distant, or out-of-grid
+ * endpoints and those values must never reach a validator or SVG renderer.
+ */
+export function isValidCellEdgeKey(key: string, width: number, height: number) {
+  const edge = parseSolutionEdgeKey(key);
+  if (!edge || !isPositiveGridSize(width, height)) return false;
+
+  const inBounds = (row: number, col: number) =>
+    row >= 0 && row < height && col >= 0 && col < width;
+
+  return (
+    inBounds(edge.r1, edge.c1) &&
+    inBounds(edge.r2, edge.c2) &&
+    areOrthogonallyAdjacent(
+      { row: edge.r1, col: edge.c1 },
+      { row: edge.r2, col: edge.c2 }
+    )
+  );
+}
+
+/** Keep only unique, in-bounds orthogonal cell-centre edges. */
+export function filterValidCellEdgeKeys(
+  keys: readonly string[],
+  width: number,
+  height: number
+) {
+  return Array.from(new Set(keys.filter((key) => isValidCellEdgeKey(key, width, height))));
+}
+
+/**
+ * Internal boundary keys (`h-row-col` / `v-row-col`) are distinct from
+ * grid-line keys: they never include the outer perimeter.  Fillomino and
+ * NIKOJI use this format for their manually drawn borders and centre marks.
+ */
+export function isValidInternalBoundaryEdgeKey(key: string, width: number, height: number) {
+  const edge = parseGridLineEdgeKey(key);
+  if (!edge || !isPositiveGridSize(width, height)) return false;
+
+  if (edge.orientation === 'h') {
+    return edge.row >= 0 && edge.row < height && edge.col >= 0 && edge.col < width - 1;
+  }
+
+  return edge.row >= 0 && edge.row < height - 1 && edge.col >= 0 && edge.col < width;
+}
+
+/** Keep only unique internal boundary keys. */
+export function filterValidInternalBoundaryEdgeKeys(
+  keys: readonly string[],
+  width: number,
+  height: number
+) {
+  return Array.from(new Set(keys.filter((key) => isValidInternalBoundaryEdgeKey(key, width, height))));
+}
+
+/** Vertex-dot keys (`p-row-col`) used by Star Battle. */
+export function isValidGridVertexKey(key: string, width: number, height: number) {
+  const match = key.match(/^p-(\d+)-(\d+)$/);
+  if (!match || !isPositiveGridSize(width, height)) return false;
+  const row = Number(match[1]);
+  const col = Number(match[2]);
+  return row >= 0 && row <= height && col >= 0 && col <= width;
+}
+
+export function filterValidGridVertexKeys(
+  keys: readonly string[],
+  width: number,
+  height: number
+) {
+  return Array.from(new Set(keys.filter((key) => isValidGridVertexKey(key, width, height))));
 }
 
 export function areOrthogonallyAdjacent(a: CellCoord, b: CellCoord) {

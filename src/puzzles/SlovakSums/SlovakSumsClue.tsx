@@ -1,4 +1,5 @@
 import { boardClassNames, getBoardTextStyle } from '../boardTheme';
+import { useI18n } from '@/i18n/useI18n';
 
 interface SlovakSumsClueProps {
   sum: number | null;
@@ -7,6 +8,7 @@ interface SlovakSumsClueProps {
 }
 
 export default function SlovakSumsClue({ sum, count, cellSize }: SlovakSumsClueProps) {
+  const { copy } = useI18n();
   const dotPadding = Math.max(2, cellSize * 0.09);
   const dotGap = Math.max(1, cellSize * 0.035);
   const maxDotDiameter = count > 0
@@ -46,7 +48,7 @@ export default function SlovakSumsClue({ sum, count, cellSize }: SlovakSumsClueP
           style={{
             gap: `${dotGap}px`,
           }}
-          aria-label={`${count} 个格`}
+          aria-label={copy.shared.dots(count)}
         >
           {Array.from({ length: count }, (_, index) => (
             <span

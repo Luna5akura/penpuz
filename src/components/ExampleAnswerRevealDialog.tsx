@@ -1,4 +1,12 @@
 import { useI18n } from '@/i18n/useI18n';
+import { Button } from './ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 
 interface Props {
   open: boolean;
@@ -6,26 +14,41 @@ interface Props {
   onConfirm: () => void;
 }
 
+/**
+ * Confirmation dialog shared by all answer examples.
+ *
+ * The Radix dialog wrapper supplies focus management, Escape-to-close,
+ * `role="dialog"`, `aria-modal`, and a consistent overlay.  Keeping those
+ * behaviours here means every example board has the same spoiler UX.
+ */
 export default function ExampleAnswerRevealDialog({ open, onCancel, onConfirm }: Props) {
   const { copy } = useI18n();
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className="mx-4 w-full max-w-md border-2 border-[#bfa889] bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-900">
-        <p className="mb-6 text-xl leading-8 dark:text-gray-200">
-          {copy.shared.revealAnswerPrompt}
-        </p>
-        <div className="flex gap-3">
-          <button onClick={onCancel} className="flex-1 border-2 px-4 py-3 text-lg font-semibold">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) onCancel();
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        className="max-w-md border-border bg-card p-6 text-card-foreground"
+      >
+        <DialogHeader>
+          <DialogTitle className="text-center text-xl leading-8">
+            {copy.shared.revealAnswerPrompt}
+          </DialogTitle>
+        </DialogHeader>
+        <DialogFooter className="-mx-6 -mb-6 flex-row gap-3 border-t-0 bg-transparent p-6 pt-0 sm:justify-stretch">
+          <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
             {copy.shared.cancel}
-          </button>
-          <button onClick={onConfirm} className="flex-1 border-2 border-[#3f2a1e] bg-[#3f2a1e] px-4 py-3 text-lg font-semibold text-white">
+          </Button>
+          <Button type="button" onClick={onConfirm} className="flex-1">
             {copy.shared.confirmView}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

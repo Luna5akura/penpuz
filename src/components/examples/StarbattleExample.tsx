@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../../puzzles/types';
 import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
 import {
+  boardLayoutMetrics,
   commonBoardChrome,
-  getBoardBoundaryStrokeWidth,
   getBoardCellColors,
+  getBoardBoundaryStrokeMetrics,
+  getBoardBadgeStyle,
   getBoardFixedTextStyle,
   getBoardFrameStyle,
   getBoardSymbolFontSize,
   getCellDividerStyle,
-  getOutlinedBorderStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getStarbattleBoundarySegments } from '../../puzzles/Starbattle/utils';
@@ -23,7 +23,7 @@ interface Props extends StarbattlePuzzleData {
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -38,7 +38,6 @@ export default function StarbattleExample({
 }: Props) {
   const { copy } = useI18n();
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<StarbattlePuzzleData>(
@@ -54,15 +53,14 @@ export default function StarbattleExample({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const boundaryStroke = getBoardBoundaryStrokeWidth(CELL_SIZE);
-  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
   const starFontSize = getBoardSymbolFontSize(CELL_SIZE);
 
   return (
     <>
       <div className="flex flex-col xl:flex-row gap-10 justify-center">
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <StarbattleBoard
@@ -77,16 +75,17 @@ export default function StarbattleExample({
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+          >
+            {!showAnswer ? (
               <div
-                className="dark:border-gray-700 dark:bg-gray-800"
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
@@ -101,7 +100,6 @@ export default function StarbattleExample({
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
                       key={index}
-                      className="dark:bg-gray-800"
                       style={{
                         width: `${CELL_SIZE}px`,
                         height: `${CELL_SIZE}px`,
@@ -112,16 +110,12 @@ export default function StarbattleExample({
                   ))}
                 </div>
               </div>
-              <ExampleAnswerOverlay />
-            </div>
           ) : (
             <div className="flex flex-col items-end gap-3">
               <div
-                className="rounded-full px-3 py-1 text-sm font-semibold dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                className="rounded-full px-3 py-1 text-sm font-semibold"
                 style={{
-                  border: `1px solid ${woodBoardTheme.accentBorder}`,
-                  background: woodBoardTheme.accentFill,
-                  color: woodBoardTheme.accentText,
+                  ...getBoardBadgeStyle(),
                 }}
               >
                 {copy.shared.starbattleQuota(starsPerUnit)}
@@ -146,7 +140,7 @@ export default function StarbattleExample({
                     Array.from({ length: width }).map((__, col) => (
                       <div
                         key={`${row}-${col}`}
-                        className="flex items-center justify-center dark:bg-gray-800 dark:text-gray-100"
+                        className="flex items-center justify-center"
                         style={{
                           width: `${CELL_SIZE}px`,
                           height: `${CELL_SIZE}px`,
@@ -242,17 +236,9 @@ export default function StarbattleExample({
               </div>
             </div>
           )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

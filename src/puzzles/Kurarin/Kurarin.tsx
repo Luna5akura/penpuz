@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import type { KurarinPuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardClueCircleMetrics,
   getBoardCrossFontSize,
   getBoardFrameStyle,
+  getBoardGridSurfaceStyle,
+  getBoardTrialCellStyle,
   getCrossMarkStyle,
   getKurarinClueColors,
   getLoopCrossSize,
@@ -29,6 +33,8 @@ import {
 import { getTrialLevelColors } from '../trialStyles';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import { filterValidCellEdgeKeys, isValidCellEdgeKey } from '../gridUtils';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 
 interface Props {
   puzzle: KurarinPuzzleData;
@@ -41,7 +47,7 @@ interface Props {
 }
 
 const BOARD_PADDING = commonBoardChrome.padding;
-const BOARD_GAP = 1;
+const BOARD_GAP = boardLayoutMetrics.cellGap;
 const BOARD_BORDER = commonBoardChrome.border;
 
 type PendingTap =
@@ -77,8 +83,8 @@ function normalizeKurarinSnapshot(snapshot: unknown, width: number, height: numb
     grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
       value === 0 || value === 1 || value === 2 ? value : 0
     ) as KurarinCellState[][],
-    loopEdges: sanitizeStringArray(source?.loopEdges),
-    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    loopEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.loopEdges), width, height),
+    crossedEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.crossedEdges), width, height),
     cellLevels: sanitizeMatrix(source?.cellLevels, fallback.cellLevels, (value, fallbackCell) =>
       typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
     ),
@@ -98,9 +104,7 @@ export default function KurarinBoard({
 }: Props) {
   const { copy } = useI18n();
   const { width, height, clues } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -124,7 +128,7 @@ export default function KurarinBoard({
     pendingTap: null,
   });
   const hasCompleted = useRef(false);
-  const createInitialSnapshot = useCallback<KurarinSnapshot>(() => ({
+  const createInitialSnapshot = useCallback<() => KurarinSnapshot>(() => ({
     grid: createEmptyKurarinGrid(width, height),
     loopEdges: [],
     crossedEdges: [],
@@ -183,6 +187,7 @@ export default function KurarinBoard({
       viewportWidth,
       width,
       columnGap: BOARD_GAP,
+      containerWidth: true,
     });
   }, [fixedCellSize, viewportWidth, width]);
 
@@ -190,16 +195,6 @@ export default function KurarinBoard({
     () => (hasEdited ? validateKurarin(grid, loopEdges, clues, width, height) : null),
     [clues, grid, hasEdited, height, loopEdges, width]
   );
-
-  useEffect(() => {
-    const updateSize = () => {
-      setViewportWidth(window.innerWidth);
-    };
-
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -232,10 +227,11 @@ export default function KurarinBoard({
   }, [grid]);
 
   const canUseLoopEdge = useCallback((edgeKey: string) => {
+    if (!isValidCellEdgeKey(edgeKey, width, height)) return false;
     const edge = parseKurarinEdgeKey(edgeKey);
     if (!edge) return false;
     return canLoopPassCell(edge.r1, edge.c1) && canLoopPassCell(edge.r2, edge.c2);
-  }, [canLoopPassCell]);
+  }, [canLoopPassCell, height, width]);
 
   const removeIncidentLoopEdges = useCallback((loopEdgesSet: Set<string>, row: number, col: number) => {
     const incident = getIncidentKurarinEdgeKeys(row, col, width, height);
@@ -570,7 +566,7 @@ export default function KurarinBoard({
   const boardWidthPx = width * cellSize + (width - 1) * BOARD_GAP + BOARD_PADDING * 2;
   const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -593,7 +589,7 @@ export default function KurarinBoard({
           style={{
             gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
             gap: `${BOARD_GAP}px`,
-            background: woodBoardTheme.gridLine,
+            ...getBoardGridSurfaceStyle(),
           }}
         >
           {grid.flatMap((row, r) =>
@@ -602,11 +598,7 @@ export default function KurarinBoard({
               const isMarked = state === 2;
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const cellStyle = trialColors
-                ? isShaded
-                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
-                  : isMarked
-                    ? { background: trialColors.softFill, color: trialColors.text }
-                    : undefined
+                ? getBoardTrialCellStyle(trialColors, isShaded ? 'filled' : 'soft')
                 : undefined;
               return (
                 <div
@@ -683,14 +675,13 @@ export default function KurarinBoard({
             const clueStyle = getKurarinClueColors(clue.color);
             const x = BOARD_PADDING + (clue.col * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
             const y = BOARD_PADDING + (clue.row * (cellSize + BOARD_GAP)) / 2 + cellSize / 2;
-            const clueRadius = Math.max(8, Math.floor(cellSize * 0.16));
-            const clueStrokeWidth = Math.max(2, Math.floor(cellSize * 0.05));
+            const { radius: clueRadius, strokeWidth: clueStrokeWidth, outerRadiusOffset } = getBoardClueCircleMetrics(cellSize);
             return (
               <g key={`clue-${clue.row}-${clue.col}-${index}`}>
                 <circle
                   cx={x}
                   cy={y}
-                  r={clueRadius + Math.max(1.5, Math.floor(cellSize * 0.03))}
+                  r={clueRadius + outerRadiusOffset}
                   fill={getBoardCellColors('cell').background}
                 />
                 <circle

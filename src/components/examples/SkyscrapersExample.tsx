@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
+  getBoardOutsideClueGutter,
   getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
@@ -21,8 +22,8 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
-const CLUE_GUTTER = 34;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
+const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 1);
 
 function SkyscrapersDiagram({
   width,
@@ -47,6 +48,7 @@ function SkyscrapersDiagram({
         width: `${boardWidth + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
         height: `${boardHeight + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
         ...getBoardFrameStyle(),
+        maxWidth: 'none',
       }}
     >
       <div
@@ -155,39 +157,28 @@ export default function SkyscrapersExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
 
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{playableLabel}</div>
-          <div className="flex justify-center overflow-x-auto">
+          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
+          <div className="flex max-w-full justify-start overflow-x-auto overscroll-x-contain pb-1 md:justify-center">
             <SkyscrapersDiagram width={width} height={height} clues={clues} />
           </div>
         </div>
         <div>
-          <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{answerLabel}</div>
-          <div
-            className="relative flex justify-center overflow-x-auto"
-            onClick={() => {
-              if (!showAnswer) setConfirmSpoiler(true);
-            }}
+          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="flex max-w-full justify-start overflow-x-auto overscroll-x-contain pb-1 md:justify-center"
           >
             <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} />
-            {!showAnswer ? <ExampleAnswerOverlay /> : null}
-          </div>
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

@@ -1,20 +1,20 @@
 import { Waves } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
-import { boardClassNames, woodBoardTheme } from '../boardTheme';
+import {
+  boardClassNames,
+  boardLayoutMetrics,
+  getBoardIconSize,
+  getBoardIconStrokeWidth,
+  getBoardPreviewCellSize,
+  woodBoardTheme,
+} from '../boardTheme';
 import type { BattleshipSegment, BattleshipShipShape } from '../types';
-import { getBattleshipShapeKey } from './utils';
-
-interface NeighborConnections {
-  top: boolean;
-  right: boolean;
-  bottom: boolean;
-  left: boolean;
-}
+import { getBattleshipShapeKey, type BattleshipNeighborConnections } from './utils';
 
 function getSegmentConnections(
   segment: BattleshipSegment,
-  neighbors?: NeighborConnections
-): NeighborConnections {
+  neighbors?: BattleshipNeighborConnections
+): BattleshipNeighborConnections {
   switch (segment) {
     case 'up': return { top: false, right: false, bottom: true, left: false };
     case 'down': return { top: true, right: false, bottom: false, left: false };
@@ -35,18 +35,19 @@ export function BattleshipSegmentSymbol({
   neighbors,
   given = false,
   resolved = false,
+  color,
 }: {
   segment: BattleshipSegment;
   cellSize: number;
-  neighbors?: NeighborConnections;
+  neighbors?: BattleshipNeighborConnections;
   given?: boolean;
   resolved?: boolean;
+  /** Optional trial/annotation color for a resolved ship segment. */
+  color?: string;
 }) {
   const fill = segment === 'unknown'
-    ? woodBoardTheme.neutralSoft
-    : given
-      ? woodBoardTheme.border
-      : woodBoardTheme.ink;
+    ? woodBoardTheme.battleshipUnknownShip
+    : color ?? woodBoardTheme.battleshipShip;
   const connections = getSegmentConnections(segment, neighbors);
   const center = cellSize / 2;
   const padding = Math.max(2, cellSize * 0.08);
@@ -126,7 +127,7 @@ export function BattleshipSegmentSymbol({
       viewBox={`0 0 ${cellSize} ${cellSize}`}
       aria-hidden="true"
     >
-      {segment === 'unknown' || segment === 'center' && connectionCount === 0 ? (
+      {segment === 'unknown' || (segment === 'center' && connectionCount === 0) ? (
         <rect
           x={padding}
           y={padding}
@@ -176,8 +177,8 @@ export function BattleshipWaterSymbol({ cellSize }: { cellSize: number }) {
   return (
     <Waves
       aria-hidden="true"
-      size={Math.max(18, Math.floor(cellSize * 0.56))}
-      strokeWidth={2.2}
+      size={getBoardIconSize(cellSize)}
+      strokeWidth={getBoardIconStrokeWidth()}
       color={woodBoardTheme.neutralMid}
     />
   );
@@ -185,7 +186,7 @@ export function BattleshipWaterSymbol({ cellSize }: { cellSize: number }) {
 
 export function BattleshipShapePreview({
   shape,
-  cellSize = 16,
+  cellSize = boardLayoutMetrics.shipPreviewCellSize,
 }: {
   shape: BattleshipShipShape;
   cellSize?: number;
@@ -211,7 +212,7 @@ export function BattleshipShapePreview({
             style={{
               width: `${cellSize}px`,
               height: `${cellSize}px`,
-              background: occupied ? woodBoardTheme.border : 'transparent',
+              background: occupied ? woodBoardTheme.battleshipShip : 'transparent',
               borderRadius: occupied
                 ? `${top || left ? 0 : cellSize / 2}px ${top || right ? 0 : cellSize / 2}px ${bottom || right ? 0 : cellSize / 2}px ${bottom || left ? 0 : cellSize / 2}px`
                 : undefined,
@@ -240,7 +241,7 @@ export function BattleshipFleet({
     if (current) current.count += 1;
     else grouped.set(key, { shape, count: 1 });
   });
-  const previewCellSize = Math.max(10, Math.min(compact ? 13 : 18, Math.floor(boardCellSize * 0.34)));
+  const previewCellSize = getBoardPreviewCellSize(boardCellSize, compact);
 
   return (
     <div className="flex max-w-full flex-col items-center gap-2">

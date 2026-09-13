@@ -1,20 +1,19 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { WalkwalkPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import WalkwalkBoard from '../../puzzles/Walkwalk/Walkwalk';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardBoundaryStrokeMetrics,
   getBoardFrameStyle,
   getBoardTextStyle,
   getCellDividerStyle,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
-  getOutlinedBorderStrokeWidth,
-  getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import {
@@ -23,14 +22,14 @@ import {
   parseWalkwalkEdgeKey,
 } from '../../puzzles/Walkwalk/utils';
 
-interface Props extends WalkwalkPuzzleData {
+interface Props extends Omit<WalkwalkPuzzleData, 'type'> {
   solutionEdges: YajilinSolutionEdge[];
   crossedEdges?: YajilinSolutionEdge[];
   playableLabel: string;
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -58,8 +57,7 @@ function StaticWalkwalkBoard({
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const clueTextStyle = getBoardTextStyle(CELL_SIZE);
-  const boundaryStroke = getRoomBoundaryStrokeWidth();
-  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
   const loopLineStrokeWidth = getLoopLineStrokeWidth(CELL_SIZE);
   const loopCrossSize = getLoopCrossSize(CELL_SIZE);
   const loopCrossStrokeWidth = getLoopCrossStrokeWidth();
@@ -230,7 +228,6 @@ export default function WalkwalkExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<WalkwalkPuzzleData>(
@@ -246,7 +243,7 @@ export default function WalkwalkExample({
     <>
       <div className="flex flex-col justify-center gap-10 xl:flex-row">
         <div className="flex flex-col items-center">
-          <p className="mb-4 text-base font-medium text-muted-foreground dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <WalkwalkBoard
@@ -261,14 +258,16 @@ export default function WalkwalkExample({
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="mb-4 text-base font-medium text-muted-foreground dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+          >
+            {!showAnswer ? (
               <div
                 style={{
                   width: `${outerWidth}px`,
@@ -291,8 +290,6 @@ export default function WalkwalkExample({
                   ))}
                 </div>
               </div>
-              <ExampleAnswerOverlay />
-            </div>
           ) : (
             <StaticWalkwalkBoard
               puzzle={examplePuzzle}
@@ -300,17 +297,9 @@ export default function WalkwalkExample({
               crossedEdges={crossedEdgeSet}
             />
           )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

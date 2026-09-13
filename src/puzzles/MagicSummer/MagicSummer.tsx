@@ -117,17 +117,18 @@ export default function MagicSummerBoard({
     [copy.shared.numberInputModes.candidates, copy.shared.numberInputModes.normal]
   );
   const outsideClues = useMemo(
-    () => puzzle.clues ?? {
+    // Magic Summer places its line-sum clues above and to the left of the
+    // grid.  PuzzLink can encode clues on either side; use the merged sums so
+    // a clue encoded on the bottom/right is still shown in the canonical spot.
+    () => ({
       top: puzzle.columnSums,
-      bottom: Array<number | null>(puzzle.width).fill(null),
       left: puzzle.rowSums,
-      right: Array<number | null>(puzzle.height).fill(null),
-    },
-    [puzzle.clues, puzzle.columnSums, puzzle.height, puzzle.rowSums, puzzle.width]
+    }),
+    [puzzle.columnSums, puzzle.rowSums]
   );
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
+    <div className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div className="w-full text-right text-sm font-semibold text-muted-foreground">
         {copy.shared.numberRange(Math.min(...puzzle.numbers), Math.max(...puzzle.numbers))}
       </div>
@@ -141,7 +142,7 @@ export default function MagicSummerBoard({
         getFixedValue={getFixedValue}
         isBlockedCell={isBlockedCell}
         renderBlockedCell={(_row, _col, cellSize) => (
-          <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), woodBoardTheme.shadedText)}>×</span>
+          <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), woodBoardTheme.darkCellText)}>×</span>
         )}
         renderCellValue={renderMagicSummerCellValue}
         renderCandidates={renderCandidates}

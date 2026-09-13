@@ -1,15 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import type { SlitherlinkPuzzleData } from '../types';
 import {
   commonBoardChrome,
   getBoardCenterMarkMetrics,
   getBoardDotRadius,
   getBoardFrameStyle,
+  getBoardGridStrokeWidth,
   getBoardSvgTextProps,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
@@ -17,7 +27,12 @@ import {
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
-import { getCellKey, getGridLineEdgeKey, parseGridLineEdgeKey } from '../gridUtils';
+import {
+  filterValidGridLineEdgeKeys,
+  getCellKey,
+  getGridLineEdgeKey,
+  parseGridLineEdgeKey,
+} from '../gridUtils';
 import { validateSlitherlink } from './utils';
 
 interface Props {
@@ -29,6 +44,9 @@ interface Props {
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
   showValidationMessage?: boolean;
+  /** Optional variant hook used by Wolves and Sheep Fences. */
+  validateLines?: (lineEdges: string[]) => import('./utils').SlitherlinkValidationResult;
+  renderClue?: (clue: number, row: number, col: number, cellSize: number) => ReactNode;
 }
 
 interface SlitherlinkSnapshot {
@@ -56,11 +74,15 @@ function sanitizeCellMarkRecord(candidate: unknown): Record<string, SlitherlinkC
   );
 }
 
-function normalizeSlitherlinkSnapshot(snapshot: unknown): SlitherlinkSnapshot {
+function normalizeSlitherlinkSnapshot(
+  snapshot: unknown,
+  width: number,
+  height: number
+): SlitherlinkSnapshot {
   const source = snapshot as Partial<SlitherlinkSnapshot> | null | undefined;
   return {
-    lineEdges: sanitizeStringArray(source?.lineEdges),
-    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    lineEdges: filterValidGridLineEdgeKeys(sanitizeStringArray(source?.lineEdges), width, height),
+    crossedEdges: filterValidGridLineEdgeKeys(sanitizeStringArray(source?.crossedEdges), width, height),
     lineLevels: sanitizeNumberRecord(source?.lineLevels),
     crossedLevels: sanitizeNumberRecord(source?.crossedLevels),
     cellMarks: sanitizeCellMarkRecord(source?.cellMarks),
@@ -345,11 +367,11 @@ export default function SlitherlinkBoard({
   onSnapshotChange,
   fixedCellSize,
   showValidationMessage = false,
+  validateLines,
+  renderClue,
 }: Props) {
   const { width, height, clues } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -376,11 +398,14 @@ export default function SlitherlinkBoard({
     cellMarks: {},
     cellMarkLevels: {},
   }), []);
-  const getResetSnapshot = useCallback(() => normalizeSlitherlinkSnapshot(initialSnapshot), [initialSnapshot]);
+  const getResetSnapshot = useCallback(
+    () => normalizeSlitherlinkSnapshot(initialSnapshot, width, height),
+    [height, initialSnapshot, width]
+  );
 
   const history = usePuzzleHistory<SlitherlinkSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...normalizeSlitherlinkSnapshot(trialSnapshot),
+      ...normalizeSlitherlinkSnapshot(trialSnapshot, width, height),
       lineLevels: {},
       crossedLevels: {},
       cellMarkLevels: {},
@@ -408,25 +433,23 @@ export default function SlitherlinkBoard({
     finishBatch,
   } = history;
 
-  const normalizedSnapshot = useMemo(() => normalizeSlitherlinkSnapshot(snapshot), [snapshot]);
+  const normalizedSnapshot = useMemo(
+    () => normalizeSlitherlinkSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
   const lineSet = useMemo(() => new Set(normalizedSnapshot.lineEdges), [normalizedSnapshot.lineEdges]);
   const crossedSet = useMemo(() => new Set(normalizedSnapshot.crossedEdges), [normalizedSnapshot.crossedEdges]);
   const validation = useMemo(
-    () => validateSlitherlink(normalizedSnapshot.lineEdges, puzzle),
-    [normalizedSnapshot.lineEdges, puzzle]
+    () => validateLines
+      ? validateLines(normalizedSnapshot.lineEdges)
+      : validateSlitherlink(normalizedSnapshot.lineEdges, puzzle),
+    [normalizedSnapshot.lineEdges, puzzle, validateLines]
   );
   const visibleValidation = showValidationMessage ? validation : null;
   const cellSize = useMemo(
-    () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width }),
+    () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
     [fixedCellSize, viewportWidth, width]
   );
-
-  useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
@@ -458,7 +481,7 @@ export default function SlitherlinkBoard({
 
   const applyEdgeDragMode = useCallback((key: string, mode: EdgeDragMode) => {
     applyChange((currentSnapshot) => {
-      const current = normalizeSlitherlinkSnapshot(currentSnapshot);
+      const current = normalizeSlitherlinkSnapshot(currentSnapshot, width, height);
       const nextLineSet = new Set(current.lineEdges);
       const nextCrossedSet = new Set(current.crossedEdges);
       const nextLineLevels = { ...current.lineLevels };
@@ -492,11 +515,11 @@ export default function SlitherlinkBoard({
         cellMarkLevels: current.cellMarkLevels,
       };
     }, { coalesce: true });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
   const toggleEdgeCross = useCallback((key: string) => {
     applyChange((currentSnapshot) => {
-      const current = normalizeSlitherlinkSnapshot(currentSnapshot);
+      const current = normalizeSlitherlinkSnapshot(currentSnapshot, width, height);
       const nextLineSet = new Set(current.lineEdges);
       const nextCrossedSet = new Set(current.crossedEdges);
       const nextLineLevels = { ...current.lineLevels };
@@ -521,11 +544,11 @@ export default function SlitherlinkBoard({
         cellMarkLevels: current.cellMarkLevels,
       };
     });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
   const toggleCellCenterMark = useCallback((row: number, col: number, mark: SlitherlinkCellMark) => {
     applyChange((currentSnapshot) => {
-      const current = normalizeSlitherlinkSnapshot(currentSnapshot);
+      const current = normalizeSlitherlinkSnapshot(currentSnapshot, width, height);
       const key = getCellKey(row, col);
       const nextMarks = { ...current.cellMarks };
       const nextMarkLevels = { ...current.cellMarkLevels };
@@ -546,7 +569,7 @@ export default function SlitherlinkBoard({
         cellMarkLevels: nextMarkLevels,
       };
     });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
   const applyEdgeDuringDrag = useCallback((key: string) => {
     const current = pointerState.current;
@@ -699,7 +722,7 @@ export default function SlitherlinkBoard({
   const svgHeight = outerHeight - BOARD_BORDER * 2;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -732,22 +755,26 @@ export default function SlitherlinkBoard({
                     height={cellSize}
                     fill={woodBoardTheme.cell}
                     stroke={woodBoardTheme.gridLine}
-                    strokeWidth={1}
+                    strokeWidth={getBoardGridStrokeWidth()}
                   />
                   {cellMark
                     ? renderCellCenterMark(cellMark, row, col, cellSize, cellMarkColors?.text ?? woodBoardTheme.border)
                     : null}
                   {clue !== null ? (
-                    <text
-                      x={BOARD_PADDING + (col + 0.5) * cellSize}
-                      y={BOARD_PADDING + (row + 0.5) * cellSize}
-                      dominantBaseline="central"
-                      textAnchor="middle"
-                      fill={woodBoardTheme.border}
-                      {...clueTextProps}
-                    >
-                      {clue}
-                    </text>
+                    renderClue
+                      ? renderClue(clue, row, col, cellSize)
+                      : (
+                        <text
+                          x={BOARD_PADDING + (col + 0.5) * cellSize}
+                          y={BOARD_PADDING + (row + 0.5) * cellSize}
+                          dominantBaseline="central"
+                          textAnchor="middle"
+                          fill={woodBoardTheme.border}
+                          {...clueTextProps}
+                        >
+                          {clue}
+                        </text>
+                      )
                   ) : null}
                 </g>
               );
@@ -821,11 +848,7 @@ export default function SlitherlinkBoard({
         onCommitTrial={commitTrial}
       />
 
-      {showValidationMessage && visibleValidation?.message ? (
-        <div className="text-center text-sm text-muted-foreground dark:text-gray-400">
-          {visibleValidation.message}
-        </div>
-      ) : null}
+      {showValidationMessage ? <ValidationMessage message={visibleValidation?.message} /> : null}
     </div>
   );
 }

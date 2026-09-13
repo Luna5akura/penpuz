@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getDailyPuzzle, getHistoryPuzzles, getPuzzleByDateStr } from '../puzzles/database';
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from '../lib/safeStorage';
 import type { DailyPuzzleData, HistoryPuzzleData } from '../puzzles/types';
 
 export interface SavedCompletion {
@@ -37,29 +38,29 @@ function getProgressStorageKey(dateStr: string) {
   return `puzzle-progress-${dateStr}`;
 }
 
-export function readSavedCompletion(dateStr: string): SavedCompletion | null {
-  if (typeof window === 'undefined') return null;
+function isValidElapsedTime(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
 
-  const saved = localStorage.getItem(getStorageKey(dateStr));
+export function readSavedCompletion(dateStr: string): SavedCompletion | null {
+  const saved = readLocalStorage(getStorageKey(dateStr));
   if (!saved) return null;
 
   try {
     const data = JSON.parse(saved) as SavedCompletion;
-    return typeof data.time === 'number' ? data : null;
+    return isValidElapsedTime(data.time) ? data : null;
   } catch {
     return null;
   }
 }
 
 export function readSavedProgress(dateStr: string): SavedPuzzleProgress | null {
-  if (typeof window === 'undefined') return null;
-
-  const saved = localStorage.getItem(getProgressStorageKey(dateStr));
+  const saved = readLocalStorage(getProgressStorageKey(dateStr));
   if (!saved) return null;
 
   try {
     const data = JSON.parse(saved) as SavedPuzzleProgress;
-    if (typeof data.elapsedTime !== 'number' || data.snapshot === undefined) return null;
+    if (!isValidElapsedTime(data.elapsedTime) || data.snapshot === undefined) return null;
     return data;
   } catch {
     return null;
@@ -67,13 +68,11 @@ export function readSavedProgress(dateStr: string): SavedPuzzleProgress | null {
 }
 
 function persistSavedProgress(dateStr: string, progress: SavedPuzzleProgress) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(getProgressStorageKey(dateStr), JSON.stringify(progress));
+  writeLocalStorage(getProgressStorageKey(dateStr), JSON.stringify(progress));
 }
 
 function clearSavedProgress(dateStr: string) {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(getProgressStorageKey(dateStr));
+  removeLocalStorage(getProgressStorageKey(dateStr));
 }
 
 function readSharedPuzzleDateParam() {
@@ -274,7 +273,7 @@ export function useDailyPuzzleSession() {
     }
 
     const nextCompletion = { time };
-    localStorage.setItem(getStorageKey(daily.dateStr), JSON.stringify(nextCompletion));
+    writeLocalStorage(getStorageKey(daily.dateStr), JSON.stringify(nextCompletion));
     clearSavedProgress(daily.dateStr);
     setSavedProgress(null);
     setSavedCompletion(nextCompletion);

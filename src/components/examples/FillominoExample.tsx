@@ -1,15 +1,23 @@
 // src/components/examples/FillominoExample.tsx
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import { useI18n } from '@/i18n/useI18n';
 import { getKeyboardDigit } from '@/lib/keyboard';
 import {
   boardClassNames,
+  boardOverlayStyle,
   commonBoardChrome,
+  getBoardBoundaryStrokeWidth,
   getBoardCellColors,
-  getBoardControlTextStyle,
   getBoardFrameStyle,
+  getBoardGridStrokeWidth,
+  getBoardNumpadPanelStyle,
+  getBoardNumpadButtonStyle,
+  getBoardNumpadDismissStyle,
+  getBoardNumpadHeaderStyle,
+  getBoardNumpadGridStyle,
+  getBoardRegionStrokeWidth,
+  getBoardThinStrokeWidth,
   getBoardTextStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
@@ -40,7 +48,6 @@ export default function FillominoExample({
   const [thinLines, setThinLines] = useState<Set<string>>(new Set());
   const [deepLines, setDeepLines] = useState<Set<string>>(new Set());
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
 
   const [cellSize, setCellSize] = useState(() => {
     const safeMargin = 150;
@@ -66,7 +73,7 @@ export default function FillominoExample({
   const hasEditedBoundary = useRef(false);
   const boundaryOperationRef = useRef<'add' | 'delete' | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressThreshold = 500;
 
   const gap = 0;
@@ -77,7 +84,10 @@ export default function FillominoExample({
       const safeMargin = 40;
       const maxAvailableWidth = window.innerWidth - safeMargin;
       const theoreticalCellSize = Math.floor((maxAvailableWidth - 6) / width);
-      const newCellSize = Math.max(32, Math.min(60, theoreticalCellSize));
+      const newCellSize = Math.max(
+        commonBoardChrome.minCellSize,
+        Math.min(commonBoardChrome.maxDesktopCellSize, theoreticalCellSize)
+      );
       setCellSize(newCellSize);
     };
     window.addEventListener('resize', updateSize);
@@ -89,7 +99,6 @@ export default function FillominoExample({
     [deepLines, grid, height, width]
   );
   const invalidCells = validationResult?.invalidCells || [];
-  const isAnswerVisible = showAnswer || !!validationResult?.valid;
 
   // 键盘输入
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -157,14 +166,14 @@ export default function FillominoExample({
   const getLineStyle = useCallback((key: string, isAnswer = false): { stroke: string; strokeWidth: number } => {
     // 优先级：deepLines（手动绘制） → autoThinLines（自动灰线） → 默认细线
     if (!isAnswer && deepLines.has(key)) {
-      return { stroke: woodBoardTheme.deepLine, strokeWidth: 4 };
+      return { stroke: woodBoardTheme.deepLine, strokeWidth: getBoardRegionStrokeWidth(cellSize) };
     }
     const currentAuto = isAnswer ? autoThinLinesAnswer : autoThinLines;
     if (currentAuto.has(key)) {
-      return { stroke: woodBoardTheme.accentBorder, strokeWidth: 3 };
+      return { stroke: woodBoardTheme.accentBorder, strokeWidth: getBoardBoundaryStrokeWidth(cellSize) };
     }
-    return { stroke: woodBoardTheme.gridLine, strokeWidth: 1 };
-  }, [deepLines, autoThinLines, autoThinLinesAnswer]);
+    return { stroke: woodBoardTheme.gridLine, strokeWidth: getBoardGridStrokeWidth() };
+  }, [cellSize, deepLines, autoThinLines, autoThinLinesAnswer]);
 
   const alignStrokeCoordinate = useCallback((coordinate: number, strokeWidth: number) => (
     strokeWidth % 2 === 1 ? coordinate + 0.5 : coordinate
@@ -178,7 +187,7 @@ export default function FillominoExample({
       if (val === null) val = increment > 0 ? 1 : 9;
       else val += increment;
       if (val < 1) val = null;
-      if (val > 99) val = 99;
+      if (val !== null && val > 99) val = 99;
       newGrid[r][c] = val;
       return newGrid;
     });
@@ -425,7 +434,7 @@ export default function FillominoExample({
       <div className="flex flex-col lg:flex-row gap-8 justify-center">
         {/* 可游玩例题 */}
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <div
@@ -449,29 +458,26 @@ export default function FillominoExample({
             >
               {grid.flatMap((row, r) =>
                 row.map((value, c) => {
-                  const isPreFilled = cluesGrid[r][c] !== null;
+                  const isClue = cluesGrid[r][c] !== null;
                   return (
                     <div
                       key={`${r}-${c}`}
                       onPointerDown={(e) => handlePointerDown(r, c, e)}
                       onMouseEnter={() => {
-                        if (!isPreFilled) hoveredCellRef.current = { row: r, col: c };
+                        if (!isClue) hoveredCellRef.current = { row: r, col: c };
                       }}
                       onMouseLeave={() => {
                         if (!isDragging.current) hoveredCellRef.current = null;
                       }}
                       className={`flex items-center justify-center cursor-pointer border-0 relative ${boardClassNames.cellText}
-                        ${isPreFilled ? '' : 'hover:bg-gray-100 active:bg-gray-200'}
+                        ${isClue ? '' : 'hover:bg-gray-100 active:bg-gray-200'}
                         ${invalidCells.some(cell => cell.r === r && cell.c === c) ? 'text-red-600' : ''}`}
                       style={{
                         width: `${cellSize}px`,
                         height: `${cellSize}px`,
                         ...getBoardTextStyle(cellSize),
-                        ...(isPreFilled
-                          ? {
-                              ...getBoardCellColors('prefilled'),
-                              background: woodBoardTheme.marked,
-                            }
+                        ...(isClue
+                          ? getBoardCellColors('clue')
                           : getBoardCellColors('cell')),
                       }}
                     >
@@ -529,7 +535,7 @@ export default function FillominoExample({
                   const { y: cy2 } = getCenter(r + 1, c);
                   x1 = cx; y1 = cy1; x2 = cx; y2 = cy2;
                 }
-                return <line key={`thin-${key}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={woodBoardTheme.thinLine} strokeWidth="2" strokeLinecap="round" />;
+                return <line key={`thin-${key}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={woodBoardTheme.thinLine} strokeWidth={getBoardThinStrokeWidth(cellSize)} strokeLinecap="round" />;
               })}
             </svg>
 
@@ -540,36 +546,22 @@ export default function FillominoExample({
                   top: '50%',
                   left: '50%',
                   transform: 'translate(-50%, -50%)',
-                  background: woodBoardTheme.panel,
-                  border: `3px solid ${woodBoardTheme.border}`,
-                  borderRadius: '12px',
-                  padding: '12px',
-                  boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.2)',
+                  ...getBoardNumpadPanelStyle(),
                   zIndex: 9999,
                   touchAction: 'none',
                   userSelect: 'none',
-                  maxWidth: '340px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
-                  <button onClick={closeNumpad} style={{ width: '32px', height: '32px', ...getBoardControlTextStyle(24), color: woodBoardTheme.border, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', borderRadius: '50%' }}>✕</button>
+                <div style={getBoardNumpadHeaderStyle()}>
+                  <button onClick={closeNumpad} style={getBoardNumpadDismissStyle()}>✕</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 52px)', gap: '8px' }}>
+                <div style={getBoardNumpadGridStyle()}>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
                     <button
                       key={num}
                       onClick={() => handleNumpadInput(num)}
                       style={{
-                        width: '52px',
-                        height: '52px',
-                        ...getBoardControlTextStyle(24),
-                        ...getBoardCellColors('prefilled'),
-                        border: `2px solid ${woodBoardTheme.border}`,
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
+                        ...getBoardNumpadButtonStyle(cellSize),
                       }}
                     >
                       {num}
@@ -579,22 +571,13 @@ export default function FillominoExample({
                     onClick={() => handleNumpadInput(null)}
                     style={{
                       gridColumn: 'span 3',
-                      height: '52px',
-                      ...getBoardControlTextStyle(20),
-                      background: woodBoardTheme.invalidSoft,
-                      border: `2px solid ${woodBoardTheme.border}`,
-                      borderRadius: '8px',
-                      color: woodBoardTheme.invalidText,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
+                      ...getBoardNumpadButtonStyle(cellSize, 'invalid', 20),
                     }}
                   >
                     {copy.shared.delete}
                   </button>
                 </div>
-                <div onClick={closeNumpad} style={{ position: 'fixed', inset: 0, background: 'transparent', zIndex: -1 }} />
+                <div onClick={closeNumpad} style={boardOverlayStyle} />
               </div>
             )}
           </div>
@@ -602,44 +585,15 @@ export default function FillominoExample({
 
         {/* 正确答案题板 */}
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!isAnswerVisible ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="mx-auto select-none cursor-pointer hover:opacity-90"
-              style={{
-                position: 'relative',
-                display: 'inline-block',
-                padding: `${BOARD_PADDING}px`,
-                ...getBoardFrameStyle(),
-              }}
-            >
-              <div
-                style={{
-                  display: 'inline-grid',
-                  gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-                  gap: `${gap}px`,
-                }}
-              >
-                {correctGrid.flatMap((row, r) =>
-                  row.map((_, c) => (
-                    <div
-                      key={`${r}-${c}`}
-                      className="flex items-center justify-center"
-                      style={{
-                        width: `${cellSize}px`,
-                        height: `${cellSize}px`,
-                        ...getBoardCellColors('cell'),
-                      }}
-                    />
-                  ))
-                )}
-              </div>
-              <ExampleAnswerOverlay rounded />
-            </div>
-          ) : (
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+          >
             <div
               className="mx-auto select-none"
               style={{
@@ -709,18 +663,9 @@ export default function FillominoExample({
                 )}
               </svg>
             </div>
-          )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !isAnswerVisible}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

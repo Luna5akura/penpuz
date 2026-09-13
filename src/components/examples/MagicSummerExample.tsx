@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
+  getBoardOutsideClueGutter,
+  getBoardOutsideClueTextStyle,
   getBoardTextStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
@@ -20,8 +22,8 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
-const CLUE_GUTTER = 34;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
+const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 3);
 
 function MagicSummerDiagram({
   puzzle,
@@ -30,14 +32,12 @@ function MagicSummerDiagram({
   puzzle: MagicSummerPuzzleData;
   values?: (number | null)[][];
 }) {
-  const clues = puzzle.clues ?? {
+  const clues = {
     top: puzzle.columnSums,
-    bottom: Array<number | null>(puzzle.width).fill(null),
     left: puzzle.rowSums,
-    right: Array<number | null>(puzzle.height).fill(null),
   };
-  const boardWidth = puzzle.width * CELL_SIZE + CLUE_GUTTER * 2;
-  const boardHeight = puzzle.height * CELL_SIZE + CLUE_GUTTER * 2;
+  const boardWidth = puzzle.width * CELL_SIZE + CLUE_GUTTER;
+  const boardHeight = puzzle.height * CELL_SIZE + CLUE_GUTTER;
 
   return (
     <div
@@ -99,23 +99,7 @@ function MagicSummerDiagram({
                 left: `${commonBoardChrome.padding + CLUE_GUTTER + (col + 0.5) * CELL_SIZE}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
                 color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
-              }}
-            >
-              {value}
-            </span>
-          )
-        ))}
-        {clues.bottom.map((value, col) => (
-          value === null ? null : (
-            <span
-              key={`bottom-${col}`}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 ${boardClassNames.cellText}`}
-              style={{
-                left: `${commonBoardChrome.padding + CLUE_GUTTER + (col + 0.5) * CELL_SIZE}px`,
-                top: `${commonBoardChrome.padding + CLUE_GUTTER + puzzle.height * CELL_SIZE + CLUE_GUTTER / 2}px`,
-                color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+                ...getBoardOutsideClueTextStyle(CELL_SIZE, CELL_SIZE, value),
               }}
             >
               {value}
@@ -131,23 +115,7 @@ function MagicSummerDiagram({
                 left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER + (row + 0.5) * CELL_SIZE}px`,
                 color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
-              }}
-            >
-              {value}
-            </span>
-          )
-        ))}
-        {clues.right.map((value, row) => (
-          value === null ? null : (
-            <span
-              key={`right-${row}`}
-              className={`absolute -translate-x-1/2 -translate-y-1/2 ${boardClassNames.cellText}`}
-              style={{
-                left: `${commonBoardChrome.padding + CLUE_GUTTER + puzzle.width * CELL_SIZE + CLUE_GUTTER / 2}px`,
-                top: `${commonBoardChrome.padding + CLUE_GUTTER + (row + 0.5) * CELL_SIZE}px`,
-                color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
               }}
             >
               {value}
@@ -166,39 +134,28 @@ export default function MagicSummerExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
 
   return (
     <>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{playableLabel}</div>
+          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
           <div className="flex justify-center overflow-x-auto">
             <MagicSummerDiagram puzzle={puzzle} />
           </div>
         </div>
         <div>
-          <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{answerLabel}</div>
-          <div
-            className="relative flex justify-center overflow-x-auto"
-            onClick={() => {
-              if (!showAnswer) setConfirmSpoiler(true);
-            }}
+          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="flex justify-center overflow-x-auto"
           >
             <MagicSummerDiagram puzzle={puzzle} values={correctGrid} />
-            {!showAnswer ? <ExampleAnswerOverlay /> : null}
-          </div>
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

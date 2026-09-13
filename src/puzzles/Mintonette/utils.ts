@@ -3,6 +3,7 @@ import type {
   MintonettePuzzleData,
   MintonetteSolutionEdge,
 } from '../types';
+import { isValidCellEdgeKey } from '../gridUtils';
 
 export interface MintonetteValidationResult {
   valid: boolean;
@@ -134,11 +135,7 @@ export function detectMintonetteHitTarget(
   }
 
   const threshold = Math.max(8, cellSize * 0.18);
-  const candidates: Array<{
-    distance: number;
-    edgeKey: string | null;
-    cells: [{ row: number; col: number }, { row: number; col: number }];
-  }> = [
+  const candidates = [
     {
       distance: Math.hypot(localX - centerX, localY),
       edgeKey: row > 0 ? getMintonetteEdgeKey(row - 1, col, row, col) : null,
@@ -161,7 +158,11 @@ export function detectMintonetteHitTarget(
     },
   ]
     .filter((item) => item.edgeKey !== null)
-    .sort((a, b) => a.distance - b.distance);
+    .sort((a, b) => a.distance - b.distance) as Array<{
+      distance: number;
+      edgeKey: string | null;
+      cells: [{ row: number; col: number }, { row: number; col: number }];
+    }>;
 
   const best = candidates[0];
   if (best && best.distance <= threshold && best.edgeKey) {
@@ -216,7 +217,10 @@ export function validateMintonette(
 
   for (const key of lineEdges) {
     const edge = parseMintonetteEdgeKey(key);
-    if (!edge) continue;
+    if (!edge || !isValidCellEdgeKey(key, width, height)) {
+      setMessage('存档中存在无法识别的线段');
+      continue;
+    }
     degree[edge.r1][edge.c1] += 1;
     degree[edge.r2][edge.c2] += 1;
     addAdjacency(`${edge.r1},${edge.c1}`, `${edge.r2},${edge.c2}`);
@@ -304,7 +308,7 @@ export function validateMintonette(
 
       const turnCount = countTurnsInPath(path);
       componentClues.forEach(({ cell, clueInfo }) => {
-        if (clueInfo?.clue.value === null || clueInfo?.clue.value === turnCount) return;
+        if (!clueInfo || clueInfo.clue.value === null || clueInfo.clue.value === turnCount) return;
         badCells.add(`${cell.r},${cell.c}`);
         badClues.add(clueInfo.index);
         setMessage('数字表示这条线到达另一端之前必须拐弯的次数');
@@ -313,7 +317,7 @@ export function validateMintonette(
   }
 
   return {
-    valid: badCells.size === 0 && badClues.size === 0,
+    valid: !message && badCells.size === 0 && badClues.size === 0,
     message,
     badCells: [...badCells].map((entry) => {
       const [r, c] = entry.split(',').map(Number);

@@ -1,8 +1,10 @@
 import type { SlitherlinkPuzzleData } from '../types';
 import {
   decodePzpr4CellClues,
+  filterValidGridLineEdgeKeys,
   getGridLineEdgeKey,
   isPositiveGridSize,
+  isValidGridLineEdgeKey,
   parseGridLineEdgeKey,
   parsePuzzLinkParts,
 } from '../gridUtils';
@@ -68,12 +70,15 @@ export function validateSlitherlink(
   puzzle: SlitherlinkPuzzleData
 ): SlitherlinkValidationResult {
   const { width, height, clues } = puzzle;
-  const lineSet = new Set(lineEdges);
+  const invalidEdge = lineEdges.some((key) => !isValidGridLineEdgeKey(key, width, height));
+  const lineSet = new Set(filterValidGridLineEdgeKeys(lineEdges, width, height));
   const badCells = new Set<string>();
   let message: string | undefined;
   const setMessage = (nextMessage: string) => {
     if (!message) message = nextMessage;
   };
+
+  if (invalidEdge) setMessage('存档中存在无法识别的线段');
 
   for (let row = 0; row < height; row++) {
     for (let col = 0; col < width; col++) {

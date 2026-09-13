@@ -1,7 +1,8 @@
 // src/puzzles/Nurikabe/NurikabeBoard.tsx
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import { validateNurikabe } from './utils';
-import { PuzzleData } from '../types';
+import type { NurikabePuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getTrialLevelColors } from '../trialStyles';
@@ -12,6 +13,7 @@ import {
   getBoardCrossFontSize,
   getBoardFrameStyle,
   getBoardTextStyle,
+  getBoardTrialCellStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getResponsiveCellSize,
@@ -21,7 +23,7 @@ import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
 
 interface Props {
-  puzzle: PuzzleData;
+  puzzle: NurikabePuzzleData;
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
@@ -61,9 +63,7 @@ export default function NurikabeBoard({
   onSnapshotChange,
 }: Props) {
   const { width, height, clues } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
   const dragMode = useRef<'none' | 'add-shade' | 'remove-shade' | 'add-mark' | 'remove-mark'>('none');
@@ -72,7 +72,7 @@ export default function NurikabeBoard({
   const hasCompleted = useRef(false);
   const boardRef = useRef<HTMLDivElement>(null);
 
-  const createInitialSnapshot = useCallback<NurikabeSnapshot>(() => ({
+  const createInitialSnapshot = useCallback<() => NurikabeSnapshot>(() => ({
     grid: Array.from({ length: height }, () => Array(width).fill(0)),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
@@ -119,14 +119,8 @@ export default function NurikabeBoard({
   const cellSize = useMemo(() => getResponsiveCellSize({
     viewportWidth,
     width,
+    containerWidth: true,
   }), [viewportWidth, width]);
-
-  useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   useEffect(() => {
     reset(getResetSnapshot());
@@ -190,7 +184,7 @@ export default function NurikabeBoard({
     const isClueCell = isClue(r, c);
     if (isClueCell) {
       e.preventDefault();
-      e.stopImmediatePropagation();
+      e.nativeEvent.stopImmediatePropagation();
       return;
     }
     const isLeftClick = e.button === 0;
@@ -268,7 +262,7 @@ export default function NurikabeBoard({
   };
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="puzzle-container mx-auto select-none"
@@ -289,15 +283,9 @@ export default function NurikabeBoard({
             const isShaded = state === 1;
             const isMarked = state === 2;
             const trialColors = getTrialLevelColors(levels[r][c]);
-            const style = trialColors && !clue
-              ? isShaded
-                ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
-                : isMarked
-                  ? { background: trialColors.softFill, color: trialColors.text }
-                  : undefined
-              : trialColors && clue && isMarked
-                ? { background: trialColors.softFill, color: trialColors.text }
-                : undefined;
+            const style = trialColors && (!clue || isMarked)
+              ? getBoardTrialCellStyle(trialColors, isShaded ? 'filled' : 'soft')
+              : undefined;
 
             return (
               <div
@@ -309,10 +297,7 @@ export default function NurikabeBoard({
                   height: `${cellSize}px`,
                   ...getBoardTextStyle(cellSize),
                   ...(clue
-                    ? {
-                        ...getBoardCellColors('clue'),
-                        background: woodBoardTheme.marked,
-                      }
+                    ? getBoardCellColors('clue')
                     : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                   ...getCellDividerStyle(),
                   ...style,

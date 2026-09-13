@@ -1,8 +1,8 @@
-import { useMemo, useState, type PointerEvent } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import { useState, type PointerEvent } from 'react';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCrossFontSize,
@@ -11,8 +11,7 @@ import {
   getCellDividerStyle,
   getCrossMarkStyle,
 } from '@/puzzles/boardTheme';
-import type { TapaClue, TapaPuzzleData } from '@/puzzles/types';
-import { validateTapa } from '@/puzzles/Tapa/utils';
+import type { TapaClue } from '@/puzzles/types';
 import TapaClueView from '@/puzzles/Tapa/TapaClue';
 
 interface Props {
@@ -26,7 +25,7 @@ interface Props {
 
 type ExampleCellState = 0 | 1 | 2;
 
-const CELL_SIZE = 44;
+const CELL_SIZE = boardLayoutMetrics.loopExampleCellSize;
 
 export default function TapaExample({
   width,
@@ -40,14 +39,6 @@ export default function TapaExample({
     Array.from({ length: height }, () => Array(width).fill(0) as ExampleCellState[])
   );
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
-  const puzzle = useMemo<TapaPuzzleData>(
-    () => ({ type: 'tapa', width, height, clues }),
-    [clues, height, width]
-  );
-  const validation = useMemo(() => validateTapa(grid, puzzle), [grid, puzzle]);
-  const isAnswerVisible = showAnswer || validation.valid;
-
   const handlePointerDown = (row: number, col: number, event: PointerEvent<HTMLDivElement>) => {
     if (clues[row][col]) return;
     event.preventDefault();
@@ -112,31 +103,21 @@ export default function TapaExample({
     <>
       <div className="flex flex-col justify-center gap-10 lg:flex-row">
         <div className="flex flex-col items-center">
-          <p className="mb-4 text-base font-medium text-muted-foreground dark:text-gray-400">{playableLabel}</p>
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</p>
           {renderBoard(grid, true)}
         </div>
         <div className="flex flex-col items-center">
-          <p className="mb-4 text-base font-medium text-muted-foreground dark:text-gray-400">{answerLabel}</p>
-          <div
-            className="relative cursor-pointer"
-            onClick={() => {
-              if (!isAnswerVisible) setConfirmSpoiler(true);
-            }}
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</p>
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
           >
             {renderBoard(answerStates, false)}
-            {!isAnswerVisible ? <ExampleAnswerOverlay /> : null}
-          </div>
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { NikojiPuzzleData } from '../../puzzles/types';
 import NikojiBoard from '../../puzzles/Nikoji/Nikoji';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardRegionStrokeWidth,
   getBoardFrameStyle,
   getBoardTextStyle,
   getCellDividerStyle,
@@ -13,13 +15,13 @@ import {
 } from '../../puzzles/boardTheme';
 import { getNikojiBoundarySegments } from '../../puzzles/Nikoji/utils';
 
-interface Props extends NikojiPuzzleData {
+interface Props extends Omit<NikojiPuzzleData, 'type'> {
   solutionRegionIds: number[][];
   playableLabel: string;
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 
 export default function NikojiExample({
@@ -31,7 +33,6 @@ export default function NikojiExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<NikojiPuzzleData>(
@@ -51,7 +52,7 @@ export default function NikojiExample({
     <>
       <div className="flex flex-col xl:flex-row gap-10 justify-center">
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <NikojiBoard
@@ -66,41 +67,15 @@ export default function NikojiExample({
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
-              <div
-                style={{
-                  width: `${outerWidth}px`,
-                  height: `${outerHeight}px`,
-                  padding: `${BOARD_PADDING}px`,
-                  ...getBoardFrameStyle(),
-                }}
-              >
-                <div className="grid" style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)` }}>
-                  {Array.from({ length: width * height }, (_, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        width: `${CELL_SIZE}px`,
-                        height: `${CELL_SIZE}px`,
-                        ...getBoardCellColors('cell'),
-                        ...getCellDividerStyle(),
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
-            </div>
-          ) : (
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="flex justify-center overflow-x-auto"
+          >
             <div
               className="relative"
               style={{
@@ -153,7 +128,7 @@ export default function NikojiExample({
                       x2={x2}
                       y2={y}
                       stroke={woodBoardTheme.deepLine}
-                      strokeWidth={4}
+                      strokeWidth={getBoardRegionStrokeWidth(CELL_SIZE)}
                       strokeLinecap="butt"
                     />
                   );
@@ -171,25 +146,16 @@ export default function NikojiExample({
                       x2={x}
                       y2={y2}
                       stroke={woodBoardTheme.deepLine}
-                      strokeWidth={4}
+                      strokeWidth={getBoardRegionStrokeWidth(CELL_SIZE)}
                       strokeLinecap="butt"
                     />
                   );
                 })}
               </svg>
             </div>
-          )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { readLocalStorage, writeLocalStorage } from '@/lib/safeStorage';
 import { I18nContext, type I18nContextValue } from './context';
 import { defaultLocale, localeStorageKey, messages } from './messages';
 import type { Locale } from './types';
@@ -6,7 +7,7 @@ import type { Locale } from './types';
 function readStoredLocale(): Locale {
   if (typeof window === 'undefined') return defaultLocale;
 
-  const stored = localStorage.getItem(localeStorageKey);
+  const stored = readLocalStorage(localeStorageKey);
   return stored === 'en' || stored === 'zh-CN' ? stored : defaultLocale;
 }
 
@@ -14,7 +15,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocale] = useState<Locale>(() => readStoredLocale());
 
   useEffect(() => {
-    localStorage.setItem(localeStorageKey, locale);
+    writeLocalStorage(localeStorageKey, locale);
     document.documentElement.lang = locale;
   }, [locale]);
 

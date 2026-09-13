@@ -52,13 +52,16 @@ function parseStart(candidate: unknown, width: number, height: number): CellCoor
 
   if (typeof candidate === 'object') {
     const cell = candidate as Partial<CellCoord>;
-    return Number.isInteger(cell.row) &&
-      Number.isInteger(cell.col) &&
-      cell.row >= 0 &&
-      cell.row < height &&
-      cell.col >= 0 &&
-      cell.col < width
-      ? { row: cell.row, col: cell.col }
+    const { row, col } = cell;
+    return typeof row === 'number' &&
+      Number.isInteger(row) &&
+      typeof col === 'number' &&
+      Number.isInteger(col) &&
+      row >= 0 &&
+      row < height &&
+      col >= 0 &&
+      col < width
+      ? { row, col }
       : null;
   }
 

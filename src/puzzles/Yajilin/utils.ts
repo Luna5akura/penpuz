@@ -4,6 +4,7 @@ import type {
   YajilinDirection,
   YajilinSolutionEdge,
 } from '../types';
+import { isValidCellEdgeKey } from '../gridUtils';
 
 export type YajilinCellState = 0 | 1 | 2;
 
@@ -212,6 +213,7 @@ export function validateYajilin(
   const clueCells = new Set(clues.map((clue) => clueKey(clue.row, clue.col)));
   const degree = Array.from({ length: height }, () => Array(width).fill(0));
   const adjacency = new Map<string, Set<string>>();
+  let invalidEdge = false;
   const addBadCell = (row: number, col: number) => badCells.add(clueKey(row, col));
 
   for (let r = 0; r < height; r++) {
@@ -241,7 +243,10 @@ export function validateYajilin(
 
   for (const key of loopEdges) {
     const edge = parseYajilinEdgeKey(key);
-    if (!edge) continue;
+    if (!edge || !isValidCellEdgeKey(key, width, height)) {
+      invalidEdge = true;
+      continue;
+    }
 
     const endpoints = [
       { row: edge.r1, col: edge.c1 },
@@ -309,10 +314,12 @@ export function validateYajilin(
 
   const hasAnyBadCell = badCells.size > 0;
   const hasAnyBadClue = badClues.size > 0;
-  const valid = !hasAnyBadCell && !hasAnyBadClue;
+  const valid = !invalidEdge && !hasAnyBadCell && !hasAnyBadClue;
 
   let message: string | undefined;
-  if (badClues.size > 0) {
+  if (invalidEdge) {
+    message = '存档中存在无法识别的线段';
+  } else if (badClues.size > 0) {
     message = '箭头数字与涂黑格数量不匹配，或线索格被错误使用。';
   } else if (badCells.size > 0) {
     message = '回路、黑格或经过的格子不满足 Yajilin 规则。';
@@ -357,11 +364,7 @@ export function detectYajilinHitTarget(
   }
 
   const threshold = Math.max(8, cellSize * 0.18);
-  const candidates: Array<{
-    distance: number;
-    edgeKey: string | null;
-    cells: [{ row: number; col: number }, { row: number; col: number }];
-  }> = [
+  const candidates = [
     {
       distance: Math.hypot(localX - centerX, localY),
       edgeKey: row > 0 ? getYajilinEdgeKey(row - 1, col, row, col) : null,
@@ -384,7 +387,11 @@ export function detectYajilinHitTarget(
     },
   ]
     .filter((item) => item.edgeKey !== null)
-    .sort((a, b) => a.distance - b.distance);
+    .sort((a, b) => a.distance - b.distance) as Array<{
+      distance: number;
+      edgeKey: string | null;
+      cells: [{ row: number; col: number }, { row: number; col: number }];
+    }>;
 
   const best = candidates[0];
   if (best && best.distance <= threshold && best.edgeKey) {

@@ -43,6 +43,31 @@ const rules = [
     pattern: /\bfont-(?:bold|extrabold|black)\b/g,
     message: 'Use boardClassNames or boardTypography instead of direct bold text classes.',
   },
+  {
+    name: 'legacy dark-cell token',
+    pattern: /woodBoardTheme\.shaded(?:Text)?\b/g,
+    message: 'Use the canonical woodBoardTheme.darkCell/darkCellText token for dark cells.',
+  },
+  {
+    name: 'independent outlined-cell shadow',
+    pattern: /boxShadow\s*:\s*[^,\n]*\binset\b[^,\n]*accentBorder/g,
+    message: 'Use BoardCellOutline instead of a renderer-specific inset outline.',
+  },
+  {
+    name: 'literal SVG stroke width',
+    pattern: /strokeWidth\s*=\s*(?:['"]\d+(?:\.\d+)?['"]|\{\s*\d+(?:\.\d+)?\s*\})/g,
+    message: 'Use a boardTheme stroke-width helper instead of a renderer-specific literal.',
+  },
+  {
+    name: 'literal CSS outline width',
+    pattern: /outline\s*:\s*[^,}\n]*\b\d+px\b/g,
+    message: 'Use getBoardSelectionStyle from boardTheme for selection outlines.',
+  },
+  {
+    name: 'literal example geometry token',
+    pattern: /const\s+(?:CELL_SIZE|CLUE_GUTTER|(?:BOARD_)?GAP|PADDING|DEFAULT_CELL_SIZE)\s*=\s*\d+(?:\.\d+)?\b/g,
+    message: 'Use boardLayoutMetrics/commonBoardChrome instead of a per-example geometry literal.',
+  },
 ];
 
 function walk(path) {
@@ -77,6 +102,110 @@ for (const file of files) {
       violations.push(`${rel}:${line}:${column} ${rule.name}: ${rule.message}`);
     }
   }
+
+  // Every example that exposes an answer must go through the shared reveal
+  // component. This keeps the spoiler mask, confirmation dialog, keyboard
+  // handling, and stacking context identical for current and future puzzles.
+  if (rel.startsWith('src/components/examples/') && /answerLabel/u.test(source) && !/ExampleAnswerReveal/u.test(source)) {
+    violations.push(
+      `${rel} answer masking: Example components with answerLabel must use ExampleAnswerReveal.`
+    );
+  }
+}
+
+// A board component must either use one of the shared board primitives or
+// explicitly opt into the common frame helper.  This catches a newly added
+// puzzle that would otherwise quietly introduce its own sizing/colour system.
+const boardComponentFiles = files.filter((file) => {
+  const rel = relative(root, file);
+  return /^src\/puzzles\/[^/]+\/[^/]+\.tsx$/u.test(rel) && !rel.startsWith('src/puzzles/shared/');
+});
+for (const file of boardComponentFiles) {
+  const rel = relative(root, file);
+  const source = readFileSync(file, 'utf8');
+  if (!/function\s+\w*Board\b|function\s+\w*Puzzle\b/u.test(source)) continue;
+  if (!/(?:getBoardFrameStyle|NumberPlacementBoard|ShadingBoard|YajilinBoard|SlitherlinkBoard)/u.test(source)) {
+    violations.push(
+      `${rel} board shell: Use getBoardFrameStyle or a shared board primitive (NumberPlacementBoard/ShadingBoard/SlitherlinkBoard).`
+    );
+  }
+}
+
+const boardThemeSource = readFileSync(join(root, 'src/puzzles/boardTheme.ts'), 'utf8');
+const requiredStyleLibraryExports = [
+  'woodBoardTheme',
+  'boardTypography',
+  'boardStrokeWidths',
+  'boardGeometry',
+  'boardControlMetrics',
+  'boardLayoutMetrics',
+  'boardStyleLibrary',
+  'getBoardCellStyle',
+  'getBoardTrialCellStyle',
+  'getBoardBoundaryStrokeMetrics',
+  'getBoardNumpadPanelStyle',
+  'getBoardNumpadButtonStyle',
+  'getBoardNumpadDismissStyle',
+  'getBoardNumpadHeaderStyle',
+  'getBoardNumpadGridStyle',
+  'getBoardModeButtonStyle',
+];
+for (const exportName of requiredStyleLibraryExports) {
+  if (!new RegExp(`export (?:const|function) ${exportName}\\b`, 'u').test(boardThemeSource)) {
+    violations.push(`src/puzzles/boardTheme.ts style-library contract: Missing ${exportName}.`);
+  }
+}
+const canonicalDarkCellContract = [
+  /const\s+DARK_CELL_BACKGROUND\s*=\s*['"][^'"]+['"]/u,
+  /const\s+DARK_CELL_TEXT\s*=\s*['"][^'"]+['"]/u,
+  /darkCell\s*:\s*DARK_CELL_BACKGROUND/u,
+  /darkCellText\s*:\s*DARK_CELL_TEXT/u,
+  /shaded\s*:\s*DARK_CELL_BACKGROUND/u,
+  /shadedText\s*:\s*DARK_CELL_TEXT/u,
+  /case\s+['"]playerShaded['"][\s\S]*?background:\s*woodBoardTheme\.darkCell/u,
+  /case\s+['"]shaded['"][\s\S]*?background:\s*woodBoardTheme\.darkCell/u,
+];
+for (const requirement of canonicalDarkCellContract) {
+  if (!requirement.test(boardThemeSource)) {
+    violations.push(
+      `src/puzzles/boardTheme.ts dark-cell contract: Missing canonical token declaration (${requirement}).`
+    );
+  }
+}
+
+const skyNeighborCellSizeMatch = boardThemeSource.match(/skyNeighborCellSize\s*:\s*(\d+(?:\.\d+)?)/u);
+const skyNeighborCellSize = skyNeighborCellSizeMatch ? Number(skyNeighborCellSizeMatch[1]) : Number.NaN;
+if (!Number.isFinite(skyNeighborCellSize) || skyNeighborCellSize < 32 || skyNeighborCellSize > 58) {
+  violations.push(
+    'src/puzzles/boardTheme.ts sky-neighbor size contract: skyNeighborCellSize must stay between 32px and 58px, matching the shared board scale.'
+  );
+}
+if (!/outlinedCellInsetRatio\s*:\s*0\.08/u.test(boardThemeSource) ||
+    !/outlinedCellMinInset\s*:\s*2/u.test(boardThemeSource)) {
+  violations.push(
+    'src/puzzles/boardTheme.ts outline contract: Keep one shared inset metric for outlined cells.'
+  );
+}
+
+const outlineComponentSource = readFileSync(
+  join(root, 'src/puzzles/shared/BoardCellOutline.tsx'),
+  'utf8'
+);
+if (!/getBoardCellOutlineStyle\s*\(/u.test(outlineComponentSource)) {
+  violations.push(
+    'src/puzzles/shared/BoardCellOutline.tsx outline contract: The shared component must use getBoardCellOutlineStyle.'
+  );
+}
+
+const boardFrameStart = boardThemeSource.indexOf('export function getBoardFrameStyle');
+const boardFrameEnd = boardThemeSource.indexOf('export function getOutlinedBorderStrokeWidth', boardFrameStart);
+const boardFrameHelper = boardFrameStart >= 0 && boardFrameEnd > boardFrameStart
+  ? boardThemeSource.slice(boardFrameStart, boardFrameEnd)
+  : '';
+if (/maxWidth\s*:\s*['"]100%['"]/u.test(boardFrameHelper)) {
+  violations.push(
+    'src/puzzles/boardTheme.ts getBoardFrameStyle: Do not shrink only the frame around fixed-size cells; use responsive cell sizing or an overflow-x container.'
+  );
 }
 
 if (violations.length > 0) {

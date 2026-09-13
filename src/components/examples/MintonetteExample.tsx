@@ -1,31 +1,32 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { MintonettePuzzleData, MintonetteSolutionEdge } from '../../puzzles/types';
 import MintonetteBoard from '../../puzzles/Mintonette/Mintonette';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardCrossStrokeWidth,
+  getBoardCrossSize,
+  getBoardRegionStrokeWidth,
   getBoardCircleClueDiameter,
   getBoardCircleClueStrokeWidth,
   getBoardFrameStyle,
   getBoardTextStyle,
   getCellDividerStyle,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
-  getLoopLineStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { createMintonetteEdgeSet, parseMintonetteEdgeKey } from '../../puzzles/Mintonette/utils';
 
-interface Props extends MintonettePuzzleData {
+interface Props extends Omit<MintonettePuzzleData, 'type'> {
   solutionEdges: MintonetteSolutionEdge[];
   crossedEdges?: MintonetteSolutionEdge[];
   playableLabel: string;
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 
 function StaticMintonetteBoard({
@@ -94,8 +95,7 @@ function StaticMintonetteBoard({
                       width: `${clueCircleDiameter}px`,
                       height: `${clueCircleDiameter}px`,
                       border: `${clueCircleStrokeWidth}px solid ${woodBoardTheme.border}`,
-                      color: woodBoardTheme.border,
-                      background: getBoardCellColors('cell').background,
+                      ...getBoardCellColors('cell'),
                       ...clueNumberTextStyle,
                       position: 'relative',
                       zIndex: 2,
@@ -129,7 +129,7 @@ function StaticMintonetteBoard({
               x2={to.x}
               y2={to.y}
               stroke={woodBoardTheme.ink}
-              strokeWidth={getLoopLineStrokeWidth(CELL_SIZE, 0.11, 4)}
+              strokeWidth={getBoardRegionStrokeWidth(CELL_SIZE, 0.11, 4)}
               strokeLinecap="round"
             />
           );
@@ -140,12 +140,12 @@ function StaticMintonetteBoard({
           if (!edge) return null;
           const centerX = (getCenter(edge.r1, edge.c1).x + getCenter(edge.r2, edge.c2).x) / 2;
           const centerY = (getCenter(edge.r1, edge.c1).y + getCenter(edge.r2, edge.c2).y) / 2;
-          const size = getLoopCrossSize(CELL_SIZE, 0.12, 4);
+          const size = getBoardCrossSize(CELL_SIZE);
           return (
             <g
               key={`cross-${edgeKey}`}
               stroke={woodBoardTheme.border}
-              strokeWidth={getLoopCrossStrokeWidth()}
+              strokeWidth={getBoardCrossStrokeWidth()}
               strokeLinecap="round"
             >
               <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
@@ -168,7 +168,6 @@ export default function MintonetteExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<MintonettePuzzleData>(
@@ -177,14 +176,11 @@ export default function MintonetteExample({
   );
   const solutionEdgeSet = useMemo(() => createMintonetteEdgeSet(solutionEdges), [solutionEdges]);
   const crossedEdgeSet = useMemo(() => createMintonetteEdgeSet(crossedEdges), [crossedEdges]);
-  const outerWidth = width * CELL_SIZE + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
-  const outerHeight = height * CELL_SIZE + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
-
   return (
     <>
       <div className="flex flex-col xl:flex-row gap-10 justify-center">
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <MintonetteBoard
@@ -199,58 +195,23 @@ export default function MintonetteExample({
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
-              <div
-                style={{
-                  width: `${outerWidth}px`,
-                  height: `${outerHeight}px`,
-                  padding: `${BOARD_PADDING}px`,
-                  ...getBoardFrameStyle(),
-                }}
-              >
-                <div className="grid" style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)` }}>
-                  {Array.from({ length: width * height }, (_, index) => (
-                    <div
-                      key={index}
-                      style={{
-                        width: `${CELL_SIZE}px`,
-                        height: `${CELL_SIZE}px`,
-                        ...getBoardCellColors('cell'),
-                        ...getCellDividerStyle(),
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80">
-                <div className="text-white text-6xl">👁️‍🗨️</div>
-              </div>
-            </div>
-          ) : (
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="flex justify-center overflow-x-auto"
+          >
             <StaticMintonetteBoard
               puzzle={examplePuzzle}
               lineEdges={solutionEdgeSet}
               crossedEdges={crossedEdgeSet}
             />
-          )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

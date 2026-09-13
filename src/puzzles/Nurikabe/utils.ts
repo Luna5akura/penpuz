@@ -1,4 +1,4 @@
-import { PuzzleData, NurikabeClue } from '../types';
+import type { NurikabeClue, NurikabePuzzleData } from '../types';
 
 // ==================== 新增：pzprjs 链接解析逻辑 ====================
 function readNumber16(bstr: string, i: number): [number, number] {
@@ -25,7 +25,7 @@ function readNumber16(bstr: string, i: number): [number, number] {
   }
 }
 
-export function parsePuzzLink(link: string): PuzzleData | null {
+export function parsePuzzLink(link: string): NurikabePuzzleData | null {
   try {
     // 支持完整 URL 或纯数据字符串
     let dataPart = link.includes('?') ? link.split('?')[1] : link;

@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import type { NikojiPuzzleData } from '../types';
 import {
   boardClassNames,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getInvalidBoardCellColors,
+  getBoardRegionStrokeWidth,
+  getBoardThinStrokeWidth,
   getBoardFrameStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -16,6 +20,7 @@ import { safeSetPointerCapture } from '@/lib/pointer';
 import { getTrialLevelColors } from '../trialStyles';
 import { getNikojiEdgeKey, validateNikoji } from './utils';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import { filterValidInternalBoundaryEdgeKeys } from '../gridUtils';
 
 type LineMode = 'deepLine' | 'thinLine';
 
@@ -39,11 +44,11 @@ interface Props {
 
 const BOARD_PADDING = commonBoardChrome.padding;
 
-function normalizeNikojiSnapshot(snapshot: unknown): NikojiSnapshot {
+function normalizeNikojiSnapshot(snapshot: unknown, width: number, height: number): NikojiSnapshot {
   const source = snapshot as Partial<NikojiSnapshot> | null | undefined;
   return {
-    deepLines: sanitizeStringArray(source?.deepLines),
-    thinLines: sanitizeStringArray(source?.thinLines),
+    deepLines: filterValidInternalBoundaryEdgeKeys(sanitizeStringArray(source?.deepLines), width, height),
+    thinLines: filterValidInternalBoundaryEdgeKeys(sanitizeStringArray(source?.thinLines), width, height),
     deepLineLevels: sanitizeNumberRecord(source?.deepLineLevels),
     thinLineLevels: sanitizeNumberRecord(source?.thinLineLevels),
   };
@@ -60,9 +65,7 @@ export default function NikojiBoard({
   showValidationMessage = false,
 }: Props) {
   const { width, height, letters } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
   const dragModeRef = useRef<LineMode | null>(null);
@@ -71,7 +74,7 @@ export default function NikojiBoard({
   const operationRef = useRef<'add' | 'delete' | null>(null);
   const hasCompleted = useRef(false);
 
-  const createInitialSnapshot = useCallback<NikojiSnapshot>(() => ({
+  const createInitialSnapshot = useCallback<() => NikojiSnapshot>(() => ({
     deepLines: [],
     thinLines: [],
     deepLineLevels: {},
@@ -79,10 +82,10 @@ export default function NikojiBoard({
   }), []);
 
   const history = usePuzzleHistory<NikojiSnapshot>(
-    initialSnapshot ? normalizeNikojiSnapshot(initialSnapshot) : createInitialSnapshot(),
+    initialSnapshot ? normalizeNikojiSnapshot(initialSnapshot, width, height) : createInitialSnapshot(),
     {
       normalizeTrialSnapshot: (trialSnapshot) => ({
-        ...normalizeNikojiSnapshot(trialSnapshot),
+        ...normalizeNikojiSnapshot(trialSnapshot, width, height),
         deepLineLevels: {},
         thinLineLevels: {},
       }),
@@ -111,7 +114,10 @@ export default function NikojiBoard({
     finishBatch,
   } = history;
 
-  const normalizedSnapshot = useMemo(() => normalizeNikojiSnapshot(snapshot), [snapshot]);
+  const normalizedSnapshot = useMemo(
+    () => normalizeNikojiSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
   const deepLines = normalizedSnapshot.deepLines;
   const thinLines = normalizedSnapshot.thinLines;
   const deepLineLevels = normalizedSnapshot.deepLineLevels;
@@ -131,19 +137,13 @@ export default function NikojiBoard({
     fixedCellSize,
     viewportWidth,
     width,
+    containerWidth: true,
   }), [fixedCellSize, viewportWidth, width]);
 
   useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-
-  useEffect(() => {
-    reset(initialSnapshot ? normalizeNikojiSnapshot(initialSnapshot) : createInitialSnapshot());
+    reset(initialSnapshot ? normalizeNikojiSnapshot(initialSnapshot, width, height) : createInitialSnapshot());
     hasCompleted.current = false;
-  }, [createInitialSnapshot, initialSnapshot, puzzle, reset, resetToken]);
+  }, [createInitialSnapshot, height, initialSnapshot, puzzle, reset, resetToken, width]);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -186,7 +186,7 @@ export default function NikojiBoard({
 
     const op = operationRef.current;
     applyChange((currentSnapshot) => {
-      const nextSnapshot = normalizeNikojiSnapshot(currentSnapshot);
+      const nextSnapshot = normalizeNikojiSnapshot(currentSnapshot, width, height);
       const targetSet = type === 'deepLine'
         ? new Set(nextSnapshot.deepLines)
         : new Set(nextSnapshot.thinLines);
@@ -212,7 +212,7 @@ export default function NikojiBoard({
 
       return nextSnapshot;
     }, { coalesce: true });
-  }, [applyChange, currentTrialLevel, deepLines, thinLines, trialActive]);
+  }, [applyChange, currentTrialLevel, deepLines, height, thinLines, trialActive, width]);
 
   const handleDocumentPointerMove = useCallback((event: PointerEvent) => {
     if (pointerIdRef.current !== event.pointerId || !dragModeRef.current) return;
@@ -327,15 +327,15 @@ export default function NikojiBoard({
     const trialColors = getTrialLevelColors(deepLineLevels[key] ?? 0);
     return {
       stroke: trialColors?.line ?? woodBoardTheme.deepLine,
-      strokeWidth: 4,
+      strokeWidth: getBoardRegionStrokeWidth(cellSize),
     };
-  }, [deepLineLevels]);
+  }, [cellSize, deepLineLevels]);
 
   const boardWidth = width * cellSize;
   const boardHeight = height * cellSize;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="mx-auto select-none"
@@ -366,11 +366,8 @@ export default function NikojiBoard({
                   key={`${r}-${c}`}
                   className={`flex items-center justify-center select-none ${boardClassNames.cellText}`}
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
-                    ...getBoardCellColors(letter ? 'clue' : 'cell'),
-                    ...getCellDividerStyle(),
-                    ...(isInvalid ? { background: woodBoardTheme.invalidSoft, color: woodBoardTheme.invalidText } : {}),
+                    ...getBoardCellStyle(cellSize, letter ? 'clue' : 'cell'),
+                    ...(isInvalid ? getInvalidBoardCellColors('soft') : {}),
                     ...getBoardTextStyle(cellSize, 0.54, 18),
                   }}
                 >
@@ -468,7 +465,7 @@ export default function NikojiBoard({
                 x2={x2}
                 y2={y2}
                 stroke={getTrialLevelColors(thinLineLevels[key] ?? 0)?.line ?? woodBoardTheme.thinLine}
-                strokeWidth={2}
+                strokeWidth={getBoardThinStrokeWidth(cellSize)}
                 strokeLinecap="round"
               />
             );
@@ -491,11 +488,7 @@ export default function NikojiBoard({
         onCommitTrial={commitTrial}
       />
 
-      {showValidationMessage && validation?.message ? (
-        <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
-          {validation.message}
-        </div>
-      ) : null}
+      {showValidationMessage ? <ValidationMessage message={validation?.message} /> : null}
     </div>
   );
 }

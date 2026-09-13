@@ -1,19 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { getTrialLevelColors } from '../trialStyles';
 import type { HeyawakePuzzleData } from '../types';
 import {
   boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardCornerMarkMetrics,
+  getBoardBoundaryStrokeMetrics,
   getBoardCrossFontSize,
   getBoardFrameStyle,
   getBoardTextStyle,
+  getBoardTrialCellStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
-  getOutlinedBorderStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -25,6 +28,7 @@ import {
 } from './utils';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 
 interface Props {
   puzzle: HeyawakePuzzleData;
@@ -81,9 +85,7 @@ export default function HeyawakeBoard({
   showValidationMessage = false,
 }: Props) {
   const { width, height, clues, regionIds } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -173,15 +175,9 @@ export default function HeyawakeBoard({
       fixedCellSize,
       viewportWidth,
       width,
+      containerWidth: true,
     });
   }, [fixedCellSize, viewportWidth, width]);
-
-  useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
@@ -370,11 +366,11 @@ export default function HeyawakeBoard({
   const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const clueTextStyle = getBoardTextStyle(cellSize);
   const crossFontSize = getBoardCrossFontSize(cellSize);
-  const boundaryStroke = Math.max(3, Math.floor(cellSize * 0.08));
-  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const cornerMark = getBoardCornerMarkMetrics(cellSize);
+  const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -405,20 +401,13 @@ export default function HeyawakeBoard({
               const isShaded = state === 1;
               const isMarked = state === 2;
               const baseStyle = isMarked
-                ? {
-                    ...getBoardCellColors('marked'),
-                    background: woodBoardTheme.marked,
-                  }
+                ? getBoardCellColors('marked')
                 : getBoardCellColors(isShaded ? 'playerShaded' : 'cell');
               const invalidStyle = isInvalid
                 ? getInvalidBoardCellColors(isShaded ? 'dark' : isMarked ? 'marked' : 'soft')
                 : undefined;
               const trialStyle = trialColors
-                ? isShaded
-                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
-                  : isMarked
-                    ? { background: trialColors.softFill, color: trialColors.text }
-                    : { background: trialColors.softFill, color: woodBoardTheme.border }
+                ? getBoardTrialCellStyle(trialColors, isShaded ? 'filled' : 'soft')
                 : undefined;
 
               return (
@@ -440,7 +429,7 @@ export default function HeyawakeBoard({
                       className={boardClassNames.cellText}
                       style={{
                         ...clueTextStyle,
-                        color: isShaded ? woodBoardTheme.shadedText : trialColors?.text ?? woodBoardTheme.border,
+                        color: isShaded ? woodBoardTheme.darkCellText : trialColors?.text ?? woodBoardTheme.border,
                       }}
                     >
                       {clueValue}
@@ -453,10 +442,10 @@ export default function HeyawakeBoard({
                     <span
                       style={{
                         position: 'absolute',
-                        right: `${Math.max(2, Math.floor(cellSize * 0.08))}px`,
-                        bottom: `${Math.max(0, Math.floor(cellSize * 0.02))}px`,
+                        right: `${cornerMark.right}px`,
+                        bottom: `${cornerMark.bottom}px`,
                         ...getCrossMarkStyle(
-                          Math.max(12, Math.floor(cellSize * 0.28)),
+                          cornerMark.fontSize,
                           trialColors?.text ?? woodBoardTheme.markedText
                         ),
                       }}
@@ -564,11 +553,7 @@ export default function HeyawakeBoard({
         onCommitTrial={commitTrial}
       />
 
-      {showValidationMessage && validation?.message ? (
-        <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
-          {validation.message}
-        </div>
-      ) : null}
+      {showValidationMessage ? <ValidationMessage message={validation?.message} /> : null}
     </div>
   );
 }

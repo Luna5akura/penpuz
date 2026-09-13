@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import type { TapaPuzzleData } from '../types';
 import { getCellKey } from '../gridUtils';
-import { getBoardTextStyle, woodBoardTheme } from '../boardTheme';
+import { getBoardCellColors, getBoardTextStyle } from '../boardTheme';
 import { validateTapa } from './utils';
 import TapaClue from './TapaClue';
 
@@ -66,8 +66,7 @@ export default function TapaBoard({
           <span
             className="relative block h-full w-full"
             style={{
-              background: woodBoardTheme.clueCell,
-              color: woodBoardTheme.border,
+              ...getBoardCellColors('clue'),
               ...getBoardTextStyle(cellSize),
             }}
           >

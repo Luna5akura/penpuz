@@ -1,19 +1,18 @@
 // src/components/examples/NurikabeExample.tsx
 import { useState, useEffect, useMemo, useRef } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
-import { validateNurikabe, getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
+import { getNurikabeViolations, type NurikabeViolations } from '../../puzzles/Nurikabe/utils';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardCellStyle,
   getBoardCrossFontSize,
   getBoardFrameStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
-  woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import type { NurikabeClue } from '../../puzzles/types';
 
@@ -26,12 +25,13 @@ interface Props {
   answerLabel: string;
 }
 
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
+
 export default function NurikabeExample({ width, height, clues, correctSolution, playableLabel, answerLabel }: Props) {
   const [exampleGrid, setExampleGrid] = useState<(0 | 1 | 2)[][]>(() =>
     Array.from({ length: height }, () => Array(width).fill(0))
   );
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const isMobile = useRef(false);
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
@@ -54,7 +54,6 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
     () => getNurikabeViolations(boolGrid, clues, width, height),
     [boolGrid, clues, width, height]
   );
-  const isAnswerVisible = showAnswer || validateNurikabe(boolGrid, clues, width, height).valid;
 
   const isClue = (r: number, c: number) => clues.some(cl => cl.row === r && cl.col === c);
 
@@ -84,7 +83,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
     const isLeftClick = e.button === 0;
     if (isLeftClick && isClueCell) {
       e.preventDefault();
-      e.stopImmediatePropagation();
+      e.nativeEvent.stopImmediatePropagation();
       return;
     }
     e.preventDefault();
@@ -148,13 +147,13 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
       <div className="flex flex-col lg:flex-row gap-10 justify-center">
         {/* 可游玩例题 */}
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <div
-            className="inline-grid dark:bg-gray-800 select-none"
+            className="inline-grid select-none"
             style={{
-              gridTemplateColumns: `repeat(${width}, 44px)`,
+              gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
               padding: `${commonBoardChrome.padding}px`,
               ...getBoardFrameStyle(),
             }}
@@ -178,18 +177,13 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                     onPointerDown={(e) => handlePointerDown(r, c, e)}
                     onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     style={{
-                      width: '44px',
-                      height: '44px',
-                      ...getBoardTextStyle(44),
+                      ...getBoardCellStyle(CELL_SIZE, isBad2x2 ? 'cell' : isClue(r, c) ? 'clue' : isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell'),
+                      ...getBoardTextStyle(CELL_SIZE),
                       ...(isBad2x2
                         ? getInvalidBoardCellColors('dark')
                         : isClue(r, c)
-                          ? {
-                              ...getBoardCellColors('clue'),
-                              background: woodBoardTheme.marked,
-                            }
+                          ? getBoardCellColors('clue')
                           : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
-                      ...getCellDividerStyle(),
                     }}
                     className={`flex items-center justify-center border-0 cursor-pointer ${boardClassNames.cellTextTight}`}
                   >
@@ -197,7 +191,7 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                       <span className={isBadClue ? 'text-red-600 dark:text-red-400' : ''}>
                         {getClueValue(r, c)}
                       </span>
-                    ) : isMarked ? <span style={getCrossMarkStyle(getBoardCrossFontSize(44))}>{'×'}</span> : ''}
+                    ) : isMarked ? <span style={getCrossMarkStyle(getBoardCrossFontSize(CELL_SIZE))}>{'×'}</span> : ''}
                   </div>
                 );
               })
@@ -207,35 +201,20 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
 
         {/* 正确答案 */}
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!isAnswerVisible ? (
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+            rounded
+          >
             <div
-              onClick={() => setConfirmSpoiler(true)}
-            className="inline-grid dark:bg-gray-800 cursor-pointer hover:opacity-90 relative"
-            style={{
-              gridTemplateColumns: `repeat(${width}, 44px)`,
-              padding: `${commonBoardChrome.padding}px`,
-              ...getBoardFrameStyle(),
-            }}
-            >
-              <ExampleAnswerOverlay rounded />
-              {correctSolution.flatMap((row, r) =>
-                row.map((_, c) => (
-                  <div
-                    key={`${r}-${c}`}
-                    className="w-[44px] h-[44px] dark:bg-gray-800"
-                    style={{ background: woodBoardTheme.cell, ...getCellDividerStyle() }}
-                  />
-                ))
-              )}
-            </div>
-          ) : (
-            <div
-              className="inline-grid dark:bg-gray-800"
+              className="inline-grid"
               style={{
-                gridTemplateColumns: `repeat(${width}, 44px)`,
+                gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
                 padding: `${commonBoardChrome.padding}px`,
                 ...getBoardFrameStyle(),
               }}
@@ -246,12 +225,8 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                     key={`${r}-${c}`}
                     className={`flex items-center justify-center border-0 ${boardClassNames.cellTextTight}`}
                     style={{
-                      width: '44px',
-                      height: '44px',
-                      ...getBoardTextStyle(44),
-                      background: isBlack ? woodBoardTheme.shaded : woodBoardTheme.cell,
-                      color: isBlack ? woodBoardTheme.shadedText : woodBoardTheme.border,
-                      ...getCellDividerStyle(),
+                      ...getBoardCellStyle(CELL_SIZE, isBlack ? 'shaded' : 'cell'),
+                      ...getBoardTextStyle(CELL_SIZE),
                     }}
                   >
                     {getClueValue(r, c)}
@@ -259,18 +234,9 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                 ))
               )}
             </div>
-          )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !isAnswerVisible}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

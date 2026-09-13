@@ -1,4 +1,4 @@
-import { boardClassNames, getBoardTextStyle, woodBoardTheme } from '../boardTheme';
+import { boardClassNames, getBoardClueTextStyle } from '../boardTheme';
 import type { TapaClue } from '../types';
 import { getTapaClueValues } from './utils';
 
@@ -31,12 +31,12 @@ export default function TapaClue({
   const values = getTapaClueValues(clue);
   const positions = cluePositions[Math.min(values.length, 4) as 1 | 2 | 3 | 4];
   const textStyle = values.length === 1
-    ? getBoardTextStyle(cellSize, 0.68, 6)
+    ? getBoardClueTextStyle(cellSize, 0.68, 6)
     : values.length === 2
-      ? getBoardTextStyle(cellSize, 0.48, 6)
+      ? getBoardClueTextStyle(cellSize, 0.48, 6)
       : values.length === 3
-        ? getBoardTextStyle(cellSize, 0.4, 6)
-        : getBoardTextStyle(cellSize, 0.34, 6);
+        ? getBoardClueTextStyle(cellSize, 0.4, 6)
+        : getBoardClueTextStyle(cellSize, 0.34, 6);
 
   return (
     <span
@@ -52,7 +52,6 @@ export default function TapaClue({
             style={{
               left: position.left,
               top: position.top,
-              color: woodBoardTheme.border,
               ...textStyle,
             }}
           >

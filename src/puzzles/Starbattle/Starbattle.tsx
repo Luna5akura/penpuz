@@ -1,22 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { getTrialLevelColors } from '../trialStyles';
 import {
   commonBoardChrome,
-  getBoardBoundaryStrokeWidth,
   getBoardCellColors,
+  getBoardBoundaryStrokeMetrics,
+  getBoardBadgeStyle,
   getBoardCrossFontSize,
   getBoardDotRadius,
   getBoardFixedTextStyle,
   getBoardFrameStyle,
   getBoardSymbolFontSize,
+  getBoardTrialCellStyle,
   getCellDividerStyle,
   getCrossMarkStyle,
   getInvalidBoardCellColors,
-  getOutlinedBorderStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -31,6 +34,7 @@ import {
 } from './utils';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import { filterValidGridLineEdgeKeys, filterValidGridVertexKeys } from '../gridUtils';
 
 interface Props {
   puzzle: StarbattlePuzzleData;
@@ -78,8 +82,8 @@ function normalizeStarbattleSnapshot(snapshot: unknown, width: number, height: n
     grid: sanitizeMatrix(source?.grid, fallback.grid, (value) =>
       value === 0 || value === 1 || value === 2 ? value : 0
     ) as StarbattleCellState[][],
-    edgeDots: sanitizeStringArray(source?.edgeDots),
-    vertexDots: sanitizeStringArray(source?.vertexDots),
+    edgeDots: filterValidGridLineEdgeKeys(sanitizeStringArray(source?.edgeDots), width, height),
+    vertexDots: filterValidGridVertexKeys(sanitizeStringArray(source?.vertexDots), width, height),
     cellLevels: sanitizeMatrix(source?.cellLevels, fallback.cellLevels, (value, fallbackCell) =>
       typeof value === 'number' && Number.isFinite(value) ? value : fallbackCell
     ),
@@ -100,9 +104,7 @@ export default function StarbattleBoard({
 }: Props) {
   const { copy } = useI18n();
   const { width, height, starsPerUnit } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<{
     pointerId: number | null;
@@ -181,6 +183,7 @@ export default function StarbattleBoard({
       fixedCellSize,
       viewportWidth,
       width,
+      containerWidth: true,
     });
   }, [fixedCellSize, viewportWidth, width]);
 
@@ -227,13 +230,6 @@ export default function StarbattleBoard({
     () => [...vertexDots].filter((key) => !isVertexCoveredByStar(key)),
     [isVertexCoveredByStar, vertexDots]
   );
-
-  useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -511,18 +507,15 @@ export default function StarbattleBoard({
   const starFontSize = getBoardSymbolFontSize(cellSize);
   const crossFontSize = getBoardCrossFontSize(cellSize);
   const dotRadius = getBoardDotRadius(cellSize, 0.16, 6);
-  const boundaryStroke = getBoardBoundaryStrokeWidth(cellSize);
-  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div className="w-full flex justify-end">
         <div
           className="rounded-full px-3 py-1 text-sm font-semibold dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           style={{
-            border: `1px solid ${woodBoardTheme.accentBorder}`,
-            background: woodBoardTheme.accentFill,
-            color: woodBoardTheme.accentText,
+            ...getBoardBadgeStyle(),
           }}
         >
           {copy.shared.starbattleQuota(starsPerUnit)}
@@ -558,17 +551,10 @@ export default function StarbattleBoard({
               const isInvalid = showValidationMessage && invalidCellSet.has(`${r},${c}`);
               const isMarked = state === 2;
               const baseStyle = isMarked
-                ? {
-                    ...getBoardCellColors('marked'),
-                    background: woodBoardTheme.marked,
-                  }
+                ? getBoardCellColors('marked')
                 : getBoardCellColors('cell');
               const trialStyle = trialColors
-                ? state === 1
-                  ? { background: trialColors.fill, color: woodBoardTheme.shadedText }
-                  : state === 2
-                    ? { background: trialColors.softFill, color: trialColors.text }
-                    : { background: trialColors.softFill }
+                ? getBoardTrialCellStyle(trialColors, state === 1 ? 'filled' : 'soft')
                 : undefined;
 
               return (
@@ -731,11 +717,7 @@ export default function StarbattleBoard({
         {copy.shared.resetPuzzle}
       </button>
 
-      {/* {showValidationMessage && validation?.message && (
-        <div className="text-sm text-muted-foreground dark:text-gray-400 text-center">
-          {validation.message}
-        </div>
-      )} */}
+      {showValidationMessage ? <ValidationMessage message={validation?.message} /> : null}
     </div>
   );
 }

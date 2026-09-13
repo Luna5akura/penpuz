@@ -32,6 +32,31 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
         : `${matrixCount(puzzle.clues, (value) => value !== null)} givens`];
     case 'yajilin':
       return [isZh ? `${puzzle.clues.length} 个方向线索` : `${puzzle.clues.length} arrow clues`];
+    case 'koburin':
+      return [isZh ? `${puzzle.clues.length} 个相邻黑格数量线索` : `${puzzle.clues.length} neighbour-count clues`];
+    case 'neighbor': {
+      const givenCount = matrixCount(puzzle.givens, (value) => value !== null);
+      const grayCount = matrixCount(puzzle.grayCells, (value) => value);
+      return [
+        isZh ? `${givenCount} 个预填数字` : `${givenCount} givens`,
+        isZh ? `${grayCount} 个灰色格` : `${grayCount} gray cells`,
+      ];
+    }
+    case 'sky-neighbor': {
+      const givenCount = matrixCount(puzzle.givens, (value) => value !== null);
+      const grayCount = matrixCount(puzzle.grayCells, (value) => value) +
+        (puzzle.outsideGrayCells
+          ? Object.values(puzzle.outsideGrayCells).reduce((total, side) => total + side.filter(Boolean).length, 0)
+          : 0);
+      const clueCount = Object.values(puzzle.clues).reduce(
+        (total, side) => total + side.filter((value: number | null) => value !== null).length,
+        0
+      );
+      return [
+        isZh ? `${givenCount} 个预填数字` : `${givenCount} givens`,
+        isZh ? `${clueCount} 个摩天楼线索，${grayCount} 个灰色格` : `${clueCount} skyscraper clues, ${grayCount} gray cells`,
+      ];
+    }
     case 'starbattle':
       return [
         isZh ? `每行每列每区 ${puzzle.starsPerUnit} 颗星` : `${puzzle.starsPerUnit} stars per row, column and region`,
@@ -118,6 +143,35 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
           ? `${matrixCount(puzzle.cells, (value) => value !== null)} 个和数线索`
           : `${matrixCount(puzzle.cells, (value) => value !== null)} sum clues`,
       ];
+    case 'kakuro':
+      return [
+        isZh
+          ? `${matrixCount(puzzle.cells, (value) => value === null)} 个待填白格`
+          : `${matrixCount(puzzle.cells, (value) => value === null)} white cells to fill`,
+        isZh
+          ? `${matrixCount(puzzle.cells, (value) => value !== null)} 个和数线索格`
+          : `${matrixCount(puzzle.cells, (value) => value !== null)} clue cells`,
+      ];
+    case 'wolvesandsheepfences':
+      return [
+        isZh
+          ? `${matrixCount(puzzle.clues, (value) => typeof value === 'number')} 个数字线索`
+          : `${matrixCount(puzzle.clues, (value) => typeof value === 'number')} number clues`,
+        isZh
+          ? `${matrixCount(puzzle.clues, (value) => value === 'sheep' || value === 'wolf')} 个动物线索`
+          : `${matrixCount(puzzle.clues, (value) => value === 'sheep' || value === 'wolf')} animal clues`,
+      ];
+    case 'shape-minesweeper':
+      return [
+        isZh ? `${puzzle.shapes.length} 个待放形状` : `${puzzle.shapes.length} shapes to place`,
+        isZh
+          ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个扫雷线索`
+          : `${matrixCount(puzzle.clues, (value) => value !== null)} minesweeper clues`,
+      ];
+    case 'cave':
+      return [isZh
+        ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个可见格线索`
+        : `${matrixCount(puzzle.clues, (value) => value !== null)} visibility clues`];
     default:
       return [];
   }

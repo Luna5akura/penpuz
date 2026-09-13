@@ -126,7 +126,7 @@ export default function MagicSnailBoard({
     (row: number, col: number, value: NumberPlacementCellValue) => {
       const cell = puzzle.cells[row][col];
       if (cell === 'block' || value === 'cross') return 'marked';
-      if (typeof cell === 'number') return 'prefilled';
+      if (typeof cell === 'number') return 'clue';
       return 'cell';
     },
     [puzzle.cells]
@@ -140,7 +140,7 @@ export default function MagicSnailBoard({
   );
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
+    <div className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div className="w-full text-right text-sm font-semibold text-muted-foreground">
         {copy.shared.numberRange(numberRange.min, numberRange.max)}
       </div>

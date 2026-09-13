@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import type { WalkwalkPuzzleData } from '../types';
 import {
   boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardBoundaryStrokeMetrics,
   getBoardFrameStyle,
   getBoardTextStyle,
   getCellDividerStyle,
@@ -13,14 +15,14 @@ import {
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
-  getOutlinedBorderStrokeWidth,
   getResponsiveCellSize,
-  getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '../boardTheme';
 import { getTrialLevelColors } from '../trialStyles';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
+import { filterValidCellEdgeKeys } from '../gridUtils';
 import {
   detectWalkwalkHitTarget,
   getWalkwalkBoundarySegments,
@@ -49,11 +51,11 @@ type WalkwalkSnapshot = {
 
 const BOARD_PADDING = commonBoardChrome.padding;
 
-function normalizeWalkwalkSnapshot(snapshot: unknown): WalkwalkSnapshot {
+function normalizeWalkwalkSnapshot(snapshot: unknown, width: number, height: number): WalkwalkSnapshot {
   const source = snapshot as Partial<WalkwalkSnapshot> | null | undefined;
   return {
-    lineEdges: sanitizeStringArray(source?.lineEdges),
-    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    lineEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.lineEdges), width, height),
+    crossedEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.crossedEdges), width, height),
     lineEdgeLevels: sanitizeNumberRecord(source?.lineEdgeLevels),
     crossedEdgeLevels: sanitizeNumberRecord(source?.crossedEdgeLevels),
   };
@@ -70,9 +72,7 @@ export default function WalkwalkBoard({
   showValidationMessage = false,
 }: Props) {
   const { width, height, clues, regionIds } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerIdRef = useRef<number | null>(null);
   const lastCellRef = useRef<{ row: number; col: number } | null>(null);
@@ -87,10 +87,10 @@ export default function WalkwalkBoard({
   }), []);
 
   const history = usePuzzleHistory<WalkwalkSnapshot>(
-    initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot) : createInitialSnapshot(),
+    initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot, width, height) : createInitialSnapshot(),
     {
       normalizeTrialSnapshot: (trialSnapshot) => ({
-        ...normalizeWalkwalkSnapshot(trialSnapshot),
+        ...normalizeWalkwalkSnapshot(trialSnapshot, width, height),
         lineEdgeLevels: {},
         crossedEdgeLevels: {},
       }),
@@ -119,7 +119,10 @@ export default function WalkwalkBoard({
     finishBatch,
   } = history;
 
-  const normalizedSnapshot = useMemo(() => normalizeWalkwalkSnapshot(snapshot), [snapshot]);
+  const normalizedSnapshot = useMemo(
+    () => normalizeWalkwalkSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
   const lineEdges = normalizedSnapshot.lineEdges;
   const crossedEdges = normalizedSnapshot.crossedEdges;
   const lineEdgeLevels = normalizedSnapshot.lineEdgeLevels;
@@ -148,28 +151,21 @@ export default function WalkwalkBoard({
     fixedCellSize,
     viewportWidth,
     width,
+    containerWidth: true,
   }), [fixedCellSize, viewportWidth, width]);
   const clueTextStyle = useMemo(() => getBoardTextStyle(cellSize), [cellSize]);
-  const boundaryStroke = getRoomBoundaryStrokeWidth();
-  const boundaryOutlineStroke = getOutlinedBorderStrokeWidth(boundaryStroke);
+  const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
   const loopLineStrokeWidth = useMemo(() => getLoopLineStrokeWidth(cellSize), [cellSize]);
   const loopCrossSize = useMemo(() => getLoopCrossSize(cellSize), [cellSize]);
   const loopCrossStrokeWidth = getLoopCrossStrokeWidth();
 
   useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
-
-  useEffect(() => {
-    reset(initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot) : createInitialSnapshot());
+    reset(initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot, width, height) : createInitialSnapshot());
     hasCompleted.current = false;
     pointerIdRef.current = null;
     lastCellRef.current = null;
     operationRef.current = null;
-  }, [createInitialSnapshot, initialSnapshot, puzzle, reset, resetToken]);
+  }, [createInitialSnapshot, height, initialSnapshot, puzzle, reset, resetToken, width]);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -198,7 +194,7 @@ export default function WalkwalkBoard({
 
   const toggleCrossEdge = useCallback((key: string) => {
     applyChange((currentSnapshot) => {
-      const nextSnapshot = normalizeWalkwalkSnapshot(currentSnapshot);
+      const nextSnapshot = normalizeWalkwalkSnapshot(currentSnapshot, width, height);
       const nextLineEdges = new Set(nextSnapshot.lineEdges);
       const nextCrossedEdges = new Set(nextSnapshot.crossedEdges);
       const nextLineLevels = { ...nextSnapshot.lineEdgeLevels };
@@ -221,7 +217,7 @@ export default function WalkwalkBoard({
         crossedEdgeLevels: nextCrossedLevels,
       };
     });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
   const commitLineEdge = useCallback((key: string) => {
     if (!key) return;
@@ -232,7 +228,7 @@ export default function WalkwalkBoard({
 
     const op = operationRef.current;
     applyChange((currentSnapshot) => {
-      const nextSnapshot = normalizeWalkwalkSnapshot(currentSnapshot);
+      const nextSnapshot = normalizeWalkwalkSnapshot(currentSnapshot, width, height);
       const nextLineEdges = new Set(nextSnapshot.lineEdges);
       const nextCrossedEdges = new Set(nextSnapshot.crossedEdges);
       const nextLineLevels = { ...nextSnapshot.lineEdgeLevels };
@@ -255,7 +251,7 @@ export default function WalkwalkBoard({
         crossedEdgeLevels: nextCrossedLevels,
       };
     }, { coalesce: true });
-  }, [applyChange, currentTrialLevel, lineEdgeSet, trialActive]);
+  }, [applyChange, currentTrialLevel, height, lineEdgeSet, trialActive, width]);
 
   const handleDocumentPointerMove = useCallback((event: PointerEvent) => {
     if (pointerIdRef.current !== event.pointerId) return;
@@ -339,7 +335,7 @@ export default function WalkwalkBoard({
   const boardHeight = height * cellSize;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="mx-auto select-none"
@@ -519,11 +515,7 @@ export default function WalkwalkBoard({
         onCommitTrial={commitTrial}
       />
 
-      {showValidationMessage && validation?.message ? (
-        <div className="text-center text-sm text-muted-foreground dark:text-gray-400">
-          {validation.message}
-        </div>
-      ) : null}
+      {showValidationMessage ? <ValidationMessage message={validation?.message} /> : null}
     </div>
   );
 }

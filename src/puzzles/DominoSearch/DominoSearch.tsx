@@ -1,24 +1,31 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
+import ValidationMessage from '@/components/ValidationMessage';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
+import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import type { DominoSearchPuzzleData } from '../types';
 import {
   boardClassNames,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardDominoBadgeStyle,
   getBoardFrameStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getResponsiveCellSize,
   getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '../boardTheme';
-import { areOrthogonallyAdjacent, getCellKey, parseSolutionEdgeKey } from '../gridUtils';
+import {
+  areOrthogonallyAdjacent,
+  filterValidCellEdgeKeys,
+  getCellKey,
+  parseSolutionEdgeKey,
+} from '../gridUtils';
 import {
   countPlacedDominoPairs,
   detectDominoSearchBoundaryHitTarget,
@@ -47,11 +54,11 @@ interface DominoSearchSnapshot {
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
-function normalizeDominoSearchSnapshot(snapshot: unknown): DominoSearchSnapshot {
+function normalizeDominoSearchSnapshot(snapshot: unknown, width: number, height: number): DominoSearchSnapshot {
   const source = snapshot as Partial<DominoSearchSnapshot> | null | undefined;
   return {
-    edges: sanitizeStringArray(source?.edges),
-    crossedEdges: sanitizeStringArray(source?.crossedEdges),
+    edges: filterValidCellEdgeKeys(sanitizeStringArray(source?.edges), width, height),
+    crossedEdges: filterValidCellEdgeKeys(sanitizeStringArray(source?.crossedEdges), width, height),
     levels: sanitizeNumberRecord(source?.levels),
   };
 }
@@ -98,9 +105,7 @@ export default function DominoSearchBoard({
   showValidationMessage = false,
 }: Props) {
   const { width, height, numbers, dominoes } = puzzle;
-  const [viewportWidth, setViewportWidth] = useState(() =>
-    typeof window === 'undefined' ? 1024 : window.innerWidth
-  );
+  const [containerRef, viewportWidth] = useBoardContainerWidth();
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const hasCompleted = useRef(false);
@@ -110,11 +115,14 @@ export default function DominoSearchBoard({
     crossedEdges: [],
     levels: {},
   }), []);
-  const getResetSnapshot = useCallback(() => normalizeDominoSearchSnapshot(initialSnapshot), [initialSnapshot]);
+  const getResetSnapshot = useCallback(
+    () => normalizeDominoSearchSnapshot(initialSnapshot, width, height),
+    [height, initialSnapshot, width]
+  );
 
   const history = usePuzzleHistory<DominoSearchSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...normalizeDominoSearchSnapshot(trialSnapshot),
+      ...normalizeDominoSearchSnapshot(trialSnapshot, width, height),
       levels: {},
     }),
     onSnapshotChange,
@@ -138,7 +146,10 @@ export default function DominoSearchBoard({
     commitTrial,
   } = history;
 
-  const normalizedSnapshot = useMemo(() => normalizeDominoSearchSnapshot(snapshot), [snapshot]);
+  const normalizedSnapshot = useMemo(
+    () => normalizeDominoSearchSnapshot(snapshot, width, height),
+    [height, snapshot, width]
+  );
   const edgeSet = useMemo(() => new Set(normalizedSnapshot.edges), [normalizedSnapshot.edges]);
   const crossedEdgeSet = useMemo(() => new Set(normalizedSnapshot.crossedEdges), [normalizedSnapshot.crossedEdges]);
   const placedDominoCounts = useMemo(
@@ -167,16 +178,9 @@ export default function DominoSearchBoard({
   );
   const visibleValidation = showValidationMessage ? validation : null;
   const cellSize = useMemo(
-    () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width }),
+    () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
     [fixedCellSize, viewportWidth, width]
   );
-
-  useEffect(() => {
-    const updateSize = () => setViewportWidth(window.innerWidth);
-    updateSize();
-    window.addEventListener('resize', updateSize);
-    return () => window.removeEventListener('resize', updateSize);
-  }, []);
 
   const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
@@ -197,7 +201,7 @@ export default function DominoSearchBoard({
     const edgeKey = normalizeDominoEdge(a, b);
 
     applyChange((currentSnapshot) => {
-      const current = normalizeDominoSearchSnapshot(currentSnapshot);
+      const current = normalizeDominoSearchSnapshot(currentSnapshot, width, height);
       const nextEdges = new Set(current.edges);
       const nextCrossedEdges = new Set(current.crossedEdges);
       const nextLevels = { ...current.levels };
@@ -234,11 +238,11 @@ export default function DominoSearchBoard({
         levels: nextLevels,
       };
     });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
   const toggleCrossedEdge = useCallback((edgeKey: string) => {
     applyChange((currentSnapshot) => {
-      const current = normalizeDominoSearchSnapshot(currentSnapshot);
+      const current = normalizeDominoSearchSnapshot(currentSnapshot, width, height);
       const nextEdges = new Set(current.edges);
       const nextCrossedEdges = new Set(current.crossedEdges);
       const nextLevels = { ...current.levels };
@@ -258,7 +262,7 @@ export default function DominoSearchBoard({
         levels: nextLevels,
       };
     });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
   const getBoardPosition = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
@@ -331,7 +335,7 @@ export default function DominoSearchBoard({
   const crossStroke = getLoopCrossStrokeWidth();
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div ref={containerRef} className="flex w-full min-w-0 flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
@@ -356,22 +360,16 @@ export default function DominoSearchBoard({
               const key = getCellKey(row, col);
               const isBlocked = value === null;
               const isSelected = selectedCell?.row === row && selectedCell?.col === col;
-              const baseStyle = getBoardCellColors(isBlocked ? 'shaded' : 'cell');
-
               return (
                 <div
                   key={key}
                   className={boardClassNames.touchCellContent}
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
-                    ...baseStyle,
-                    ...getCellDividerStyle(),
-                    color: isBlocked ? woodBoardTheme.shadedText : woodBoardTheme.border,
-                    cursor: isBlocked ? 'default' : 'pointer',
+                    ...getBoardCellStyle(cellSize, isBlocked ? 'shaded' : 'cell', {
+                      cursor: isBlocked ? 'default' : 'pointer',
+                      selected: isSelected && !isBlocked,
+                    }),
                     ...getBoardTextStyle(cellSize),
-                    outline: isSelected && !isBlocked ? `3px solid ${woodBoardTheme.accentBorder}` : undefined,
-                    outlineOffset: isSelected && !isBlocked ? '-4px' : undefined,
                   }}
                 >
                   {value}
@@ -424,16 +422,12 @@ export default function DominoSearchBoard({
         </svg>
       </div>
 
-      <div className="flex max-w-full flex-wrap justify-center gap-1.5 text-sm">
+      <div className="flex w-full min-w-0 max-w-full self-stretch flex-wrap justify-center gap-1.5 overflow-hidden text-sm">
         {dominoListItems.map(({ left, right, index, used }) => (
           <span
             key={`${left}-${right}-${index}`}
-            className="border px-2 py-1 font-medium tabular-nums dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
-            style={{
-              borderColor: used ? woodBoardTheme.border : woodBoardTheme.accentBorder,
-              background: used ? woodBoardTheme.shaded : woodBoardTheme.panel,
-              color: used ? woodBoardTheme.shadedText : woodBoardTheme.accentText,
-            }}
+            className="shrink-0 whitespace-nowrap border px-2 py-1 font-medium tabular-nums"
+            style={getBoardDominoBadgeStyle(used)}
           >
             {left}-{right}
           </span>
@@ -455,11 +449,7 @@ export default function DominoSearchBoard({
         onCommitTrial={commitTrial}
       />
 
-      {showValidationMessage && visibleValidation?.message ? (
-        <div className="text-center text-sm text-muted-foreground dark:text-gray-400">
-          {visibleValidation.message}
-        </div>
-      ) : null}
+      {showValidationMessage ? <ValidationMessage message={visibleValidation?.message} /> : null}
     </div>
   );
 }

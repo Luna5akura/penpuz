@@ -1,5 +1,11 @@
-import type { DailyPuzzleData, HistoryPuzzleData, PuzzleEntry } from './types';
-import { getPuzzleTemplate, resolvePuzzleEntry } from './registry';
+import type { DailyPuzzleData, HistoryPuzzleData, PuzzleData, PuzzleEntry, PuzzleType } from './types';
+import { getPuzzleTemplate, puzzleRegistry, resolvePuzzleEntry } from './registry';
+
+export interface DatabasePuzzleSample {
+  type: PuzzleType;
+  entry: PuzzleEntry;
+  puzzle: PuzzleData;
+}
 
 // ==================== 统一获取北京时间日期字符串 ====================
 /**
@@ -454,6 +460,63 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://pzprxs.vercel.app/p?battleship/9/9/111622223141114161zg5zzy//d',
     difficulty: '困难',
   },
+  {
+    // Neighbors 19, from WPF Puzzle GP 2015 Round 4.
+    puzzLink: 'neighbor/9/9/............3.......2.......1...3.......2.......1...3.......2.......1............/111111101001110001011110001110111111110000101101111001100001111110101001000110000',
+    difficulty: '简单',
+  },
+  {
+    // Neighbors 20, from WPF Puzzle GP 2015 Round 4.
+    puzzLink: 'http://localhost:8080/p.html?neighbors/9/9/..........1.....1.............3.1...............3.2.............2.....2........../111101111001101111001111111000000000011100000010010001011111010101010110100000011',
+    difficulty: '困难',
+  },
+    {
+    // Neighbors 21, from WPF Puzzle GP 2015 Round 4.
+    puzzLink: 'http://localhost:8080/p.html?neighbors/9/9/..........1.1...........2...1...........2...........3...2...........3.3........../110100100110111101001001100110000101110001100111101110110011001000111010100011100',
+    difficulty: '困难',
+  },
+  {
+    // Sky-neighbors 22, from WPF Puzzle GP 2015 Round 4.
+    puzzLink: 'sky-neighbor/9/9/..........1.............................2.............................3........../.G..GG.GG;GGGG.G...;.G.G...GG;.G..G..G.;.GG....G.;.G.G....G;.G.GGGG.G;GGG....GG;.G.G.GGGG/........./........./........./........./010001111/010001111/011100010/001001111',
+    difficulty: '困难',
+  },
+  {
+    // Sky-neighbors 23, from WPF Puzzle GP 2015 Round 4.
+    puzzLink: 'http://localhost:8080/p.html?skyneighbors/9/9/................................................................................./GG.GG.G.G;GGG....G.;GGGGG..GG;.G..GGG.G;......G..;G...G.GG.;.....G...;G........;GGGGG..G./........./........./........./........./100110001/111110000/111001011/100110010',
+    difficulty: '困难',
+  },
+  {
+    // Sky-neighbors 24, from WPF Puzzle GP 2015 Round 4.
+    puzzLink: 'http://localhost:8080/p.html?skyneighbors/9/9/................................................................................./G.G.G.G.G;...GGG...;G......G.;GG.G.....;GG.GGG.GG;GGG..G.GG;.....GGGG;.GG....G.;G.GGG.G../........./........./........./........./100000111/101111100/101111001/100111100',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?kakuro/10/10/.-7m..6-..9-.-hl7-B-k.3-kc-.-Or.bcm..pf-k.4-d-3-..k4gp.4-m.-are-..k..k.-8l.......-Bm..-bE-7N-E',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?kakuro/7/7/nDcob8n-6m.kf--Bm.A-kedm8-n-9o-HndbC-aaH9--Ca',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?kakuro/9/9/v-Gq.Q5l9-.mabnL-.sh--dn-fm5-ehl.gcq-hv-M4--T4ea-dfa--A-/',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?wolvesandsheepfences/10/10/0a53b0a2b6b6b6a31a0b2b0b1a5c2a5a3a6a13b3c61a2a6a0a6c0a2b6b6b6a36a0b2b0b1a5b35a5',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?wolvesandsheepfences/10/10/6b1d6b05b6a5a11b213b23a0a15a63d62a6b6136b6a23d21a25a2a22b122b02a6a3b35b3d1b3',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?wolvesandsheepfences/10/10/b1a1233b3b5d13a0a31a61a2b6a5a2a523a1a3a5a1b2a5a2a3a135a1a5a6b2a26a13a1a22d5b3b3222a3b',
+    difficulty: '困难',
+  },
+
+
+
 
 
 
@@ -465,6 +528,26 @@ const allPuzzles: PuzzleEntry[] = [
 
 
 ];
+
+/**
+ * Return the first parseable database entry for every registered puzzle type.
+ * Keeping this derived from the database and registry means a newly added
+ * type appears on the test page without another hard-coded list.
+ */
+export function getDatabasePuzzleSamples(): DatabasePuzzleSample[] {
+  const samples = new Map<PuzzleType, DatabasePuzzleSample>();
+  for (const entry of allPuzzles) {
+    const puzzle = resolvePuzzleEntry(entry);
+    if (!puzzle || samples.has(puzzle.type)) continue;
+    samples.set(puzzle.type, { type: puzzle.type, entry, puzzle });
+  }
+
+  // Preserve registry order for a stable page while still deriving which
+  // types are present from the actual database entries.
+  return (Object.keys(puzzleRegistry) as PuzzleType[])
+    .map((type) => samples.get(type))
+    .filter((sample): sample is DatabasePuzzleSample => sample !== undefined);
+}
 
 
 

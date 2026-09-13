@@ -2,29 +2,9 @@ import type { LocalizedText } from '@/i18n/types';
 import { puzzleRegistry } from '@/puzzles/registry';
 import type { PuzzleType } from '@/puzzles/types';
 
-const notePuzzleTypes: PuzzleType[] = [
-  'nurikabe',
-  'fillomino',
-  'yajilin',
-  'starbattle',
-  'heyawake',
-  'aqre',
-  'mintonette',
-  'nikoji',
-  'akari',
-  'kurarin',
-  'walkwalk',
-  'slither',
-  'lits',
-  'lakes',
-  'tapa',
-  'magic-summer',
-  'skyscrapers',
-  'battleship',
-  'domino-search',
-  'snail',
-  'slovak-sums',
-];
+// Keep the editor's choices in the same order and set as the puzzle registry.
+// Adding a puzzle therefore cannot silently leave the notes editor behind.
+const notePuzzleTypes = Object.keys(puzzleRegistry) as PuzzleType[];
 
 export const notePuzzleTypeOptions: { type: PuzzleType; name: LocalizedText }[] = notePuzzleTypes.map((type) => ({
   type,

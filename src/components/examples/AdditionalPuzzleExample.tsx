@@ -1,26 +1,30 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { PuzzleExample } from '@/puzzles/types';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
+  getBoardCellStyle,
+  getBoardCellColors,
   getBoardDotRadius,
+  getBoardBoundaryStrokeMetrics,
   getBoardFrameStyle,
   getBoardSvgTextProps,
   getBoardTextStyle,
-  getCellDividerStyle,
   getLoopCrossSize,
   getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
-  getOutlinedBorderStrokeWidth,
-  getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import { getEdgeKey, getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
 import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
+import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 
 type AdditionalPuzzleExampleData = Extract<
   PuzzleExample,
   | { puzzleType: 'slither' }
+  | { puzzleType: 'wolvesandsheepfences' }
   | { puzzleType: 'lits' }
   | { puzzleType: 'lakes' }
   | { puzzleType: 'domino-search' }
@@ -34,20 +38,29 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
 function ExamplePair({ left, right, playableLabel, answerLabel }: Props & { left: ReactNode; right: ReactNode }) {
+  const [showAnswer, setShowAnswer] = useState(false);
+
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div>
-        <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{playableLabel}</div>
+        <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
         {left}
       </div>
       <div>
-        <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{answerLabel}</div>
-        {right}
+        <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
+        <ExampleAnswerReveal
+          visible={showAnswer}
+          onVisibleChange={setShowAnswer}
+          ariaLabel={answerLabel}
+          className="flex justify-center overflow-x-auto"
+        >
+          {right}
+        </ExampleAnswerReveal>
       </div>
     </div>
   );
@@ -94,12 +107,8 @@ function CellGrid({
             key={`${row}-${col}`}
             className={boardClassNames.cellContent}
             style={{
-              width: `${CELL_SIZE}px`,
-              height: `${CELL_SIZE}px`,
-              background: woodBoardTheme.cell,
-              color: woodBoardTheme.border,
+              ...getBoardCellStyle(CELL_SIZE, 'cell'),
               ...getBoardTextStyle(CELL_SIZE),
-              ...getCellDividerStyle(),
             }}
           >
             {children(row, col)}
@@ -112,8 +121,7 @@ function CellGrid({
 
 function RegionBoundaries({ regionIds, width, height }: { regionIds: number[][]; width: number; height: number }) {
   const boundaries = getRegionBoundarySegments(regionIds, width, height);
-  const strokeWidth = getRoomBoundaryStrokeWidth();
-  const outlineWidth = getOutlinedBorderStrokeWidth(strokeWidth);
+  const { strokeWidth, outlineWidth } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
 
   return (
     <svg
@@ -211,14 +219,7 @@ function ShadedBoard({
           return (
             <div
               className={`absolute inset-0 flex items-center justify-center ${boardClassNames.cellText}`}
-              style={{
-                background: clue !== undefined
-                  ? woodBoardTheme.clueCell
-                  : isShaded
-                    ? woodBoardTheme.shaded
-                    : woodBoardTheme.cell,
-                color: isShaded ? woodBoardTheme.shadedText : woodBoardTheme.border,
-              }}
+              style={getBoardCellColors(clue !== undefined ? 'clue' : isShaded ? 'shaded' : 'cell')}
             >
               {clue}
             </div>
@@ -230,7 +231,10 @@ function ShadedBoard({
   );
 }
 
-function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'slither' }>; answer: boolean }) {
+function SlitherBoard({ example, answer }: {
+  example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'slither' | 'wolvesandsheepfences' }>;
+  answer: boolean;
+}) {
   const lineSet = new Set(answer ? example.loopEdges : []);
   const crossSet = new Set(answer ? example.crossedEdges ?? [] : []);
   const stroke = getLoopLineStrokeWidth(CELL_SIZE);
@@ -255,18 +259,28 @@ function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleEx
                 fill={woodBoardTheme.cell}
                 stroke={woodBoardTheme.gridLine}
               />
-              {example.clues[row][col] !== null ? (
-                <text
-                  x={BOARD_PADDING + (col + 0.5) * CELL_SIZE}
-                  y={BOARD_PADDING + (row + 0.5) * CELL_SIZE}
-                  dominantBaseline="central"
-                  textAnchor="middle"
-                  fill={woodBoardTheme.border}
-                  {...clueTextProps}
-                >
-                  {example.clues[row][col]}
-                </text>
-              ) : null}
+              {example.clues[row][col] !== null ? (() => {
+                const clue = example.clues[row][col];
+                if (clue === 'sheep' || clue === 'wolf') {
+                  return (
+                    <g transform={`translate(${BOARD_PADDING + col * CELL_SIZE} ${BOARD_PADDING + row * CELL_SIZE}) scale(${CELL_SIZE / 100})`}>
+                      <WolvesAndSheepSymbol kind={clue} cellSize={CELL_SIZE} asSvg />
+                    </g>
+                  );
+                }
+                return (
+                  <text
+                    x={BOARD_PADDING + (col + 0.5) * CELL_SIZE}
+                    y={BOARD_PADDING + (row + 0.5) * CELL_SIZE}
+                    dominantBaseline="central"
+                    textAnchor="middle"
+                    fill={woodBoardTheme.border}
+                    {...clueTextProps}
+                  >
+                    {clue}
+                  </text>
+                );
+              })() : null}
             </g>
           ))
         )}
@@ -317,7 +331,7 @@ function SlitherBoard({ example, answer }: { example: Extract<AdditionalPuzzleEx
 
 function DominoBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'domino-search' }>; answer: boolean }) {
   const edges = answer ? example.solutionEdges.map(getEdgeKey) : [];
-  const strokeWidth = getRoomBoundaryStrokeWidth();
+  const { strokeWidth } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
 
   return (
     <BoardFrame width={example.width} height={example.height}>
@@ -360,11 +374,13 @@ function NumberGridBoard({
   height,
   cells,
   values,
+  clueTone = false,
 }: {
   width: number;
   height: number;
   cells: Array<Array<unknown>>;
   values?: (number | null)[][];
+  clueTone?: boolean;
 }) {
   return (
     <BoardFrame width={width} height={height}>
@@ -381,8 +397,9 @@ function NumberGridBoard({
             <div
               className={`absolute inset-0 flex items-center justify-center ${boardClassNames.cellText}`}
               style={{
-                background: isBlock ? woodBoardTheme.shaded : typeof cell === 'number' ? woodBoardTheme.prefilledCell : woodBoardTheme.cell,
-                color: isBlock ? woodBoardTheme.shadedText : woodBoardTheme.border,
+                ...getBoardCellColors(
+                  isBlock ? 'shaded' : typeof cell === 'number' ? (clueTone ? 'clue' : 'prefilled') : 'cell'
+                ),
                 ...getBoardTextStyle(CELL_SIZE, clue ? 0.31 : 0.68, clue ? 13 : 22),
               }}
             >
@@ -396,7 +413,7 @@ function NumberGridBoard({
 }
 
 export default function AdditionalPuzzleExample({ example, playableLabel, answerLabel }: Props) {
-  if (example.puzzleType === 'slither') {
+  if (example.puzzleType === 'slither' || example.puzzleType === 'wolvesandsheepfences') {
     return (
       <ExamplePair
         example={example}
@@ -450,8 +467,8 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        left={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} />}
-        right={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} />}
+        left={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} clueTone />}
+        right={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
       />
     );
   }

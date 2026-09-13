@@ -1,4 +1,4 @@
-type TrialLevelColors = {
+export type TrialLevelColors = {
   fill: string;
   softFill: string;
   text: string;

@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameStyle,
+  getBoardOutsideClueLayout,
   getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
@@ -17,6 +18,7 @@ import {
 } from '@/puzzles/Battleship/BattleshipVisuals';
 import {
   getBattleshipOccupiedGrid,
+  getBattleshipNeighborConnections,
   inferBattleshipSegment,
 } from '@/puzzles/Battleship/utils';
 import { getCellKey } from '@/puzzles/gridUtils';
@@ -34,8 +36,7 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = 36;
-const CLUE_GUTTER = 28;
+const CELL_SIZE = boardLayoutMetrics.compactExampleCellSize;
 
 function BattleshipDiagram({
   puzzle,
@@ -53,12 +54,16 @@ function BattleshipDiagram({
     () => Array.from({ length: puzzle.width }, () => 0 as const)
   );
   const occupied = getBattleshipOccupiedGrid(grid, puzzle);
-  const gridLeft = commonBoardChrome.padding + CLUE_GUTTER;
-  const gridTop = commonBoardChrome.padding + CLUE_GUTTER;
+  const outsideClueLayout = getBoardOutsideClueLayout(CELL_SIZE, {
+    top: puzzle.columnClues,
+    left: puzzle.rowClues,
+  });
+  const gridLeft = commonBoardChrome.padding + outsideClueLayout.left;
+  const gridTop = commonBoardChrome.padding + outsideClueLayout.top;
   const boardWidth = puzzle.width * CELL_SIZE;
   const boardHeight = puzzle.height * CELL_SIZE;
-  const outerWidth = boardWidth + CLUE_GUTTER + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
-  const outerHeight = boardHeight + CLUE_GUTTER + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
+  const outerWidth = boardWidth + outsideClueLayout.left + outsideClueLayout.right + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
+  const outerHeight = boardHeight + outsideClueLayout.top + outsideClueLayout.bottom + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -82,6 +87,7 @@ function BattleshipDiagram({
             Array.from({ length: puzzle.width }, (_, col) => {
               const clue = clueMap.get(getCellKey(row, col));
               const isShip = occupied[row][col];
+              const neighbors = getBattleshipNeighborConnections(occupied, row, col);
               return (
                 <div
                   key={`${row}-${col}`}
@@ -99,12 +105,7 @@ function BattleshipDiagram({
                       segment={clue.segment ?? 'unknown'}
                       cellSize={CELL_SIZE}
                       given
-                      neighbors={{
-                        top: occupied[row - 1]?.[col] === true,
-                        right: occupied[row]?.[col + 1] === true,
-                        bottom: occupied[row + 1]?.[col] === true,
-                        left: occupied[row]?.[col - 1] === true,
-                      }}
+                      neighbors={neighbors}
                     />
                   ) : null}
                   {!clue && isShip ? (
@@ -112,12 +113,7 @@ function BattleshipDiagram({
                       segment={inferBattleshipSegment(occupied, row, col)}
                       cellSize={CELL_SIZE}
                       resolved
-                      neighbors={{
-                        top: occupied[row - 1]?.[col] === true,
-                        right: occupied[row]?.[col + 1] === true,
-                        bottom: occupied[row + 1]?.[col] === true,
-                        left: occupied[row]?.[col - 1] === true,
-                      }}
+                      neighbors={neighbors}
                     />
                   ) : null}
                 </div>
@@ -132,7 +128,7 @@ function BattleshipDiagram({
             className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
             style={{
               left: `${gridLeft + (col + 0.5) * CELL_SIZE}px`,
-              top: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
+              top: `${commonBoardChrome.padding + outsideClueLayout.top / 2}px`,
               color: woodBoardTheme.border,
               ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
             }}
@@ -145,7 +141,7 @@ function BattleshipDiagram({
             key={`left-${row}`}
             className="absolute -translate-x-1/2 -translate-y-1/2 text-center tabular-nums"
             style={{
-              left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
+              left: `${commonBoardChrome.padding + outsideClueLayout.left / 2}px`,
               top: `${gridTop + (row + 0.5) * CELL_SIZE}px`,
               color: woodBoardTheme.border,
               ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
@@ -172,7 +168,6 @@ export default function BattleshipExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const puzzle: BattleshipPuzzleData = {
     type: 'battleship',
     width,
@@ -187,33 +182,23 @@ export default function BattleshipExample({
     <>
       <div className="grid gap-6 md:grid-cols-2">
         <div>
-          <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{playableLabel}</div>
+          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
           <div className="flex justify-center overflow-x-auto">
             <BattleshipDiagram puzzle={puzzle} />
           </div>
         </div>
         <div>
-          <div className="mb-2 text-center text-sm font-medium text-muted-foreground">{answerLabel}</div>
-          <div
-            className="relative flex justify-center overflow-x-auto"
-            onClick={() => {
-              if (!showAnswer) setConfirmSpoiler(true);
-            }}
+          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="flex justify-center overflow-x-auto"
           >
             <BattleshipDiagram puzzle={puzzle} solution={correctSolution} />
-            {!showAnswer ? <ExampleAnswerOverlay /> : null}
-          </div>
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

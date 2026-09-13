@@ -60,7 +60,7 @@ export default function SkyscrapersBoard({
   );
 
   return (
-    <div className="flex w-full flex-col items-center gap-3">
+    <div className="flex w-full min-w-0 flex-col items-center gap-3">
       <div className="w-full text-right text-sm font-semibold text-muted-foreground">
         {copy.shared.numberRange(Math.min(...puzzle.numbers), Math.max(...puzzle.numbers))}
       </div>

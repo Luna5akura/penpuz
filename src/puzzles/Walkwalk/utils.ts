@@ -3,6 +3,7 @@ import type {
   WalkwalkPuzzleData,
   YajilinSolutionEdge,
 } from '../types';
+import { isValidCellEdgeKey } from '../gridUtils';
 
 export interface WalkwalkValidationResult {
   valid: boolean;
@@ -260,11 +261,7 @@ export function detectWalkwalkHitTarget(
   }
 
   const threshold = Math.max(8, cellSize * 0.18);
-  const candidates: Array<{
-    distance: number;
-    edgeKey: string | null;
-    cells: [{ row: number; col: number }, { row: number; col: number }];
-  }> = [
+  const candidates = [
     {
       distance: Math.hypot(localX - centerX, localY),
       edgeKey: row > 0 ? getWalkwalkEdgeKey(row - 1, col, row, col) : null,
@@ -287,7 +284,11 @@ export function detectWalkwalkHitTarget(
     },
   ]
     .filter((item) => item.edgeKey !== null)
-    .sort((a, b) => a.distance - b.distance);
+    .sort((a, b) => a.distance - b.distance) as Array<{
+      distance: number;
+      edgeKey: string | null;
+      cells: [{ row: number; col: number }, { row: number; col: number }];
+    }>;
 
   const best = candidates[0];
   if (best && best.distance <= threshold && best.edgeKey) {
@@ -362,7 +363,10 @@ export function validateWalkwalk(
 
   for (const key of lineEdges) {
     const edge = parseWalkwalkEdgeKey(key);
-    if (!edge) continue;
+    if (!edge || !isValidCellEdgeKey(key, width, height)) {
+      setMessage('存档中存在无法识别的线段');
+      continue;
+    }
     const endpoints = [
       { row: edge.r1, col: edge.c1 },
       { row: edge.r2, col: edge.c2 },
@@ -409,7 +413,7 @@ export function validateWalkwalk(
         const [r, c] = key.split(',').map(Number);
         return { r, c };
       }),
-      badClues: Array.from(badClues),
+      badClueIndices: Array.from(badClues),
     };
   }
 
@@ -445,12 +449,12 @@ export function validateWalkwalk(
   });
 
   return {
-    valid: badCells.size === 0 && badClues.size === 0,
+    valid: !message && badCells.size === 0 && badClues.size === 0,
     message,
     badCells: Array.from(badCells).map((key) => {
       const [r, c] = key.split(',').map(Number);
       return { r, c };
     }),
-    badClues: Array.from(badClues),
+    badClueIndices: Array.from(badClues),
   };
 }

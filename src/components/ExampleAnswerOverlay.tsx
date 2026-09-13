@@ -8,6 +8,7 @@ export default function ExampleAnswerOverlay({ rounded = false }: Props) {
       className={`absolute inset-0 flex items-center justify-center bg-black/70 dark:bg-black/80 pointer-events-none ${
         rounded ? 'rounded-lg' : ''
       }`}
+      style={{ zIndex: 10 }}
     >
       <div className="text-white text-6xl">👁️‍🗨️</div>
     </div>

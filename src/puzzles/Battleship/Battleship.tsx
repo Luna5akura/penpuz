@@ -1,9 +1,13 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import { getCellKey } from '../gridUtils';
+import { getTrialLevelColors } from '../trialStyles';
+import { getBoardTrialCellStyle } from '../boardTheme';
 import type { BattleshipPuzzleData } from '../types';
 import {
   getBattleshipOccupiedGrid,
+  getBattleshipNeighborConnections,
+  getBattleshipWaterClueKeys,
   inferBattleshipSegment,
   isBattleshipSegmentResolved,
   validateBattleship,
@@ -43,6 +47,21 @@ export default function BattleshipBoard({
     (row: number, col: number) => clueMap.has(getCellKey(row, col)),
     [clueMap]
   );
+  const waterClueKeys = useMemo(() => getBattleshipWaterClueKeys(puzzle), [puzzle]);
+  const occupiedCache = useRef<{
+    puzzle: BattleshipPuzzleData;
+    grid: ShadingCellState[][];
+    occupied: boolean[][];
+  } | null>(null);
+  const getOccupied = useCallback((grid: ShadingCellState[][]) => {
+    if (occupiedCache.current?.puzzle === puzzle && occupiedCache.current.grid === grid) {
+      return occupiedCache.current.occupied;
+    }
+
+    const occupied = getBattleshipOccupiedGrid(grid, puzzle);
+    occupiedCache.current = { puzzle, grid, occupied };
+    return occupied;
+  }, [puzzle]);
 
   return (
     <ShadingBoard
@@ -65,11 +84,17 @@ export default function BattleshipBoard({
         if (state === 2) return 'marked';
         return 'cell';
       }}
-      renderCellContent={(row, col, state: ShadingCellState, cellSize, grid) => {
+      getTrialCellStyle={(_row, _col, state, level) => {
+        if (state !== 1) return undefined;
+        const trialColors = getTrialLevelColors(level);
+        return getBoardTrialCellStyle(trialColors, 'soft', trialColors?.line);
+      }}
+      renderCellContent={(row, col, state: ShadingCellState, cellSize, grid, levels) => {
         const clue = clueMap.get(getCellKey(row, col));
         if (clue?.kind === 'water') return <BattleshipWaterSymbol cellSize={cellSize} />;
 
-        const occupied = getBattleshipOccupiedGrid(grid, puzzle);
+        const occupied = getOccupied(grid);
+        const neighbors = getBattleshipNeighborConnections(occupied, row, col);
         if (clue?.kind === 'ship') {
           const segment = clue.segment ?? 'unknown';
           return (
@@ -77,12 +102,7 @@ export default function BattleshipBoard({
               segment={segment}
               cellSize={cellSize}
               given
-              neighbors={{
-                top: occupied[row - 1]?.[col] === true,
-                right: occupied[row]?.[col + 1] === true,
-                bottom: occupied[row + 1]?.[col] === true,
-                left: occupied[row]?.[col - 1] === true,
-              }}
+              neighbors={neighbors}
             />
           );
         }
@@ -92,13 +112,9 @@ export default function BattleshipBoard({
           <BattleshipSegmentSymbol
             segment={inferBattleshipSegment(occupied, row, col)}
             cellSize={cellSize}
-            resolved={isBattleshipSegmentResolved(grid, puzzle, occupied, row, col)}
-            neighbors={{
-              top: occupied[row - 1]?.[col] === true,
-              right: occupied[row]?.[col + 1] === true,
-              bottom: occupied[row + 1]?.[col] === true,
-              left: occupied[row]?.[col - 1] === true,
-            }}
+            resolved={isBattleshipSegmentResolved(grid, puzzle, occupied, row, col, waterClueKeys)}
+            neighbors={neighbors}
+            color={getTrialLevelColors(levels[row]?.[col] ?? 0)?.line}
           />
         );
       }}

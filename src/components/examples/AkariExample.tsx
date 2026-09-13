@@ -1,16 +1,16 @@
 import { useMemo, useState } from 'react';
-import ExampleAnswerRevealDialog from '@/components/ExampleAnswerRevealDialog';
-import ExampleAnswerOverlay from '@/components/ExampleAnswerOverlay';
+import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { AkariPuzzleData } from '../../puzzles/types';
 import AkariBoard from '../../puzzles/Akari/Akari';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardSymbolDiameter,
   getBoardFrameStyle,
   getBoardTextStyle,
   getCellDividerStyle,
-  woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import {
   createEmptyAkariGrid,
@@ -18,13 +18,13 @@ import {
   isAkariBlackCell,
 } from '../../puzzles/Akari/utils';
 
-interface Props extends AkariPuzzleData {
+interface Props extends Omit<AkariPuzzleData, 'type'> {
   bulbCells: { row: number; col: number }[];
   playableLabel: string;
   answerLabel: string;
 }
 
-const CELL_SIZE = 42;
+const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -37,7 +37,6 @@ export default function AkariExample({
   answerLabel,
 }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
-  const [confirmSpoiler, setConfirmSpoiler] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
   const examplePuzzle = useMemo<AkariPuzzleData>(
@@ -60,14 +59,14 @@ export default function AkariExample({
   const boardHeight = height * CELL_SIZE;
   const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
   const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const bulbDiameter = Math.max(20, Math.floor(CELL_SIZE * 0.8));
+  const bulbDiameter = getBoardSymbolDiameter(CELL_SIZE);
   const clueTextStyle = getBoardTextStyle(CELL_SIZE);
 
   return (
     <>
       <div className="flex flex-col xl:flex-row gap-10 justify-center">
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {playableLabel}
           </p>
           <AkariBoard
@@ -83,16 +82,17 @@ export default function AkariExample({
         </div>
 
         <div className="flex flex-col items-center">
-          <p className="text-base font-medium text-muted-foreground mb-4 dark:text-gray-400">
+          <p className="mb-4 text-center text-base font-medium text-muted-foreground">
             {answerLabel}
           </p>
-          {!showAnswer ? (
-            <div
-              onClick={() => setConfirmSpoiler(true)}
-              className="relative cursor-pointer hover:opacity-90"
-            >
+          <ExampleAnswerReveal
+            visible={showAnswer}
+            onVisibleChange={setShowAnswer}
+            ariaLabel={answerLabel}
+            className="relative"
+          >
+            {!showAnswer ? (
               <div
-                className="dark:border-gray-700 dark:bg-gray-800"
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
@@ -107,19 +107,16 @@ export default function AkariExample({
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
                       key={index}
-                      className="dark:bg-gray-800"
                       style={{
                         width: `${CELL_SIZE}px`,
                         height: `${CELL_SIZE}px`,
-                        background: woodBoardTheme.cell,
+                        ...getBoardCellColors('cell'),
                         ...getCellDividerStyle(),
                       }}
                     />
                   ))}
                 </div>
               </div>
-              <ExampleAnswerOverlay />
-            </div>
           ) : (
             <div
               className="relative"
@@ -168,7 +165,7 @@ export default function AkariExample({
                                 width: `${bulbDiameter}px`,
                                 height: `${bulbDiameter}px`,
                                 borderRadius: '9999px',
-                                  background: woodBoardTheme.shaded,
+                                  background: getBoardCellColors('shaded').background,
                                   display: 'block',
                                 }}
                               />
@@ -181,17 +178,9 @@ export default function AkariExample({
               </div>
             </div>
           )}
+          </ExampleAnswerReveal>
         </div>
       </div>
-
-      <ExampleAnswerRevealDialog
-        open={confirmSpoiler && !showAnswer}
-        onCancel={() => setConfirmSpoiler(false)}
-        onConfirm={() => {
-          setShowAnswer(true);
-          setConfirmSpoiler(false);
-        }}
-      />
     </>
   );
 }

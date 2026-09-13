@@ -44,6 +44,81 @@ export interface YajilinPuzzleData {
   clues: YajilinClue[];
 }
 
+/** Koburin (仙人指邻) clue. */
+export interface KoburinClue {
+  row: number;
+  col: number;
+  value: number | '?';
+}
+
+export interface KoburinPuzzleData {
+  type: 'koburin';
+  width: number;
+  height: number;
+  clues: KoburinClue[];
+  /** PuzzLink's optional `m` flag counts diagonal neighbours too. */
+  minesweeper?: boolean;
+}
+
+export type NeighborDigit = 1 | 2 | 3;
+
+/**
+ * Neighbors (WPF Puzzle GP 2015, round 4) puzzle data.
+ *
+ * `givens` contains the digits printed in the puzzle; `null` is an empty
+ * cell. `grayCells` identifies the outlined/gray cells. Every cell remains
+ * playable, including gray cells.
+ */
+export interface NeighborPuzzleData {
+  type: 'neighbor';
+  width: number;
+  height: number;
+  givens: (NeighborDigit | null)[][];
+  grayCells: boolean[][];
+}
+
+/**
+ * The four outside visibility lines used by a Sky-neighbors puzzle.
+ *
+ * A non-null value is an imported/fixed visibility clue.  `null` represents
+ * the blank answer cell used by the WPF booklet; the value is derived from
+ * the completed 9×9 grid by the interactive board and validator.
+ */
+export interface SkyNeighborClues {
+  top: (number | null)[];
+  right: (number | null)[];
+  bottom: (number | null)[];
+  left: (number | null)[];
+}
+
+/** Gray/outlined cells in the four one-cell-wide clue gutters. */
+export interface SkyNeighborOutsideGrayCells {
+  top: boolean[];
+  right: boolean[];
+  bottom: boolean[];
+  left: boolean[];
+}
+
+/**
+ * Sky-neighbors (WPF Puzzle GP 2015, round 4) puzzle data.
+ *
+ * The playable area is always a 9×9 Latin square of the digits 1, 2 and 3.
+ * The four one-cell-wide gutters are answer cells: their values are the
+ * skyscraper visibility counts.  `clues` may contain fixed values for
+ * imported puzzles, while `null` entries are blank answer cells.  Gutter
+ * cells participate in the white/gray neighbour rule but the four corners do
+ * not exist.  `outsideGrayCells` is optional; absent sides are white.
+ */
+export interface SkyNeighborPuzzleData {
+  type: 'sky-neighbor';
+  width: number;
+  height: number;
+  givens: (NeighborDigit | null)[][];
+  grayCells: boolean[][];
+  clues: SkyNeighborClues;
+  outsideGrayCells?: SkyNeighborOutsideGrayCells;
+}
+
 export interface StarbattlePuzzleData {
   type: 'starbattle';
   width: number;
@@ -285,10 +360,66 @@ export interface SlovakSumsPuzzleData {
   cells: SlovakSumsCell[][];
 }
 
+/** A black Kakuro clue cell. `right` and `down` are the two optional runs. */
+export interface KakuroClueCell {
+  right: number | null;
+  down: number | null;
+}
+
+/** `null` is a playable white cell; an object is a black clue cell. */
+export type KakuroCell = KakuroClueCell | null;
+
+export interface KakuroPuzzleData {
+  type: 'kakuro';
+  width: number;
+  height: number;
+  cells: KakuroCell[][];
+  /** Legacy edge-clue storage retained for hand-authored data; parsed links promote these into cells. */
+  topClues: (number | null)[];
+  /** Legacy edge-clue storage retained for hand-authored data; parsed links promote these into cells. */
+  leftClues: (number | null)[];
+}
+
+export type WolvesAndSheepClue = number | 'sheep' | 'wolf' | null;
+
+/** Wolves and Sheep Fences (`wolvesandsheepfences` in PuzzLink). */
+export interface WolvesAndSheepPuzzleData {
+  type: 'wolvesandsheepfences';
+  width: number;
+  height: number;
+  clues: WolvesAndSheepClue[][];
+}
+
+/** One polyomino from a Shape Minesweeper bank. */
+export interface ShapeMinesweeperShape {
+  /** A short identifier printed inside the source shape (for example T or L). */
+  label: string;
+  /** A trimmed rectangular mask; true cells make up the polyomino. */
+  cells: boolean[][];
+}
+
+export interface ShapeMinesweeperPuzzleData {
+  type: 'shape-minesweeper';
+  width: number;
+  height: number;
+  clues: (number | null)[][];
+  shapes: ShapeMinesweeperShape[];
+}
+
+export interface CavePuzzleData {
+  type: 'cave';
+  width: number;
+  height: number;
+  clues: (number | null)[][];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
   | YajilinPuzzleData
+  | KoburinPuzzleData
+  | NeighborPuzzleData
+  | SkyNeighborPuzzleData
   | StarbattlePuzzleData
   | HeyawakePuzzleData
   | AqrePuzzleData
@@ -306,7 +437,11 @@ export type PuzzleData =
   | BattleshipPuzzleData
   | DominoSearchPuzzleData
   | MagicSnailPuzzleData
-  | SlovakSumsPuzzleData;
+  | SlovakSumsPuzzleData
+  | KakuroPuzzleData
+  | WolvesAndSheepPuzzleData
+  | ShapeMinesweeperPuzzleData
+  | CavePuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -353,6 +488,33 @@ export type PuzzleExample =
       shadedCells: { row: number; col: number }[];
       loopEdges: YajilinSolutionEdge[];
       crossedEdges?: YajilinSolutionEdge[];
+    }
+  | {
+      puzzleType: 'koburin';
+      width: number;
+      height: number;
+      clues: KoburinClue[];
+      shadedCells: { row: number; col: number }[];
+      loopEdges: YajilinSolutionEdge[];
+      crossedEdges?: YajilinSolutionEdge[];
+    }
+  | {
+      puzzleType: 'neighbor';
+      width: number;
+      height: number;
+      givens: (NeighborDigit | null)[][];
+      grayCells: boolean[][];
+      correctGrid: NeighborDigit[][];
+    }
+  | {
+      puzzleType: 'sky-neighbor';
+      width: number;
+      height: number;
+      givens: (NeighborDigit | null)[][];
+      grayCells: boolean[][];
+      clues: SkyNeighborClues;
+      outsideGrayCells?: SkyNeighborOutsideGrayCells;
+      correctGrid: NeighborDigit[][];
     }
   | {
       puzzleType: 'starbattle';
@@ -503,6 +665,38 @@ export type PuzzleExample =
       numbers: number[];
       cells: SlovakSumsCell[][];
       correctGrid: (number | null)[][];
+    }
+  | {
+      puzzleType: 'kakuro';
+      width: number;
+      height: number;
+      cells: KakuroCell[][];
+      topClues: (number | null)[];
+      leftClues: (number | null)[];
+      correctGrid: (number | null)[][];
+    }
+  | {
+      puzzleType: 'wolvesandsheepfences';
+      width: number;
+      height: number;
+      clues: WolvesAndSheepClue[][];
+      loopEdges: string[];
+      crossedEdges?: string[];
+    }
+  | {
+      puzzleType: 'shape-minesweeper';
+      width: number;
+      height: number;
+      clues: (number | null)[][];
+      shapes: ShapeMinesweeperShape[];
+      correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'cave';
+      width: number;
+      height: number;
+      clues: (number | null)[][];
+      correctSolution: (0 | 1)[][];
     };
 
 export interface PuzzleTemplate {

@@ -217,6 +217,31 @@ export function parseBattleshipLink(link: string): BattleshipPuzzleData | null {
 
 type Coord = { row: number; col: number };
 
+export interface BattleshipNeighborConnections {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+}
+
+/**
+ * Returns the four orthogonal neighbours of a cell in an occupied grid.
+ * Keeping this in the puzzle utilities makes the renderer and validator use
+ * exactly the same adjacency convention.
+ */
+export function getBattleshipNeighborConnections(
+  occupied: boolean[][],
+  row: number,
+  col: number
+): BattleshipNeighborConnections {
+  return {
+    top: occupied[row - 1]?.[col] === true,
+    right: occupied[row]?.[col + 1] === true,
+    bottom: occupied[row + 1]?.[col] === true,
+    left: occupied[row]?.[col - 1] === true,
+  };
+}
+
 function canonicalizeCoords(coords: Coord[]) {
   const variants = Array.from({ length: 8 }, (_, transform) => {
     const transformed = coords.map(({ row, col }) => {
@@ -285,15 +310,48 @@ function collectOccupiedComponents(occupied: boolean[][]) {
   return { components, componentIds };
 }
 
-export function getBattleshipOccupiedGrid(grid: ShadingCellState[][], puzzle: BattleshipPuzzleData) {
+export interface BattleshipOccupiedGridOptions {
+  /** Optional per-cell trial levels used by note/replay rendering. */
+  levels?: ReadonlyArray<ReadonlyArray<unknown>>;
+  /** Hide user-entered cells above this level while retaining given ships. */
+  visibleTrialLevel?: number;
+}
+
+export function getBattleshipOccupiedGrid(
+  grid: ReadonlyArray<ReadonlyArray<unknown>>,
+  puzzle: BattleshipPuzzleData,
+  options: BattleshipOccupiedGridOptions = {}
+) {
+  const visibleTrialLevel = options.visibleTrialLevel ?? Number.POSITIVE_INFINITY;
+  const levels = options.levels;
   const occupied = Array.from({ length: puzzle.height }, (_, row) =>
-    Array.from({ length: puzzle.width }, (_, col) => grid[row]?.[col] === 1)
+    Array.from(
+      { length: puzzle.width },
+      (_, col) => {
+        if (grid[row]?.[col] !== 1) return false;
+        const level = levels?.[row]?.[col];
+        return !(typeof level === 'number' && Number.isFinite(level) && level > visibleTrialLevel);
+      }
+    )
   );
 
   puzzle.cellClues.forEach((clue) => {
-    if (clue.kind === 'ship') occupied[clue.row][clue.col] = true;
+    if (
+      clue.kind === 'ship' &&
+      occupied[clue.row]?.[clue.col] !== undefined
+    ) {
+      occupied[clue.row][clue.col] = true;
+    }
   });
   return occupied;
+}
+
+export function getBattleshipWaterClueKeys(puzzle: BattleshipPuzzleData) {
+  return new Set(
+    puzzle.cellClues
+      .filter((clue) => clue.kind === 'water')
+      .map((clue) => getCellKey(clue.row, clue.col))
+  );
 }
 
 export function inferBattleshipSegment(occupied: boolean[][], row: number, col: number): BattleshipSegment {
@@ -319,17 +377,13 @@ export function inferBattleshipSegment(occupied: boolean[][], row: number, col: 
 }
 
 export function isBattleshipSegmentResolved(
-  grid: ShadingCellState[][],
+  grid: ReadonlyArray<ReadonlyArray<unknown>>,
   puzzle: BattleshipPuzzleData,
   occupied: boolean[][],
   row: number,
-  col: number
+  col: number,
+  waterClues = getBattleshipWaterClueKeys(puzzle)
 ) {
-  const waterClues = new Set(
-    puzzle.cellClues
-      .filter((clue) => clue.kind === 'water')
-      .map((clue) => getCellKey(clue.row, clue.col))
-  );
   const directions = {
     top: [-1, 0],
     right: [0, 1],
