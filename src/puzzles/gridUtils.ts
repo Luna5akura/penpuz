@@ -8,7 +8,8 @@ export interface BoundarySegments {
   vertical: Array<{ row: number; col: number }>;
 }
 
-export function normalizePuzzLinkDataPart(link: string) {
+export function normalizePuzzLinkDataPart(link: string | undefined | null) {
+  if (typeof link !== 'string') return '';
   let dataPart = link.trim();
   const queryIndex = dataPart.indexOf('?');
   if (queryIndex >= 0) dataPart = dataPart.slice(queryIndex + 1);

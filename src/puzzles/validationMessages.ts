@@ -20,6 +20,7 @@ const ENGLISH_VALIDATION_MESSAGES: Record<string, string> = {
   '盘面中的形状与形状库不一致': 'The shapes in the grid do not exactly match the shape bank.',
   '不同形状不能正交或斜向接触': 'Different shapes may not touch orthogonally or diagonally.',
   '形状格必须正交连通': 'Every shape must be orthogonally connected.',
+  '至少需要涂黑一个格子': 'At least one cell must be shaded.',
   '数字格必须属于洞穴': 'Every numbered cell must belong to the cave.',
   '数字与可见洞穴格总数不符': 'A clue does not match the number of visible cave cells.',
   '所有洞穴格必须正交连通': 'All cave cells must form one orthogonally connected area.',
@@ -120,6 +121,16 @@ const ENGLISH_VALIDATION_MESSAGES: Record<string, string> = {
   '线索格不能涂黑': 'Clue cells must remain unshaded.',
   '不能出现 2x2 全黑区域': 'A 2×2 block may not be completely shaded.',
   '所有黑格必须连成一个整体': 'All shaded cells must form one connected area.',
+  '每个格子都必须填入正整数': 'Every cell must contain a positive integer.',
+  '箭头方向上的不同数字数量不正确': 'The number of distinct digits in the arrow direction is incorrect.',
+  '数字格不能放置箭头或空格标记': 'A numbered cell cannot contain an arrow or X.',
+  '每个空格都必须画箭头或标记 X': 'Every empty cell must contain an arrow or X.',
+  '每条箭头必须从数字格边缘开始': 'Every arrow must begin at the edge of a numbered cell.',
+  '数字格旁箭头的总长度不正确': 'The total arrow length for a clue is incorrect.',
+  '每行必须恰好保留一个空格': 'Each row must contain exactly one empty cell.',
+  '每列必须恰好保留一个空格': 'Each column must contain exactly one empty cell.',
+  '白线相邻格必须填连续数字': 'Cells joined by a white bar must contain consecutive digits.',
+  '无白线相邻格不能填连续数字': 'Cells without a white bar may not contain consecutive digits.',
 };
 
 const NURIKABE_AREA_MESSAGE = /^岛屿面积不符：预期\s*(\d+)，实际\s*(\d+)$/u;

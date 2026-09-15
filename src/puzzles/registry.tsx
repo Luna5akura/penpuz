@@ -27,6 +27,11 @@ import KakuroBoard from './Kakuro/Kakuro';
 import WolvesAndSheepBoard from './WolvesAndSheep/WolvesAndSheep';
 import ShapeMinesweeperBoard from './ShapeMinesweeper/ShapeMinesweeper';
 import CaveBoard from './Cave/Cave';
+import JapaneseArrowsBoard from './JapaneseArrows/JapaneseArrows';
+import FourWindsBoard from './FourWinds/FourWinds';
+import ConsecutiveKakuroBoard from './ConsecutiveKakuro/ConsecutiveKakuro';
+import JapaneseSumsBoard from './JapaneseSums/JapaneseSums';
+import ABCBoxBoard from './ABCBox/ABCBox';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
@@ -100,6 +105,11 @@ import type {
   WolvesAndSheepPuzzleData,
   ShapeMinesweeperPuzzleData,
   CavePuzzleData,
+  JapaneseArrowsPuzzleData,
+  FourWindsPuzzleData,
+  ConsecutiveKakuroPuzzleData,
+  JapaneseSumsWithZeroesPuzzleData,
+  ABCBoxPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
 import TapaExample from '../components/examples/TapaExample';
@@ -115,8 +125,13 @@ import {
   parseSkyNeighborLink,
   validateSkyNeighbor,
 } from './SkyNeighbor/utils';
-import { parseShapeMinesweeperLink } from './ShapeMinesweeper/utils';
-import { parseCaveLink } from './Cave/utils';
+import { parseShapeMinesweeperLink, validateShapeMinesweeper } from './ShapeMinesweeper/utils';
+import { parseCaveLink, validateCave } from './Cave/utils';
+import { parseJapaneseArrowsLink } from './JapaneseArrows/utils';
+import { parseFourWindsLink } from './FourWinds/utils';
+import { parseConsecutiveKakuroLink } from './ConsecutiveKakuro/utils';
+import { parseJapaneseSumsLink } from './JapaneseSums/utils';
+import { parseABCBoxLink } from './ABCBox/utils';
 
 const WALKWALK_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/5/5/8gh20v00l1g6m7l3g';
 const walkwalkExamplePuzzle = parseWalkwalkLink(WALKWALK_EXAMPLE_LINK);
@@ -325,12 +340,13 @@ const wolvesAndSheepExampleLoopEdges = [
   'h-4-0',
 ];
 
+// WPF Puzzle GP 2015 Round 5 (PDF p. 9), Shape Minesweeper example bank.
 const roundFiveShapes = [
   { label: 'T', cells: [[true, true, true], [false, true, false]] },
   { label: 'I', cells: [[true], [true], [true], [true]] },
   { label: 'O', cells: [[true, true], [true, true]] },
   { label: 'L', cells: [[true, false], [true, false], [true, true]] },
-  { label: 'S', cells: [[true, false, false], [true, true, true]] },
+  { label: 'S', cells: [[false, true, true], [true, true, false]] },
 ] satisfies ShapeMinesweeperPuzzleData['shapes'];
 
 const shapeMinesweeperExamplePuzzle: ShapeMinesweeperPuzzleData = {
@@ -361,6 +377,13 @@ const shapeMinesweeperExampleSolution: (0 | 1)[][] = [
   [0, 0, 0, 0, 0, 0, 1, 1],
 ];
 
+if (!validateShapeMinesweeper(
+  shapeMinesweeperExampleSolution,
+  shapeMinesweeperExamplePuzzle
+).valid) {
+  throw new Error('Built-in Shape Minesweeper example answer does not satisfy the PDF rules.');
+}
+
 const caveExamplePuzzle: CavePuzzleData = {
   type: 'cave',
   width: 5,
@@ -381,6 +404,13 @@ const caveExampleSolution: (0 | 1)[][] = [
   [1, 0, 1, 0, 0],
   [1, 0, 0, 0, 0],
 ];
+
+if (!validateCave(
+  caveExampleSolution,
+  caveExamplePuzzle,
+).valid) {
+  throw new Error('Built-in Cave example answer does not satisfy the Cave rules.');
+}
 
 interface PuzzleBoardProps<TPuzzle extends PuzzleData> {
   puzzle: TPuzzle;
@@ -427,6 +457,11 @@ type PuzzleRegistry = {
   wolvesandsheepfences: PuzzleRegistryEntry<WolvesAndSheepPuzzleData>;
   'shape-minesweeper': PuzzleRegistryEntry<ShapeMinesweeperPuzzleData>;
   cave: PuzzleRegistryEntry<CavePuzzleData>;
+  'japanese-arrows': PuzzleRegistryEntry<JapaneseArrowsPuzzleData>;
+  'four-winds-with-parks': PuzzleRegistryEntry<FourWindsPuzzleData>;
+  'consecutive-kakuro': PuzzleRegistryEntry<ConsecutiveKakuroPuzzleData>;
+  'japanese-sums-with-zeroes': PuzzleRegistryEntry<JapaneseSumsWithZeroesPuzzleData>;
+  'abc-box': PuzzleRegistryEntry<ABCBoxPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -2777,6 +2812,63 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  'japanese-arrows': {
+    parsePuzzLink: parseJapaneseArrowsLink,
+    template: {
+      type: 'japanese-arrows', name: { 'zh-CN': '日式箭头', en: 'Japanese Arrows' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: { 'zh-CN': ['在每个格子中填入数字。数字和箭头共同表示箭头方向上（不含自身）出现的不同数字数量。'], en: ['Fill every cell. The number and arrow indicate how many different numbers occur in the pointed direction, excluding the cell itself.'] },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      example: { puzzleType: 'japanese-arrows', width: 2, height: 1, arrows: [['E', 'W']], clues: [[1, null]], correctGrid: [[1, 1]] },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <JapaneseArrowsBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'japanese-arrows') throw new Error('Japanese Arrows template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
+  },
+  'four-winds-with-parks': {
+    parsePuzzLink: parseFourWindsLink,
+    template: {
+      type: 'four-winds-with-parks', name: { 'zh-CN': '四风带公园', en: 'Four Winds with Parks' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: { 'zh-CN': ['从数字格边缘画出指向四个方向的箭头；箭头不能重叠。每行每列恰好有一个空格。数字是从该格出发的箭头总长度。'], en: ['Draw non-overlapping arrows from numbered cell edges. Every row and column has exactly one empty cell. A clue is the total length of arrows starting beside it.'] },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      example: { puzzleType: 'four-winds-with-parks', width: 2, height: 2, clues: [[1, null], [null, 1]], correctGrid: [[0, 4], [1, 0]] },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <FourWindsBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'four-winds-with-parks') throw new Error('Four Winds template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
+  },
+  'consecutive-kakuro': {
+    parsePuzzLink: parseConsecutiveKakuroLink,
+    template: {
+      type: 'consecutive-kakuro', name: { 'zh-CN': '连续数和', en: 'Consecutive Kakuro' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: { 'zh-CN': ['按数和规则填入 1~9；白线相邻格必须填连续数字，无白线相邻格不能填连续数字。'], en: ['Solve as Kakuro with digits 1–9. White bars require consecutive digits; adjacent cells without a bar may not be consecutive.'] },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      example: { puzzleType: 'consecutive-kakuro', width: 2, height: 2, cells: [[{ right: 1, down: 1 }, null], [null, null]], topClues: [null, null], leftClues: [null, null], horizontalBars: [[true], [false]], verticalBars: [[true, false]], correctGrid: [[null, 1], [1, null]] },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <ConsecutiveKakuroBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'consecutive-kakuro') throw new Error('Consecutive Kakuro template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
+  },
+  'japanese-sums-with-zeroes': {
+    parsePuzzLink: parseJapaneseSumsLink,
+    template: { type: 'japanese-sums-with-zeroes', name: { 'zh-CN': '带零日式和', en: 'Japanese Sums with Zeroes' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' }, rules: { 'zh-CN': ['在格子中填入 0 到 6；空格分隔连续数字组，外侧数字给出各组之和。0 不会分隔数字组。'], en: ['Fill digits 0–6. Empty cells separate runs; outside clues give the sums of runs. Zero is a digit and does not separate runs.'] }, exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' }, example: { puzzleType: 'japanese-sums-with-zeroes', width: 2, height: 2, maxDigit: 6, clues: { top: [[1],[2]], right: [[],[]], bottom: [[],[]], left: [[1],[2]] }, correctGrid: [[1, null], [2, null]] } },
+    renderBoard: (props) => <JapaneseSumsBoard {...props} />,
+    renderExample: () => <div className="rounded-md border p-4 text-center">Japanese Sums with Zeroes</div>,
+  },
+  'abc-box': {
+    parsePuzzLink: parseABCBoxLink,
+    template: { type: 'abc-box', name: { 'zh-CN': 'ABC 盒', en: 'ABC-Box' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' }, rules: { 'zh-CN': ['每格填入 A、B、C 之一；外侧符号描述同字母连续区段的长度或字母。'], en: ['Fill each cell with A, B, or C. Outside symbols describe the lengths or letters of consecutive runs.'] }, exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' }, example: { puzzleType: 'abc-box', width: 2, height: 2, givens: [['A', null], [null, 'B']], clues: { top: [[],[]], right: [[],[]], bottom: [[],[]], left: [[],[]] }, correctGrid: [['A','B'],['C','A']] } },
+    renderBoard: (props) => <ABCBoxBoard {...props} />,
+    renderExample: () => <div className="rounded-md border p-4 text-center">ABC-Box</div>,
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
@@ -2963,7 +3055,29 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
         cell === null || (isFiniteInteger(cell, 0) && cell <= 8)
       ) && isShapeMinesweeperBank(value.shapes);
     case 'cave':
-      return isTypedMatrix(value.clues, width, height, (cell) => isNullableInteger(cell, 1));
+      // A Cave clue is the number of visible cells in its row/column.  Its
+      // useful range is therefore 1..(width + height - 1); null denotes an
+      // unnumbered cell.
+      return isTypedMatrix(value.clues, width, height, (cell) =>
+        cell === null || (isFiniteInteger(cell, 1) && cell <= width + height - 1)
+      );
+    case 'japanese-arrows':
+      return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1) && cell <= 9) &&
+        isTypedMatrix(value.arrows, width, height, (cell) => typeof cell === 'string' && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(cell));
+    case 'four-winds-with-parks':
+      return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1));
+    case 'consecutive-kakuro':
+      return isTypedMatrix(value.cells, width, height, (cell) => cell === null || (
+        isRecord(cell) && isNullableInteger(cell.right, 0, 45) && isNullableInteger(cell.down, 0, 45)
+      )) && isTypedMatrix(value.horizontalBars, height, Math.max(0, width - 1), (cell) => typeof cell === 'boolean') &&
+        isTypedMatrix(value.verticalBars, Math.max(0, height - 1), width, (cell) => typeof cell === 'boolean') &&
+        isNullableNumberArray(value.topClues, width, 0) && isNullableNumberArray(value.leftClues, height, 0);
+    case 'japanese-sums-with-zeroes':
+      return isFiniteInteger(value.maxDigit, 1, 9) && isRecord(value.clues) && ['top','right','bottom','left'].every((side) => Array.isArray(value.clues[side])) &&
+        (value.clues.top as unknown[]).length === width && (value.clues.bottom as unknown[]).length === width &&
+        (value.clues.left as unknown[]).length === height && (value.clues.right as unknown[]).length === height;
+    case 'abc-box':
+      return isTypedMatrix(value.givens, width, height, (cell) => cell === null || cell === 'A' || cell === 'B' || cell === 'C') && isRecord(value.clues);
     case 'tapa':
       return isTypedMatrix(value.clues, width, height, (cell) =>
         cell === null || (Array.isArray(cell) && cell.every((item) => item === '?' || (isFiniteInteger(item, 0) && item <= 8)))
@@ -3043,7 +3157,7 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
   }
 }
 
-export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
+export function getPuzzleTypeFromLink(link: string | undefined | null): PuzzleType | null {
   const dataPart = normalizePuzzLinkDataPart(link);
   const type = dataPart.split('/')[0]?.trim().toLowerCase();
   if (isPuzzleType(type)) {
@@ -3069,6 +3183,14 @@ export function getPuzzleTypeFromLink(link: string): PuzzleType | null {
     skyneighbour: 'sky-neighbor',
     shapeminesweeper: 'shape-minesweeper',
     'shape-minesweep': 'shape-minesweeper',
+    japanesearrows: 'japanese-arrows',
+    japanese: 'japanese-arrows',
+    fourwindswithparks: 'four-winds-with-parks',
+    fourwinds: 'four-winds-with-parks',
+    consecutivekakuro: 'consecutive-kakuro',
+    japanesesumswithzeroes: 'japanese-sums-with-zeroes',
+    japanesesums: 'japanese-sums-with-zeroes',
+    abcbox: 'abc-box',
   };
   if (Object.prototype.hasOwnProperty.call(aliases, type)) {
     return aliases[type];
@@ -3081,7 +3203,8 @@ export function resolvePuzzleEntry(entry: PuzzleEntry): PuzzleData | null {
   return parsePuzzleLink(entry.puzzLink);
 }
 
-export function parsePuzzleLink(link: string): PuzzleData | null {
+export function parsePuzzleLink(link: string | undefined | null): PuzzleData | null {
+  if (typeof link !== 'string' || link.trim() === '') return null;
   const type = getPuzzleTypeFromLink(link);
   if (!type) return null;
   return puzzleRegistry[type].parsePuzzLink(link);

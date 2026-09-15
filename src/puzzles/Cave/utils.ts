@@ -11,6 +11,11 @@ function readNumber16(encoded: string, index: number): { value: number | null; c
   const char = encoded[index];
   if (!char) return null;
 
+  // PuzzLink's number16 format uses a dot for an occupied cell with no
+  // number.  It is not the same thing as a g-z run (which skips several
+  // cells), so it must advance exactly one cell while leaving the clue null.
+  if (char === '.') return { value: null, consumed: 1 };
+
   if (/^[0-9a-f]$/u.test(char)) {
     return { value: parseInt(char, 16), consumed: 1 };
   }
@@ -49,13 +54,21 @@ function parseCaveClues(encoded: string, width: number, height: number) {
   while (stringIndex < encoded.length && cellIndex < cellCount) {
     const char = encoded[stringIndex];
     if (char >= 'g' && char <= 'z') {
-      cellIndex += parseInt(char, 36) - 15;
+      const run = parseInt(char, 36) - 15;
+      if (cellIndex + run > cellCount) return null;
+      cellIndex += run;
       stringIndex++;
       continue;
     }
 
     const decoded = readNumber16(encoded, stringIndex);
     if (!decoded) return null;
+    // A Cave visibility count cannot exceed the number of cells in its row
+    // and column (counting the clue cell once).  Reject impossible encoded
+    // clues early instead of producing a board that can never be solved.
+    if (decoded.value !== null && (decoded.value < 1 || decoded.value > width + height - 1)) {
+      return null;
+    }
     if (decoded.value !== null) {
       clues[Math.floor(cellIndex / width)][cellIndex % width] = decoded.value;
     }
@@ -121,6 +134,12 @@ export function validateCave(
   const setMessage = (nextMessage: string) => {
     if (!message) message = nextMessage;
   };
+
+  // Cave is a shading puzzle: at least one cell must be shaded.  This is the
+  // same ``checkShadeCellExist`` rule used by the native PuzzLink checker.
+  if (!shaded.some((row) => row.some(Boolean))) {
+    setMessage('至少需要涂黑一个格子');
+  }
 
   for (let row = 0; row < puzzle.height; row++) {
     for (let col = 0; col < puzzle.width; col++) {

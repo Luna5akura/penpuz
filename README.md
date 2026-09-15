@@ -15,6 +15,10 @@
 - 魔术夏（Magic Summer）、摩天楼（Skyscrapers）、战舰（Battleship）
 - Domino Search、魔法蜗牛（Magic Snail）、斯洛伐克和（Slovak Sums）
 - 数和（Kakuro）
+- 日式箭头（Japanese Arrows）、四风带公园（Four Winds with Parks）、连续数和（Consecutive Kakuro）
+- 带零日式和（Japanese Sums with Zeroes）、ABC 盒（ABC-Box）
+- 形状扫雷（Shape Minesweeper，支持 PuzzLink 原生形状库编码）
+- 山洞（Cave，支持 PuzzLink number16 编码）
 - 狼羊围栏（Wolves and Sheep Fences，PuzzLink ID：`wolvesandsheepfences`）
 
 题型的短 ID、中文名和英文名统一维护在 `src/puzzles/registry.tsx`。笔记编辑器和规则速查会从同一注册中心读取题型，避免出现“题库支持但其他入口不支持”的分叉。
@@ -56,6 +60,7 @@ src/
     Neighbor/                    Neighbors 数字邻接题解析器、校验器和棋盘
     SkyNeighbor/                 Sky-neighbors 摩天楼邻接题解析器、校验器和棋盘
     Kakuro/                       数和解析器、校验器和棋盘
+    Cave/                         山洞解析器、校验器和棋盘
     WolvesAndSheep/               狼羊围栏解析器、校验器和棋盘
 ```
 

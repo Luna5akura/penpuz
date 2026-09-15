@@ -109,10 +109,14 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   extraCellValues?: Array<Exclude<NumberPlacementCellValue, number | null>>;
   cellInputMode?: NumberPlacementInputMode;
   cycleValues?: NumberPlacementCellValue[];
+  cycleValuesLeft?: NumberPlacementCellValue[];
+  cycleValuesRight?: NumberPlacementCellValue[];
   inputModeOptions?: Array<{ mode: NumberPlacementInputMode; label: string }>;
   showValueButtons?: boolean;
   /** Static outside clues, or a resolver used for answer cells derived from the grid. */
   outsideClues?: NumberPlacementOutsideClues | NumberPlacementOutsideClueResolver;
+  /** Optional multiple clue rows/columns for Japanese Sums-style clues. */
+  outsideClueStacks?: Partial<Record<NumberPlacementOutsideSide, readonly (readonly number[])[]>>;
   /** Enable editable answer cells in one or more outside sides. */
   outsideInput?: NumberPlacementOutsideInput;
   initialSnapshot?: unknown;
@@ -314,9 +318,12 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   extraCellValues = EMPTY_EXTRA_CELL_VALUES,
   cellInputMode = 'select',
   cycleValues = EMPTY_CYCLE_VALUES,
+  cycleValuesLeft,
+  cycleValuesRight,
   inputModeOptions,
   showValueButtons = true,
   outsideClues,
+  outsideClueStacks,
   outsideInput,
   initialSnapshot,
   onSnapshotChange,
@@ -482,6 +489,15 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         bottom: outsideInput?.bottom ? cellSize : 0,
       }
     : getBoardOutsideClueLayout(cellSize, layoutOutsideClues);
+  const stackRows = Math.max(1, ...(outsideClueStacks?.top ?? []).map((values) => values.length));
+  const stackBottomRows = Math.max(1, ...(outsideClueStacks?.bottom ?? []).map((values) => values.length));
+  const stackLeftCols = Math.max(1, ...(outsideClueStacks?.left ?? []).map((values) => values.length));
+  const stackRightCols = Math.max(1, ...(outsideClueStacks?.right ?? []).map((values) => values.length));
+  if (outsideClueStacks) outsideClueLayout.clueSize = cellSize;
+  outsideClueLayout.top = Math.max(outsideClueLayout.top, outsideClueStacks?.top ? outsideClueLayout.clueSize * stackRows : 0);
+  outsideClueLayout.bottom = Math.max(outsideClueLayout.bottom, outsideClueStacks?.bottom ? outsideClueLayout.clueSize * stackBottomRows : 0);
+  outsideClueLayout.left = Math.max(outsideClueLayout.left, outsideClueStacks?.left ? outsideClueLayout.clueSize * stackLeftCols : 0);
+  outsideClueLayout.right = Math.max(outsideClueLayout.right, outsideClueStacks?.right ? outsideClueLayout.clueSize * stackRightCols : 0);
   const outsideLeft = outsideClueLayout.left;
   const outsideRight = outsideClueLayout.right;
   const outsideTop = outsideClueLayout.top;
@@ -702,11 +718,20 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         outsideInput
       );
       const currentValue = current.grid[row][col];
-      const currentIndex = cycleValues.findIndex((value) => value === currentValue);
-      const nextIndex = currentIndex < 0
-        ? direction === 1 ? 0 : cycleValues.length - 1
-        : (currentIndex + direction + cycleValues.length) % cycleValues.length;
-      const nextValue = cycleValues[nextIndex] ?? null;
+      const hasCircleCrossCycle = cycleValues.includes('circle') && cycleValues.includes('cross');
+      if (hasCircleCrossCycle && ((currentValue === 'circle' && direction === -1) || (currentValue === 'cross' && direction === 1))) {
+        const nextGrid = current.grid.map((rowValues) => [...rowValues]);
+        const nextLevels = current.levels.map((rowValues) => [...rowValues]);
+        const nextCandidates = current.candidates.map((rowValues) => rowValues.map((values) => [...values]));
+        nextGrid[row][col] = null;
+        nextLevels[row][col] = 0;
+        nextCandidates[row][col] = [];
+        return { ...current, grid: nextGrid, levels: nextLevels, candidates: nextCandidates };
+      }
+      const directionalValues = direction === 1 ? (cycleValuesLeft ?? cycleValues) : (cycleValuesRight ?? cycleValues);
+      const currentIndex = directionalValues.findIndex((value) => value === currentValue);
+      const nextIndex = currentIndex < 0 ? 0 : Math.min(directionalValues.length - 1, currentIndex + 1);
+      const nextValue = directionalValues[nextIndex] ?? null;
 
       if (currentValue === nextValue) return current;
 
@@ -722,6 +747,8 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     applyChange,
     currentTrialLevel,
     cycleValues,
+    cycleValuesLeft,
+    cycleValuesRight,
     extraCellValues,
     getFixedValue,
     height,
@@ -1021,7 +1048,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
             {renderOverlay(cellSize, boardWidthPx, boardHeightPx)}
           </div>
         ) : null}
-        {resolvedOutsideClues && !hasOutsideInput ? (
+        {resolvedOutsideClues && !hasOutsideInput && !outsideClueStacks ? (
           <div className="pointer-events-none absolute inset-0">
             {resolvedOutsideClues.top?.map((value, col) =>
               renderOutsideClue(
@@ -1058,6 +1085,21 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 `right-${row}`,
                 outsideClueLayout.clueSize,
               )
+            )}
+          </div>
+        ) : null}
+        {outsideClueStacks && !hasOutsideInput ? (
+          <div className="pointer-events-none absolute inset-0">
+            {(['top', 'bottom', 'left', 'right'] as NumberPlacementOutsideSide[]).flatMap((side) =>
+              (outsideClueStacks[side] ?? []).flatMap((values, index) => values.map((value, stack) => {
+                const topSlot = stackRows - values.length + stack;
+                const leftSlot = stackLeftCols - values.length + stack;
+                const x = side === 'left' ? BOARD_PADDING + leftSlot * outsideClueLayout.clueSize : side === 'right' ? gridLeft + boardWidthPx + stack * outsideClueLayout.clueSize : gridLeft + index * cellSize;
+                const y = side === 'top' ? BOARD_PADDING + topSlot * outsideClueLayout.clueSize : side === 'bottom' ? gridTop + boardHeightPx + stack * outsideClueLayout.clueSize : gridTop + index * cellSize;
+                const clueWidth = side === 'top' || side === 'bottom' ? cellSize : outsideClueLayout.clueSize;
+                const clueHeight = side === 'left' || side === 'right' ? cellSize : outsideClueLayout.clueSize;
+                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...getBoardOutsideClueTextStyle(cellSize, clueWidth, value), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
+              }))
             )}
           </div>
         ) : null}

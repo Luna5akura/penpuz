@@ -20,6 +20,7 @@ import {
 import { getEdgeKey, getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
 import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
+import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
 
 type AdditionalPuzzleExampleData = Extract<
   PuzzleExample,
@@ -30,6 +31,9 @@ type AdditionalPuzzleExampleData = Extract<
   | { puzzleType: 'domino-search' }
   | { puzzleType: 'snail' }
   | { puzzleType: 'slovak-sums' }
+  | { puzzleType: 'japanese-arrows' }
+  | { puzzleType: 'four-winds-with-parks' }
+  | { puzzleType: 'consecutive-kakuro' }
 >;
 
 interface Props {
@@ -412,6 +416,31 @@ function NumberGridBoard({
   );
 }
 
+function JapaneseArrowsBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'japanese-arrows' }>; answer: boolean }) {
+  const glyphs: Record<string, string> = { N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖' };
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+    const clue = example.clues[row][col];
+    const value = answer ? example.correctGrid[row][col] : clue;
+    return <span className="relative flex h-full w-full items-center justify-center" style={getBoardTextStyle(CELL_SIZE, 0.62, 15)}><span className="absolute top-0 text-[0.58em] leading-none">{glyphs[example.arrows[row][col]]}</span>{value ?? ''}</span>;
+  }}</CellGrid></BoardFrame>;
+}
+
+function FourWindsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'four-winds-with-parks' }>; answer: boolean }) {
+  const glyphs = ['X', '↑', '→', '↓', '←'];
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+    const clue = example.clues[row][col];
+    return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <span className={boardClassNames.cellText}>{glyphs[example.correctGrid[row][col]]}</span> : null;
+  }}</CellGrid></BoardFrame>;
+}
+
+function ConsecutiveKakuroExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'consecutive-kakuro' }>; answer: boolean }) {
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+    const cell = example.cells[row][col];
+    if (cell) return <KakuroClue right={cell.right} down={cell.down} cellSize={CELL_SIZE} />;
+    return answer ? example.correctGrid[row][col] : null;
+  }}</CellGrid></BoardFrame>;
+}
+
 export default function AdditionalPuzzleExample({ example, playableLabel, answerLabel }: Props) {
   if (example.puzzleType === 'slither' || example.puzzleType === 'wolvesandsheepfences') {
     return (
@@ -471,6 +500,21 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         right={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
       />
     );
+  }
+
+  if (example.puzzleType === 'japanese-arrows') {
+    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
+      left={<JapaneseArrowsBoard example={example} answer={false} />} right={<JapaneseArrowsBoard example={example} answer />} />;
+  }
+
+  if (example.puzzleType === 'four-winds-with-parks') {
+    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
+      left={<FourWindsExampleBoard example={example} answer={false} />} right={<FourWindsExampleBoard example={example} answer />} />;
+  }
+
+  if (example.puzzleType === 'consecutive-kakuro') {
+    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
+      left={<ConsecutiveKakuroExampleBoard example={example} answer={false} />} right={<ConsecutiveKakuroExampleBoard example={example} answer />} />;
   }
 
   return (

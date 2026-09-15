@@ -56,6 +56,171 @@ export function getShapeCanonicalKey(cells: boolean[][]) {
   return [...new Set(keys)].sort()[0] ?? '';
 }
 
+/**
+ * PuzzLink stores the shape bank using the common BankPiece serialization
+ * used by the statue-park family.  The first two base-36 digits are the
+ * width/height and the remaining base-32 digits contain five cells each.
+ */
+function decodeBankPiece(encoded: string): boolean[][] | null {
+  if (encoded.length < 3) return null;
+
+  const width = parseInt(encoded[0] ?? '', 36);
+  const height = parseInt(encoded[1] ?? '', 36);
+  if (!Number.isInteger(width) || !Number.isInteger(height) || width <= 0 || height <= 0) return null;
+
+  const cellCount = width * height;
+  let bits = '';
+  for (const char of encoded.slice(2)) {
+    const value = parseInt(char, 32);
+    if (!Number.isInteger(value) || value < 0 || value >= 32) return null;
+    bits += value.toString(2).padStart(5, '0');
+  }
+  // BankPiece serialization omits trailing zero bits, so a short final
+  // base-32 chunk is expected and must be padded with empty cells. At least
+  // one chunk is required; a width/height header by itself is malformed.
+  if (bits.length === 0) return null;
+  // The native decoder keeps only the first `width * height` bits.  The
+  // final base-32 chunk may contain padding bits, so do not reject a valid
+  // piece merely because those ignored bits are non-zero.
+  bits = bits.padEnd(cellCount, '0');
+
+  const cells = Array.from({ length: height }, (_, row) =>
+    Array.from({ length: width }, (_, col) => bits[row * width + col] === '1')
+  );
+  return cells.some((row) => row.some(Boolean)) ? normalizeShapeCells(cells) : null;
+}
+
+/** The built-in Bank presets shipped by PuzzLink's Shape Minesweeper. */
+const PUZZLINK_BANK_PRESETS: Record<string, string[]> = {
+  t: ['14u', '23bg', '22u', '23f', '23eg'],
+  p: ['337k', '15v', '24as', '24bo', '23fg', '337i', '23rg', '334u', '335s', '33bk', '24bk', '337o'],
+  d: ['14u', '14u', '23bg', '23bg', '22u', '22u', '23f', '23f', '23eg', '23eg'],
+};
+
+/**
+ * PuzzLink does not serialize the answer-entry letters printed beside the
+ * competition shapes.  Standard tetrominoes have unambiguous names, so use
+ * those names when possible and fall back to stable alphabetic labels for
+ * custom banks.
+ */
+function getBankShapeLabel(cells: boolean[][], index: number) {
+  const standardLabels: Array<[string, boolean[][]]> = [
+    ['I', [[true], [true], [true], [true]] as boolean[][]],
+    ['L', [[true, false], [true, false], [true, true]] as boolean[][]],
+    ['O', [[true, true], [true, true]] as boolean[][]],
+    ['S', [[false, true, true], [true, true, false]] as boolean[][]],
+    ['T', [[false, true, false], [true, true, true]] as boolean[][]],
+  ];
+  const key = getShapeCanonicalKey(cells);
+  const standard = standardLabels.find(([, shape]) => getShapeCanonicalKey(shape) === key);
+  return standard?.[0] ?? String.fromCharCode('A'.charCodeAt(0) + (index % 26));
+}
+
+function parsePuzzLinkBank(parts: string[]): ShapeMinesweeperShape[] | null {
+  // decodePieceBank consumes a leading slash. In split URL form, a preset
+  // therefore appears as ["", "t"] for //t, while a custom bank appears as
+  // ["", count, piece, ...].
+  if (parts[0] === '') {
+    const preset = parts[1]?.toLowerCase();
+    if (preset && Object.prototype.hasOwnProperty.call(PUZZLINK_BANK_PRESETS, preset) && parts.length === 2) {
+      const pieces = PUZZLINK_BANK_PRESETS[preset] ?? [];
+      if (pieces.length === 0) return null;
+      const shapes = pieces.map((encoded, index) => {
+        const cells = decodeBankPiece(encoded);
+        return cells ? { label: getBankShapeLabel(cells, index), cells } : null;
+      }).filter((shape): shape is ShapeMinesweeperShape => shape !== null);
+      return shapes.length === pieces.length ? shapes : null;
+    }
+
+    const count = Number(parts[1]);
+    if (!Number.isInteger(count) || count <= 0 || parts.length !== count + 2) return null;
+    const shapes: ShapeMinesweeperShape[] = [];
+    for (let index = 0; index < count; index++) {
+      const cells = decodeBankPiece(parts[index + 2] ?? '');
+      if (!cells) return null;
+      shapes.push({ label: getBankShapeLabel(cells, index), cells });
+    }
+    return shapes;
+  }
+
+  // Custom banks use a single separator slash (`/N/piece/...`).
+  const count = Number(parts[0]);
+  if (!Number.isInteger(count) || count <= 0 || parts.length !== count + 1) return null;
+  const shapes: ShapeMinesweeperShape[] = [];
+  for (let index = 0; index < count; index++) {
+    const cells = decodeBankPiece(parts[index + 1] ?? '');
+    if (!cells) return null;
+    shapes.push({ label: getBankShapeLabel(cells, index), cells });
+  }
+  return shapes;
+}
+
+function readNumber16(encoded: string, index: number): { value: number | null; consumed: number } | null {
+  const char = encoded[index];
+  if (!char) return null;
+
+  if (char === '.') return { value: null, consumed: 1 };
+
+  if (/^[0-9a-f]$/u.test(char)) {
+    return { value: parseInt(char, 16), consumed: 1 };
+  }
+
+  const prefixedLengths: Record<string, number> = {
+    '-': 2,
+    '+': 3,
+    '=': 3,
+    '%': 3,
+    '@': 3,
+    '*': 4,
+    '$': 5,
+  };
+  const digitCount = prefixedLengths[char];
+  if (digitCount === undefined) return null;
+  const digits = encoded.slice(index + 1, index + 1 + digitCount);
+  if (digits.length !== digitCount || !/^[0-9a-f]+$/u.test(digits)) return null;
+
+  let value = parseInt(digits, 16);
+  if (char === '=') value += 4096;
+  else if (char === '%' || char === '@') value += 8192;
+  else if (char === '*') value += 12240;
+  else if (char === '$') value += 77776;
+  return { value, consumed: digitCount + 1 };
+}
+
+/** Decode PuzzLink's number16 clue stream ('.' means an empty clue cell). */
+function parseNumber16Clues(encoded: string, width: number, height: number) {
+  const clues = Array.from({ length: height }, () => Array<number | null>(width).fill(null));
+  const cellCount = width * height;
+  // PuzzLink omits the number16 stream entirely for a newly created board
+  // with no clues (for example `shapeminesweeper/4/4///t`).  In that form
+  // the empty segment represents an all-empty clue matrix, not malformed
+  // input.
+  if (encoded.length === 0) return clues;
+  let cellIndex = 0;
+  let stringIndex = 0;
+
+  while (stringIndex < encoded.length && cellIndex < cellCount) {
+    const char = encoded[stringIndex];
+    if (char >= 'g' && char <= 'z') {
+      const run = parseInt(char, 36) - 15;
+      if (cellIndex + run > cellCount) return null;
+      cellIndex += run;
+      stringIndex += 1;
+      continue;
+    }
+
+    const decoded = readNumber16(encoded, stringIndex);
+    if (!decoded || (decoded.value !== null && (decoded.value < 0 || decoded.value > 8))) return null;
+    if (decoded.value !== null) {
+      clues[Math.floor(cellIndex / width)][cellIndex % width] = decoded.value;
+    }
+    cellIndex += 1;
+    stringIndex += decoded.consumed;
+  }
+
+  return cellIndex === cellCount && stringIndex === encoded.length ? clues : null;
+}
+
 function parseShapeMask(text: string): boolean[][] | null {
   const rows = text.split(/[;,]/u).map((row) => row.trim()).filter(Boolean);
   if (rows.length === 0) return null;
@@ -134,6 +299,14 @@ export function parseShapeMinesweeperLink(link: string): ShapeMinesweeperPuzzleD
       const clues = parseCluesPayload(payload.clues, width, height);
       const shapes = parseShapesPayload(payload.shapes);
       if (clues && shapes) return { type: 'shape-minesweeper', width, height, clues, shapes };
+    }
+
+    // Native PuzzLink representation: number16 clues followed by the bank
+    // stream (`//t` for the standard tetromino bank, or `//N/piece/...`).
+    const nativeClues = parseNumber16Clues(parts[3] ?? '', width, height);
+    const nativeShapes = parsePuzzLinkBank(parts.slice(4));
+    if (nativeClues && nativeShapes) {
+      return { type: 'shape-minesweeper', width, height, clues: nativeClues, shapes: nativeShapes };
     }
 
     const clueRows = parts[3] ?? '';

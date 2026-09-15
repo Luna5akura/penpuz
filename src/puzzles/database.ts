@@ -512,10 +512,84 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8080/p.html?wolvesandsheepfences/10/10/b1a1233b3b5d13a0a31a61a2b6a5a2a523a1a3a5a1b2a5a2a3a135a1a5a6b2a26a13a1a22d5b3b3222a3b',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/12/12/916cdhlj78dpuhvg9jkjtn4ll203niegjq5qouoe1fi79r1lh6o5gg',
     difficulty: '困难',
   },
-
-
+  {
+    puzzLink: 'http://localhost:8080/p.html?shapeminesweeper/10/10/i1h2v1h2u1g12g2j3g34g4u3344z4h//t',
+    difficulty: '简单',
+  },
+  {
+    // PuzzLink's canonical Cave example (the same 6×6 instance used by
+    // pzprjs), encoded with number16 clues.
+    puzzLink: 'http://localhost:8080/p.html?cave/6/6/g3q2h3jbj3i3i2g',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?shapeminesweeper/11/11/j3i4i2i3m3i4i3i2i1i3i4i2i1i2i1i2i2i1i2i4i2i1i2m3i3i2i2j/10/14u/23n/23f/22u/23lg/14u/23n/23f/22u/23lg',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?shapeminesweeper/14/14/i1i0i2v2v6g6h2g4h2w6g5h4g5i0zl3i2g4h4g1w1h3g2h4g1v3v1i3i1i//p',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?cave/10/10/g3h43h2g7n55n48n7g9l6i6g79g6zi8l3g5g4j5g4',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?cave/10/10/h3l3i5h7g5g3j5k7lbn5j7nbl9kbj9g3gbh9i7l9h',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?cave/10/10/i4h4k3j7i6l5g5j6i6j5p4j5i7j6g8l9i6j8k7h7i',
+    difficulty: '极难',
+  },
+  {
+    // Compact JSON payloads are used for the three competition-only formats
+    // until an upstream PuzzLink encoder is available.
+    puzzLink: 'http://localhost:8080/p.html?japanesearrows/2/1/eyJjbHVlcyI6W1sxLG51bGxdXSwiYXJyb3dzIjpbWyJFIiwiVyJdXX0',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fourwindswithparks/2/2/eyJjbHVlcyI6W1sxLG51bGxdLFtudWxsLDFdXX0',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?consecutivekakuro/2/2/eyJjZWxscyI6W1t7InJpZ2h0IjoxLCJkb3duIjoxfSxudWxsXSxbbnVsbCxudWxsXV0sInRvcENsdWVzIjpbbnVsbCxudWxsXSwibGVmdENsdWVzIjpbbnVsbCxudWxsXSwiaG9yaXpvbnRhbEJhcnMiOltbdHJ1ZV0sW2ZhbHNlXV0sInZlcnRpY2FsQmFycyI6W1t0cnVlLGZhbHNlXV19',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?japanesesumswithzeroes/5/5/6/55g56gah89g99g-14hfh2h-13hah',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?japanesesumswithzeroes/6/6/6/246-11hdh99g-12h335b4g-13h47gch-14h66g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?japanesesumswithzeroes/7/7/6/abh-11i46h-12i56h-13iabh555g666g7iaah4ch-15i659g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?japanesesumswithzeroes/8/8/6/a6hfi53bgc5h1-14h28bg-14ifi44h-13i9ch666g-14ic9h777g88h',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?abcbox/2/2/eyJnaXZlbnMiOltbIkEiLG51bGxdLFtudWxsLCJCIl1dLCJjbHVlcyI6eyJ0b3AiOltbXSxbXV0sInJpZ2h0IjpbW10sW11dLCJib3R0b20iOltbXSxbXV0sImxlZnQiOltbXSxbXV1dfX0',
+    difficulty: '简单',
+  },
+    {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?battleship/10/10/12323241111141323212zh5zg5zg5zs//d',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?skyscrapers/7/7/4g4g4g4h44g4i4g3h4g4h4g',
+    difficulty: '困难',
+  },
 
 
 

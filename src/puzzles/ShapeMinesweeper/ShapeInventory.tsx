@@ -9,9 +9,9 @@ export default function ShapeInventory({
   cellSize?: number;
 }) {
   return (
-    <div className="flex max-w-full flex-wrap items-center justify-center gap-4">
+    <div className="flex w-full min-w-0 max-w-full flex-wrap items-center justify-center gap-4">
       {shapes.map((shape, index) => (
-        <div key={`${shape.label}-${index}`} className="flex items-center gap-2" aria-label={shape.label}>
+        <div key={`${shape.label}-${index}`} className="flex min-w-0 max-w-full items-center gap-2" aria-label={shape.label}>
           <div
             className="grid shrink-0"
             style={{

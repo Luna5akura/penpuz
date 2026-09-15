@@ -63,7 +63,7 @@ import {
   inferBattleshipSegment,
   isBattleshipSegmentResolved,
 } from '@/puzzles/Battleship/utils';
-import type { BattleshipPuzzleData, PuzzleData, PuzzleType, YajilinDirection } from '@/puzzles/types';
+import type { BattleshipPuzzleData, PuzzleData, PuzzleType, YajilinDirection, JapaneseArrowDirection } from '@/puzzles/types';
 import { Button } from '../ui/button';
 
 interface NotePuzzleBoardProps {
@@ -103,6 +103,12 @@ const directionGlyphs: Record<YajilinDirection, string> = {
   down: '↓',
   left: '←',
 };
+
+const japaneseArrowGlyphs: Record<JapaneseArrowDirection, string> = {
+  N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖',
+};
+
+const fourWindsGlyphs = ['X', '↑', '→', '↓', '←'] as const;
 
 function getLocalCellKey(row: number, col: number) {
   return `${row}:${col}`;
@@ -507,6 +513,41 @@ function getCellView(
       const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
+    case 'shape-minesweeper': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      return clue === null ? { tone: 'cell' } : { tone: 'clue', content: clue, locked: true };
+    }
+    case 'cave': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      return clue === null ? { tone: 'cell' } : { tone: 'clue', content: clue, locked: true };
+    }
+    case 'japanese-arrows': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      return {
+        tone: clue === null ? 'cell' : 'clue',
+        content: clue !== null ? clue : undefined,
+        locked: clue !== null,
+        fontRatio: 0.72,
+      };
+    }
+    case 'four-winds-with-parks': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      return clue === null
+        ? { tone: 'cell' }
+        : { tone: 'clue', content: clue, locked: true };
+    }
+    case 'consecutive-kakuro': {
+      const clue = puzzle.cells[row]?.[col] ?? null;
+      return clue
+        ? { tone: 'shaded', content: <KakuroClue right={clue.right} down={clue.down} cellSize={cellSize} />, locked: true }
+        : { tone: 'cell' };
+    }
+    case 'japanese-sums-with-zeroes':
+      return { tone: 'cell' };
+    case 'abc-box': {
+      const given = puzzle.givens[row]?.[col] ?? null;
+      return given ? { tone: 'clue', content: given, locked: true } : { tone: 'cell' };
+    }
     case 'tapa': {
       const clue = puzzle.clues[row]?.[col] ?? null;
       return clue
@@ -587,7 +628,7 @@ function getSnapshotCellView(
   battleshipContext?: BattleshipSnapshotContext
 ): CellView | null {
   const value = getGridValue(snapshot, row, col);
-  if (value === undefined || value === null || value === 0) return null;
+  if (value === undefined || value === null || (value === 0 && puzzleType !== 'four-winds-with-parks')) return null;
   if (getCellTrialLevel(snapshot, row, col) > visibleTrialLevel) return null;
 
   if (puzzleType === 'snail') {
@@ -604,6 +645,7 @@ function getSnapshotCellView(
 
   if (
     puzzleType === 'kakuro' ||
+    puzzleType === 'consecutive-kakuro' ||
     puzzleType === 'fillomino' ||
     puzzleType === 'slovak-sums' ||
     puzzleType === 'skyscrapers' ||
@@ -611,6 +653,22 @@ function getSnapshotCellView(
     puzzleType === 'sky-neighbor'
   ) {
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
+  }
+
+  if (puzzleType === 'four-winds-with-parks') {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 4
+      ? { tone: value === 0 ? 'marked' : 'cell', content: fourWindsGlyphs[value] }
+      : null;
+  }
+
+  if (puzzleType === 'japanese-arrows') {
+    return isNumberValue(value) ? { tone: 'cell', content: value } : null;
+  }
+
+  if (puzzleType === 'japanese-sums-with-zeroes' || puzzleType === 'abc-box') {
+    if (puzzleType === 'japanese-sums-with-zeroes' && value === 'circle') return { tone: 'cell', content: '○' };
+    if (puzzleType === 'japanese-sums-with-zeroes' && value === 'cross') return { tone: 'marked', content: '×' };
+    return isNumberValue(value) ? { tone: 'cell', content: puzzleType === 'abc-box' ? ['','A','B','C'][value] : value } : null;
   }
 
   if (puzzleType === 'starbattle') {
@@ -809,6 +867,36 @@ function RegionBoundaries({
           />
         );
       })}
+    </svg>
+  );
+}
+
+function ConsecutiveBarsOverlay({
+  puzzle,
+  cellSize,
+  gridLeft,
+  gridTop,
+}: {
+  puzzle: Extract<PuzzleData, { type: 'consecutive-kakuro' }>;
+  cellSize: number;
+  gridLeft: number;
+  gridTop: number;
+}) {
+  const bars = [
+    ...puzzle.horizontalBars.flatMap((row, r) => row.map((bar, c) => bar ? (
+      <line key={`h-${r}-${c}`} x1={gridLeft + (c + 1) * cellSize - 3} y1={gridTop + r * cellSize + cellSize / 2}
+        x2={gridLeft + (c + 1) * cellSize + 3} y2={gridTop + r * cellSize + cellSize / 2}
+        stroke={woodBoardTheme.whiteCell} strokeWidth={getBoardGridStrokeWidth(cellSize)} strokeLinecap="round" />
+    ) : null)),
+    ...puzzle.verticalBars.flatMap((row, r) => row.map((bar, c) => bar ? (
+      <line key={`v-${r}-${c}`} x1={gridLeft + c * cellSize + cellSize / 2} y1={gridTop + (r + 1) * cellSize - 3}
+        x2={gridLeft + c * cellSize + cellSize / 2} y2={gridTop + (r + 1) * cellSize + 3}
+        stroke={woodBoardTheme.whiteCell} strokeWidth={getBoardGridStrokeWidth(cellSize)} strokeLinecap="round" />
+    ) : null)),
+  ];
+  return (
+    <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+      {bars}
     </svg>
   );
 }
@@ -1606,6 +1694,11 @@ export default function NotePuzzleBoard({
                       />
                     ) : null}
                     <span className="relative z-10 flex h-full w-full items-center justify-center">
+                      {activePuzzle?.type === 'japanese-arrows' ? (
+                        <span className="pointer-events-none absolute top-0 text-[0.55em] leading-none">
+                          {japaneseArrowGlyphs[activePuzzle.arrows[row]?.[col]]}
+                        </span>
+                      ) : null}
                       {view.content}
                     </span>
                   </div>
@@ -1695,6 +1788,9 @@ export default function NotePuzzleBoard({
           ) : null}
 
           {regionIds ? <RegionBoundaries regionIds={regionIds} width={width} height={height} cellSize={cellSize} /> : null}
+          {activePuzzle?.type === 'consecutive-kakuro' ? (
+            <ConsecutiveBarsOverlay puzzle={activePuzzle} cellSize={cellSize} gridLeft={gridLeft} gridTop={gridTop} />
+          ) : null}
           {isSlither ? <SlitherDots width={width} height={height} cellSize={cellSize} /> : null}
           <MagicSnailOverlay puzzle={activePuzzle} cellSize={cellSize} />
           <LineOverlay

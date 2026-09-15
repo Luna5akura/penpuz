@@ -413,6 +413,47 @@ export interface CavePuzzleData {
   clues: (number | null)[][];
 }
 
+export type JapaneseArrowDirection = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
+export interface JapaneseArrowsPuzzleData {
+  type: 'japanese-arrows';
+  width: number;
+  height: number;
+  arrows: JapaneseArrowDirection[][];
+  clues: (number | null)[][];
+}
+
+export type FourWindsDirection = 0 | 1 | 2 | 3 | 4; // X, N, E, S, W
+export interface FourWindsPuzzleData {
+  type: 'four-winds-with-parks';
+  width: number;
+  height: number;
+  clues: (number | null)[][];
+}
+
+export interface ConsecutiveKakuroPuzzleData extends KakuroPuzzleData {
+  type: 'consecutive-kakuro';
+  horizontalBars: boolean[][];
+  verticalBars: boolean[][];
+}
+
+export type JapaneseSumsSide = Array<Array<number>>;
+export interface JapaneseSumsWithZeroesPuzzleData {
+  type: 'japanese-sums-with-zeroes';
+  width: number;
+  height: number;
+  maxDigit: number;
+  clues: { top: JapaneseSumsSide; right: JapaneseSumsSide; bottom: JapaneseSumsSide; left: JapaneseSumsSide };
+}
+
+export type ABCBoxSymbol = number | 'A' | 'B' | 'C' | '?';
+export interface ABCBoxPuzzleData {
+  type: 'abc-box';
+  width: number;
+  height: number;
+  givens: (('A' | 'B' | 'C') | null)[][];
+  clues: { top: ABCBoxSymbol[][]; right: ABCBoxSymbol[][]; bottom: ABCBoxSymbol[][]; left: ABCBoxSymbol[][] };
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -441,7 +482,12 @@ export type PuzzleData =
   | KakuroPuzzleData
   | WolvesAndSheepPuzzleData
   | ShapeMinesweeperPuzzleData
-  | CavePuzzleData;
+  | CavePuzzleData
+  | JapaneseArrowsPuzzleData
+  | FourWindsPuzzleData
+  | ConsecutiveKakuroPuzzleData
+  | JapaneseSumsWithZeroesPuzzleData
+  | ABCBoxPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -697,7 +743,35 @@ export type PuzzleExample =
       height: number;
       clues: (number | null)[][];
       correctSolution: (0 | 1)[][];
-    };
+    }
+  | {
+      puzzleType: 'japanese-arrows';
+      width: number;
+      height: number;
+      arrows: JapaneseArrowDirection[][];
+      clues: (number | null)[][];
+      correctGrid: number[][];
+    }
+  | {
+      puzzleType: 'four-winds-with-parks';
+      width: number;
+      height: number;
+      clues: (number | null)[][];
+      correctGrid: FourWindsDirection[][];
+    }
+  | {
+      puzzleType: 'consecutive-kakuro';
+      width: number;
+      height: number;
+      cells: KakuroCell[][];
+      topClues: (number | null)[];
+      leftClues: (number | null)[];
+      horizontalBars: boolean[][];
+      verticalBars: boolean[][];
+      correctGrid: (number | null)[][];
+    }
+  | { puzzleType: 'japanese-sums-with-zeroes'; width: number; height: number; clues: JapaneseSumsWithZeroesPuzzleData['clues']; correctGrid: (number | null)[][]; }
+  | { puzzleType: 'abc-box'; width: number; height: number; givens: ABCBoxPuzzleData['givens']; clues: ABCBoxPuzzleData['clues']; correctGrid: string[][]; };
 
 export interface PuzzleTemplate {
   type: PuzzleType;

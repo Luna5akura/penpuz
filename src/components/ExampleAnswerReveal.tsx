@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import ExampleAnswerOverlay from './ExampleAnswerOverlay';
 import ExampleAnswerRevealDialog from './ExampleAnswerRevealDialog';
 
@@ -31,6 +31,75 @@ export default function ExampleAnswerReveal({
   children,
 }: ExampleAnswerRevealProps) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [contentSize, setContentSize] = useState<{
+    width: number;
+    height: number;
+    visible: boolean;
+  } | null>(null);
+
+  // Examples intentionally use different board renderers (SVG, fixed grids,
+  // and responsive board wrappers). Measure the rendered content itself so
+  // the spoiler frame never falls back to the surrounding card's width or to
+  // a clipped overflow box.
+  useLayoutEffect(() => {
+    const frame = frameRef.current;
+    const content = contentRef.current;
+    if (!frame || !content) return undefined;
+
+    let scheduled = false;
+    let cancelScheduled: (() => void) | null = null;
+    const measure = () => {
+      if (scheduled) return;
+      scheduled = true;
+      const flush = () => {
+        scheduled = false;
+        cancelScheduled = null;
+        const rect = content.getBoundingClientRect();
+        const width = Math.max(
+          content.offsetWidth,
+          content.scrollWidth,
+          Math.ceil(rect.width)
+        );
+        const height = Math.max(
+          content.offsetHeight,
+          content.scrollHeight,
+          Math.ceil(rect.height)
+        );
+        setContentSize((current) => (
+          current?.visible === visible && current.width === width && current.height === height
+            ? current
+            : { width, height, visible }
+        ));
+      };
+
+      if (typeof window.requestAnimationFrame === 'function') {
+        const id = window.requestAnimationFrame(flush);
+        cancelScheduled = () => {
+          if (typeof window.cancelAnimationFrame === 'function') {
+            window.cancelAnimationFrame(id);
+          }
+        };
+      } else {
+        const id = window.setTimeout(flush, 0);
+        cancelScheduled = () => window.clearTimeout(id);
+      }
+    };
+
+    measure();
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    observer?.observe(frame);
+    observer?.observe(content);
+    window.addEventListener('resize', measure);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener('resize', measure);
+      cancelScheduled?.();
+      scheduled = false;
+    };
+  }, [visible]);
 
   const requestReveal = () => {
     if (!visible) setConfirmOpen(true);
@@ -45,7 +114,22 @@ export default function ExampleAnswerReveal({
   return (
     <>
       <div
-        className={`relative isolate ${!visible ? 'cursor-pointer hover:opacity-90' : ''} ${className}`.trim()}
+        className={`relative isolate w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain ${!visible ? 'cursor-pointer hover:opacity-90' : ''} ${className}`.trim()}
+        // Some legacy call sites still pass `flex justify-center`.  A flex
+        // container can center an oversized child at a negative scroll
+        // origin, hiding its left edge.  Keep this shared viewport block-level
+        // so `mx-auto` centers fitting boards and wide boards remain fully
+        // reachable from both scroll directions.
+        style={{
+          // Keep the viewport contract here even when an older call site
+          // passes a conflicting flex/overflow utility in `className`.
+          display: 'block',
+          width: '100%',
+          minWidth: 0,
+          maxWidth: '100%',
+          overflowX: 'auto',
+          overscrollBehaviorX: 'contain',
+        }}
         role={visible ? undefined : 'button'}
         tabIndex={visible ? -1 : 0}
         aria-label={ariaLabel}
@@ -53,10 +137,18 @@ export default function ExampleAnswerReveal({
         onClick={requestReveal}
         onKeyDown={handleKeyDown}
       >
-        <div aria-hidden={!visible}>
-          {children}
+        <div
+          ref={frameRef}
+          className="relative mx-auto w-max shrink-0"
+          style={contentSize?.visible === visible
+            ? { width: `${contentSize.width}px`, height: `${contentSize.height}px` }
+            : undefined}
+        >
+          <div ref={contentRef} className="w-max max-w-none" aria-hidden={!visible}>
+            {children}
+          </div>
+          {!visible ? <ExampleAnswerOverlay rounded={rounded} /> : null}
         </div>
-        {!visible ? <ExampleAnswerOverlay rounded={rounded} /> : null}
       </div>
 
       <ExampleAnswerRevealDialog

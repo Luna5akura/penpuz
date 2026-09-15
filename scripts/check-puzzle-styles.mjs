@@ -132,6 +132,43 @@ for (const file of boardComponentFiles) {
 }
 
 const boardThemeSource = readFileSync(join(root, 'src/puzzles/boardTheme.ts'), 'utf8');
+const answerRevealSource = readFileSync(
+  join(root, 'src/components/ExampleAnswerReveal.tsx'),
+  'utf8'
+);
+const answerOverlaySource = readFileSync(
+  join(root, 'src/components/ExampleAnswerOverlay.tsx'),
+  'utf8'
+);
+const answerRevealContract = [
+  {
+    pattern: /className=\{`[^`]*overflow-x-auto/u,
+    message: 'ExampleAnswerReveal must own the constrained horizontal overflow container.',
+  },
+  {
+    pattern: /className="relative mx-auto w-max/u,
+    message: 'ExampleAnswerReveal must size its frame to the answer content, not the card.',
+  },
+  {
+    pattern: /content\.scrollWidth/u,
+    message: 'ExampleAnswerReveal must account for content that overflows an inner renderer.',
+  },
+  {
+    pattern: /ResizeObserver/u,
+    message: 'ExampleAnswerReveal must remeasure when a board renderer changes size.',
+  },
+];
+for (const requirement of answerRevealContract) {
+  if (!requirement.pattern.test(answerRevealSource)) {
+    violations.push(`src/components/ExampleAnswerReveal.tsx answer-mask contract: ${requirement.message}`);
+  }
+}
+if (/bg-black\/(?:\d+|\[[^\]]+\])/u.test(answerOverlaySource) ||
+    /rgba?\([^)]*,\s*0?\.?\d+\s*\)/u.test(answerOverlaySource)) {
+  violations.push(
+    'src/components/ExampleAnswerOverlay.tsx answer-mask contract: The spoiler mask must be fully opaque so solved cells cannot show through.'
+  );
+}
 const requiredStyleLibraryExports = [
   'woodBoardTheme',
   'boardTypography',
