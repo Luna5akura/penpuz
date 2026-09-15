@@ -576,19 +576,31 @@ const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8080/p.html?japanesesumswithzeroes/8/8/6/a6hfi53bgc5h1-14h28bg-14ifi44h-13i9ch666g-14ic9h777g88h',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?abcbox/5/5/3/.A.xx.B.xx.C.xx.A.xx.B.xx.A..x.1.xx.2Axx...xx.1C.x',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?abcbox/6/6/3/..........xx.B.xxxA3.xxx.C..xx.A..Bx2.2.xx3.Bxxx.3.xxx....xx.A..xx.B.xxx',
     difficulty: '困难',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?abcbox/2/2/eyJnaXZlbnMiOltbIkEiLG51bGxdLFtudWxsLCJCIl1dLCJjbHVlcyI6eyJ0b3AiOltbXSxbXV0sInJpZ2h0IjpbW10sW11dLCJib3R0b20iOltbXSxbXV0sImxlZnQiOltbXSxbXV1dfX0',
-    difficulty: '简单',
+    puzzLink: 'http://localhost:8080/p.html?abcbox/6/6/3/...Axx.A1.xx.2.Bxx.B2.xx.1.Cxx.C3.xx.2C.xx..3.xx.2B.xx..2.xx.2A.xx.C1.xx',
+    difficulty: '困难',
   },
-    {
+  {
+    puzzLink: 'http://localhost:8080/p.html?abcbox/7/7/3/..A.xxx.A..B.x..B.C.x.2..xxx.C.A..x.A..B.x..B..xx.C..xxx.B..C.x..B.A.x.3.xxxx.C.B..x.B....x..B.xxx',
+    difficulty: '极难',
+  },
+  {
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?battleship/10/10/12323241111141323212zh5zg5zg5zs//d',
     difficulty: '简单',
   },
   {
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?skyscrapers/7/7/4g4g4g4h44g4i4g3h4g4h4g',
-    difficulty: '困难',
+    difficulty: '极难',
   },
 
 
