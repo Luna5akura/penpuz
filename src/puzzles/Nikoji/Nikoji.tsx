@@ -11,7 +11,9 @@ import {
   getInvalidBoardCellColors,
   getBoardRegionStrokeWidth,
   getBoardThinStrokeWidth,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getResponsiveCellSize,
   woodBoardTheme,
@@ -43,6 +45,7 @@ interface Props {
 }
 
 const BOARD_PADDING = commonBoardChrome.padding;
+const BOARD_BORDER = commonBoardChrome.border;
 
 function normalizeNikojiSnapshot(snapshot: unknown, width: number, height: number): NikojiSnapshot {
   const source = snapshot as Partial<NikojiSnapshot> | null | undefined;
@@ -155,8 +158,9 @@ export default function NikojiBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
-    const x = clientX - rect.left - BOARD_PADDING;
-    const y = clientY - rect.top - BOARD_PADDING;
+    const boardInset = BOARD_BORDER + BOARD_PADDING;
+    const x = clientX - rect.left - boardInset;
+    const y = clientY - rect.top - boardInset;
     if (x < 0 || y < 0 || x > width * cellSize || y > height * cellSize) return null;
     return { x, y };
   }, [cellSize, height, width]);
@@ -331,20 +335,23 @@ export default function NikojiBoard({
     };
   }, [cellSize, deepLineLevels]);
 
-  const boardWidth = width * cellSize;
-  const boardHeight = height * cellSize;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
 
   return (
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
-        className="mx-auto select-none"
+        className="relative mx-auto select-none"
         style={{
-          position: 'relative',
-          display: 'inline-block',
-          padding: `${BOARD_PADDING}px`,
+          width: `${outerWidth}px`,
+          height: `${outerHeight}px`,
           touchAction: 'none',
-          ...getBoardFrameStyle(),
+          ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handleBoardPointerMove}
@@ -354,9 +361,7 @@ export default function NikojiBoard({
       >
         <div
           className="grid"
-          style={{
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {letters.flatMap((row, r) =>
             row.map((letter, c) => {

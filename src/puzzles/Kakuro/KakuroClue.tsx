@@ -17,7 +17,10 @@ interface KakuroClueProps {
 /** Standard Kakuro black cell: a diagonal with right/down sums. */
 export default function KakuroClue({ right, down, cellSize }: KakuroClueProps) {
   const { locale, copy } = useI18n();
-  const numberStyle = getBoardTextStyle(cellSize, 0.34, 10, 1);
+  const numberStyle = {
+    ...getBoardTextStyle(cellSize, 0.34, 10, 1),
+    color: woodBoardTheme.border,
+  };
   const padding = getBoardClueInset(cellSize);
 
   return (
@@ -34,9 +37,11 @@ export default function KakuroClue({ right, down, cellSize }: KakuroClueProps) {
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        {/* Kakuro's standard slash runs from the upper-left to lower-right,
-            leaving the right clue in the upper-right triangle and the down
-            clue in the lower-left triangle. */}
+        {/* Kakuro's slash runs from the upper-left to lower-right. Only the
+            triangle that contains a number gets the shared light clue fill;
+            an empty triangle remains the original dark clue-cell color. */}
+        {right !== null ? <polygon points="0,0 100,0 100,100" fill={woodBoardTheme.clueCell} /> : null}
+        {down !== null ? <polygon points="0,0 0,100 100,100" fill={woodBoardTheme.clueCell} /> : null}
         <line x1="0" y1="0" x2="100" y2="100" stroke={woodBoardTheme.whiteCell} strokeWidth={getBoardClueDiagonalStrokeWidth()} />
       </svg>
       {right !== null ? (

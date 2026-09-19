@@ -7,8 +7,10 @@ import {
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardFrameDimensions,
   getBoardRegionStrokeWidth,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
@@ -43,10 +45,12 @@ export default function NikojiExample({
     () => getNikojiBoundarySegments(solutionRegionIds, width, height),
     [height, solutionRegionIds, width]
   );
-  const boardWidth = width * CELL_SIZE;
-  const boardHeight = height * CELL_SIZE;
-  const outerWidth = boardWidth + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
-  const outerHeight = boardHeight + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: commonBoardChrome.border, padding: BOARD_PADDING }
+  );
 
   return (
     <>
@@ -86,11 +90,7 @@ export default function NikojiExample({
             >
               <div
                 className="absolute grid"
-                style={{
-                  left: `${BOARD_PADDING}px`,
-                  top: `${BOARD_PADDING}px`,
-                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                }}
+                style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
               >
                 {letters.flatMap((row, r) =>
                   row.map((letter, c) => (

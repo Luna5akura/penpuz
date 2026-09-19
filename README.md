@@ -17,6 +17,8 @@
 - 数和（Kakuro）
 - 日式箭头（Japanese Arrows）、四风带公园（Four Winds with Parks）、连续数和（Consecutive Kakuro）
 - 带零日式和（Japanese Sums with Zeroes）、ABC 盒（ABC-Box）
+- 磁铁（Magnets，支持 PuzzLink/pzpr 编码的区域边界、上下线索与预置符号）
+- 药丸（Pills，药丸为 1×3 或 3×1（可旋转）；逐格点击放置，标记格按任意方向正交相连，网格线上的分割线用于手动分隔相邻胶囊，右侧给出每枚药丸的值，行列线索为药丸内圆点数）
 - 形状扫雷（Shape Minesweeper，支持 PuzzLink 原生形状库编码）
 - 山洞（Cave，支持 PuzzLink number16 编码）
 - 狼羊围栏（Wolves and Sheep Fences，PuzzLink ID：`wolvesandsheepfences`）

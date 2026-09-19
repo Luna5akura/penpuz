@@ -9,18 +9,17 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardClueCircleMetrics,
-  getBoardCrossFontSize,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardGridSurfaceStyle,
   getBoardTrialCellStyle,
-  getCrossMarkStyle,
   getKurarinClueColors,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import BoardEdgeCross from '../shared/BoardEdgeCross';
 import {
   createEmptyKurarinGrid,
   detectKurarinHitTarget,
@@ -35,6 +34,7 @@ import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { filterValidCellEdgeKeys, isValidCellEdgeKey } from '../gridUtils';
 import { useBoardContainerWidth } from '../useBoardContainerWidth';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: KurarinPuzzleData;
@@ -177,7 +177,6 @@ export default function KurarinBoard({
   const crossedEdges = useMemo(() => new Set(normalizedSnapshot.crossedEdges), [normalizedSnapshot.crossedEdges]);
   const cellLevels = normalizedSnapshot.cellLevels;
   const loopEdgeLevels = normalizedSnapshot.loopEdgeLevels;
-  const crossedEdgeLevels = normalizedSnapshot.crossedEdgeLevels;
   const hasEdited = canUndo || canRedo || trialCheckpointCount > 0 || trialActive;
 
   const isMobile = viewportWidth < 640;
@@ -346,8 +345,8 @@ export default function KurarinBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
     return {
-      x: clientX - rect.left - BOARD_PADDING,
-      y: clientY - rect.top - BOARD_PADDING,
+      x: clientX - rect.left - BOARD_BORDER - BOARD_PADDING,
+      y: clientY - rect.top - BOARD_BORDER - BOARD_PADDING,
     };
   }, []);
 
@@ -563,17 +562,27 @@ export default function KurarinBoard({
     };
   }, [finishPointer, handlePointerMoveAt]);
 
-  const boardWidthPx = width * cellSize + (width - 1) * BOARD_GAP + BOARD_PADDING * 2;
-  const boardHeightPx = height * cellSize + (height - 1) * BOARD_GAP + BOARD_PADDING * 2;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    {
+      columnGap: BOARD_GAP,
+      rowGap: BOARD_GAP,
+      borderWidth: BOARD_BORDER,
+      padding: BOARD_PADDING,
+    }
+  );
+  const svgWidth = boardWidth + BOARD_PADDING * 2;
+  const svgHeight = boardHeight + BOARD_PADDING * 2;
   return (
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
         className="relative select-none touch-none"
         style={{
-          width: `${boardWidthPx + BOARD_BORDER * 2}px`,
-          height: `${boardHeightPx + BOARD_BORDER * 2}px`,
-          padding: `${BOARD_PADDING}px`,
+          width: `${outerWidth}px`,
+          height: `${outerHeight}px`,
           touchAction: 'none',
           ...getBoardFrameStyle(BOARD_BORDER),
         }}
@@ -587,8 +596,7 @@ export default function KurarinBoard({
         <div
           className="grid"
           style={{
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-            gap: `${BOARD_GAP}px`,
+            ...getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize, BOARD_GAP, BOARD_GAP),
             ...getBoardGridSurfaceStyle(),
           }}
         >
@@ -597,8 +605,11 @@ export default function KurarinBoard({
               const isShaded = state === 1;
               const isMarked = state === 2;
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
-              const cellStyle = trialColors
-                ? getBoardTrialCellStyle(trialColors, isShaded ? 'filled' : 'soft')
+              // A circle is an overlay mark, so it must not replace the
+              // regular cell background. Trial fills apply only to shaded
+              // cells; the circle itself keeps its trial colour below.
+              const cellStyle = trialColors && isShaded
+                ? getBoardTrialCellStyle(trialColors, 'filled')
                 : undefined;
               return (
                 <div
@@ -607,12 +618,15 @@ export default function KurarinBoard({
                   style={{
                     width: `${cellSize}px`,
                     height: `${cellSize}px`,
-                    ...getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell'),
+                    ...getBoardCellColors(isShaded ? 'playerShaded' : 'cell'),
                     ...cellStyle,
                   }}
                 >
                   {isMarked ? (
-                    <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
+                    <BoardCellMark
+                      kind="circle"
+                      cellSize={cellSize}
+                    />
                   ) : null}
                 </div>
               );
@@ -622,8 +636,8 @@ export default function KurarinBoard({
 
         <svg
           className="absolute top-0 left-0 pointer-events-none"
-          width={boardWidthPx}
-          height={boardHeightPx}
+          width={svgWidth}
+          height={svgHeight}
         >
           {[...loopEdges].map((edgeKey) => {
             const edge = parseKurarinEdgeKey(edgeKey);
@@ -652,22 +666,15 @@ export default function KurarinBoard({
           {[...crossedEdges].map((edgeKey) => {
             const edge = parseKurarinEdgeKey(edgeKey);
             if (!edge) return null;
-            const trialColors = getTrialLevelColors(crossedEdgeLevels[edgeKey] ?? 0);
-
             const centerX = BOARD_PADDING + ((edge.c1 + edge.c2) / 2) * (cellSize + BOARD_GAP) + cellSize / 2;
             const centerY = BOARD_PADDING + ((edge.r1 + edge.r2) / 2) * (cellSize + BOARD_GAP) + cellSize / 2;
-            const size = getLoopCrossSize(cellSize);
-
             return (
-              <g
+              <BoardEdgeCross
                 key={`cross-${edgeKey}`}
-                stroke={trialColors?.text ?? woodBoardTheme.border}
-                strokeWidth={getLoopCrossStrokeWidth()}
-                strokeLinecap="round"
-              >
-                <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
-                <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
-              </g>
+                x={centerX}
+                y={centerY}
+                cellSize={cellSize}
+              />
             );
           })}
 

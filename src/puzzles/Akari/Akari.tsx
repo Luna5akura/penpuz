@@ -9,16 +9,15 @@ import {
   boardClassNames,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardCellStyle,
   getBoardSymbolDiameter,
   getBoardTrialCellStyle,
-  getBoardCrossFontSize,
   getBoardFrameStyle,
+  getBoardFrameDimensions,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
-  getCrossMarkStyle,
   getInvalidBoardCellColors,
   getResponsiveCellSize,
-  woodBoardTheme,
 } from '../boardTheme';
 import {
   createEmptyAkariGrid,
@@ -29,6 +28,7 @@ import {
 } from './utils';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: AkariPuzzleData;
@@ -51,6 +51,7 @@ type PendingTap =
   | { kind: 'desktop-left-cell'; row: number; col: number }
   | { kind: 'desktop-right-cell'; row: number; col: number }
   | { kind: 'mobile-bulb'; row: number; col: number }
+  | { kind: 'mobile-clear'; row: number; col: number }
   | null;
 
 type CellDragMode = 'desktop-mark' | 'desktop-clear' | 'mobile-mark' | 'mobile-clear' | null;
@@ -272,8 +273,9 @@ export default function AkariBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
-    const x = clientX - rect.left - BOARD_PADDING;
-    const y = clientY - rect.top - BOARD_PADDING;
+    const boardInset = BOARD_BORDER + BOARD_PADDING;
+    const x = clientX - rect.left - boardInset;
+    const y = clientY - rect.top - boardInset;
     if (x < 0 || y < 0) return null;
 
     const col = Math.floor(x / cellSize);
@@ -312,6 +314,8 @@ export default function AkariBoard({
         applyDragModeToCell(current.pendingTap.row, current.pendingTap.col, current.cellDragMode);
       } else if (current.pendingTap?.kind === 'mobile-bulb') {
         updateCellState(current.pendingTap.row, current.pendingTap.col, 1);
+      } else if (current.pendingTap?.kind === 'mobile-clear') {
+        updateCellState(current.pendingTap.row, current.pendingTap.col, 0);
       } else if (current.pendingTap && current.cellDragMode) {
         applyDragModeToCell(current.pendingTap.row, current.pendingTap.col, current.cellDragMode);
       }
@@ -342,10 +346,10 @@ export default function AkariBoard({
       if (currentState === 0) {
         pendingTap = { kind: 'mobile-bulb', row, col };
       } else if (currentState === 1) {
-        pendingTap = { kind: 'desktop-right-cell', row, col };
-        cellDragMode = 'mobile-mark';
+        pendingTap = { kind: 'mobile-clear', row, col };
+        cellDragMode = 'mobile-clear';
       } else {
-        pendingTap = { kind: 'desktop-right-cell', row, col };
+        pendingTap = { kind: 'mobile-clear', row, col };
         cellDragMode = 'mobile-clear';
       }
     } else if (event.button === 0) {
@@ -400,12 +404,13 @@ export default function AkariBoard({
     applyDragToCell(hitCell.row, hitCell.col);
   };
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   const bulbDiameter = getBoardSymbolDiameter(cellSize);
-  const crossFontSize = getBoardCrossFontSize(cellSize);
   const clueTextStyle = getBoardTextStyle(cellSize);
 
   return (
@@ -426,11 +431,7 @@ export default function AkariBoard({
       >
         <div
           className="absolute grid"
-          style={{
-            left: `${BOARD_PADDING}px`,
-            top: `${BOARD_PADDING}px`,
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {Array.from({ length: height }).flatMap((_, row) =>
             Array.from({ length: width }).map((__, col) => {
@@ -445,9 +446,9 @@ export default function AkariBoard({
               const hasConflictingBulb = illumination.conflictingBulbs.has(`${row},${col}`);
               const trialColors = getTrialLevelColors(levels[row][col]);
 
-              const baseStyle = getBoardCellColors(
-                isBlack ? 'shaded' : isBulb ? 'brightLit' : isLit ? 'lit' : 'cell'
-              );
+              const baseTone = isMarked
+                ? 'marked' as const
+                : isBlack ? 'shaded' as const : isBulb ? 'brightLit' as const : isLit ? 'lit' as const : 'cell' as const;
               const invalidStyle = (() => {
                 if (!isInvalid) return undefined;
 
@@ -460,12 +461,7 @@ export default function AkariBoard({
 
                 return getInvalidBoardCellColors(isBlack || isBulb ? 'dark' : 'soft');
               })();
-              const trialStyle = trialColors
-                ? {
-                    ...getCellDividerStyle(),
-                    ...getBoardTrialCellStyle(trialColors, 'line'),
-                  }
-                : getCellDividerStyle();
+              const trialStyle = trialColors ? getBoardTrialCellStyle(trialColors, 'line') : undefined;
 
               return (
                 <div
@@ -473,9 +469,7 @@ export default function AkariBoard({
                   onPointerDown={(event) => handleCellPointerDown(row, col, event)}
                   className="relative flex items-center justify-center touch-none"
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
-                    ...baseStyle,
+                    ...getBoardCellStyle(cellSize, baseTone),
                     ...trialStyle,
                     ...invalidStyle,
                   }}
@@ -502,7 +496,7 @@ export default function AkariBoard({
                       }}
                     />
                   ) : !isBlack && isMarked ? (
-                    <span style={getCrossMarkStyle(crossFontSize, woodBoardTheme.markedText)}>×</span>
+                    <BoardCellMark kind="cross" cellSize={cellSize} />
                   ) : null}
                 </div>
               );

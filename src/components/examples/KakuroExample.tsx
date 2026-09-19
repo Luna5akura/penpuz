@@ -4,10 +4,11 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
 } from '@/puzzles/boardTheme';
 import type { KakuroCell } from '@/puzzles/types';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
@@ -35,10 +36,12 @@ function KakuroDiagram({
 }: Omit<Props, 'playableLabel' | 'answerLabel' | 'correctGrid'> & { values?: (number | null)[][] }) {
   const gridLeft = BOARD_PADDING;
   const gridTop = BOARD_PADDING;
-  const boardWidth = width * CELL_SIZE;
-  const boardHeight = height * CELL_SIZE;
-  const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
 
   return (
     <div
@@ -51,11 +54,7 @@ function KakuroDiagram({
     >
       <div
         className="absolute grid"
-        style={{
-          left: `${gridLeft}px`,
-          top: `${gridTop}px`,
-          gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-        }}
+        style={getBoardGridStyle(gridLeft, gridTop, width, CELL_SIZE)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => {
@@ -66,10 +65,7 @@ function KakuroDiagram({
                 key={`${row}-${col}`}
                 className={boardClassNames.cellContent}
                 style={{
-                  width: `${CELL_SIZE}px`,
-                  height: `${CELL_SIZE}px`,
-                  ...getBoardCellColors(clue ? 'shaded' : 'cell'),
-                  ...getCellDividerStyle(),
+                  ...getBoardCellStyle(CELL_SIZE, clue ? 'shaded' : 'cell'),
                   ...getBoardTextStyle(CELL_SIZE),
                 }}
               >

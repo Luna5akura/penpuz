@@ -9,18 +9,17 @@ import { getTrialLevelColors } from '../trialStyles';
 import {
   boardClassNames,
   commonBoardChrome,
-  getBoardCellColors,
-  getBoardCrossFontSize,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getBoardTrialCellStyle,
-  getCellDividerStyle,
-  getCrossMarkStyle,
   getResponsiveCellSize,
-  woodBoardTheme,
 } from '../boardTheme';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: NurikabePuzzleData;
@@ -66,6 +65,7 @@ export default function NurikabeBoard({
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const isDragging = useRef(false);
   const hasDragged = useRef(false);
+  const activeMouseButton = useRef<0 | 2 | null>(null);
   const dragMode = useRef<'none' | 'add-shade' | 'remove-shade' | 'add-mark' | 'remove-mark'>('none');
   const startRow = useRef(-1);
   const startCol = useRef(-1);
@@ -127,6 +127,7 @@ export default function NurikabeBoard({
     hasCompleted.current = false;
     isDragging.current = false;
     hasDragged.current = false;
+    activeMouseButton.current = null;
     dragMode.current = 'none';
     startRow.current = -1;
     startCol.current = -1;
@@ -136,6 +137,8 @@ export default function NurikabeBoard({
     clues.some((clue) => clue.row === r && clue.col === c), [clues]);
 
   const toggleCell = useCallback((r: number, c: number, mode: typeof dragMode.current) => {
+    if (isClue(r, c)) return;
+
     applyChange((current) => {
       const prev = current.grid;
       const prevLevels = current.levels;
@@ -148,7 +151,7 @@ export default function NurikabeBoard({
       newLevels[r][c] = newGrid[r][c] === 0 ? 0 : trialActive ? currentTrialLevel : 0;
       return { grid: newGrid, levels: newLevels };
     }, { coalesce: true });
-  }, [applyChange, currentTrialLevel, trialActive]);
+  }, [applyChange, currentTrialLevel, isClue, trialActive]);
 
   // 手机端点击循环（空白→黑格→打叉→空白）
   const cycleCell = useCallback((r: number, c: number) => {
@@ -181,13 +184,15 @@ export default function NurikabeBoard({
   }, [grid, clues, width, height, startTime, onComplete]);
 
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
+    const isTouchPointer = e.pointerType === 'touch' || (e.button === 0 && isMobile);
+    if (!isTouchPointer && e.button !== 0 && e.button !== 2) return;
+
     const isClueCell = isClue(r, c);
     if (isClueCell) {
       e.preventDefault();
       e.nativeEvent.stopImmediatePropagation();
       return;
     }
-    const isLeftClick = e.button === 0;
 
     e.preventDefault();
     e.nativeEvent.stopImmediatePropagation();
@@ -196,13 +201,14 @@ export default function NurikabeBoard({
 
     isDragging.current = true;
     hasDragged.current = false;
+    activeMouseButton.current = isTouchPointer ? null : e.button === 2 ? 2 : 0;
     startRow.current = r;
     startCol.current = c;
     startBatch();
 
     const currentState = grid[r][c];
 
-    if (isMobile) {
+    if (isTouchPointer) {
       // 手机端：按您最新要求实现拖拽循环
       if (currentState === 0) {
         dragMode.current = 'add-shade';
@@ -213,10 +219,16 @@ export default function NurikabeBoard({
       }
     } else {
       // 电脑端：恢复原始左右键逻辑
-      if (isLeftClick) {
+      if (e.button === 0) {
         dragMode.current = currentState === 1 ? 'remove-shade' : 'add-shade';
       } else {
         dragMode.current = currentState === 2 ? 'remove-mark' : 'add-mark';
+        // Apply a desktop right-click immediately. Waiting for pointerup is
+        // unreliable because the browser may dispatch the context-menu
+        // sequence before the board's release handler. Mark the gesture as
+        // handled so pointerup does not toggle the origin a second time.
+        toggleCell(r, c, dragMode.current);
+        hasDragged.current = true;
       }
     }
   };
@@ -229,14 +241,24 @@ export default function NurikabeBoard({
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || dragMode.current === 'none') return;
 
+    if (activeMouseButton.current === 0 && (e.buttons & 1) === 0) {
+      handlePointerUp();
+      return;
+    }
+    if (activeMouseButton.current === 2 && (e.buttons & 2) === 0) {
+      handlePointerUp();
+      return;
+    }
+
     const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left - commonBoardChrome.padding;
-    const relativeY = e.clientY - rect.top - commonBoardChrome.padding;
+    const boardInset = commonBoardChrome.border + commonBoardChrome.padding;
+    const relativeX = e.clientX - rect.left - boardInset;
+    const relativeY = e.clientY - rect.top - boardInset;
     const col = Math.floor(relativeX / cellSize);
     const row = Math.floor(relativeY / cellSize);
 
     if (row >= 0 && row < height && col >= 0 && col < width) {
-      if (isClue(row, col) && dragMode.current.includes('shade')) return;
+      if (isClue(row, col)) return;
       hasDragged.current = true;
       toggleCell(row, col, dragMode.current);
     }
@@ -255,30 +277,38 @@ export default function NurikabeBoard({
     }
 
     isDragging.current = false;
+    activeMouseButton.current = null;
     dragMode.current = 'none';
     startRow.current = -1;
     startCol.current = -1;
     finishBatch();
   };
 
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, cellSize);
+
   return (
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
-        className="puzzle-container mx-auto select-none"
+        className="puzzle-container relative mx-auto select-none"
         style={{
-          display: 'inline-grid',
-          gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          padding: `${commonBoardChrome.padding}px`,
+          width: `${outerWidth}px`,
+          height: `${outerHeight}px`,
           touchAction: 'none',
-          ...getBoardFrameStyle(),
+          ...getBoardFrameStyle(commonBoardChrome.border),
         }}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        onContextMenu={handleContextMenu}
       >
-        {grid.flatMap((row, r) =>
-          row.map((state, c) => {
+        <div
+          className="grid"
+          style={getBoardGridStyle(commonBoardChrome.padding, commonBoardChrome.padding, width, cellSize)}
+        >
+          {grid.flatMap((row, r) =>
+            row.map((state, c) => {
             const clue = clues.find((cl) => cl.row === r && cl.col === c);
             const isShaded = state === 1;
             const isMarked = state === 2;
@@ -291,26 +321,26 @@ export default function NurikabeBoard({
               <div
                 key={`${r}-${c}`}
                 onPointerDown={(e) => handlePointerDown(r, c, e)}
-                onContextMenu={handleContextMenu}
                 style={{
-                  width: `${cellSize}px`,
-                  height: `${cellSize}px`,
+                  ...getBoardCellStyle(cellSize, clue
+                    ? 'clue'
+                    : isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell'),
                   ...getBoardTextStyle(cellSize),
-                  ...(clue
-                    ? getBoardCellColors('clue')
-                    : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
-                  ...getCellDividerStyle(),
                   ...style,
                 }}
-                className={`flex items-center justify-center border-0 cursor-pointer touch-none ${boardClassNames.cellTextTight}`}
+                className={`relative flex items-center justify-center border-0 cursor-pointer touch-none ${boardClassNames.cellTextTight}`}
               >
                 {clue ? clue.value : isMarked ? (
-                  <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
+                  <BoardCellMark
+                    kind="cross"
+                    cellSize={cellSize}
+                  />
                 ) : ''}
               </div>
-            );
+              );
             })
-        )}
+          )}
+        </div>
       </div>
       <PuzzleAssistToolbar
         canUndo={canUndo}

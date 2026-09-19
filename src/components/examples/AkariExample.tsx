@@ -7,8 +7,10 @@ import {
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardFrameDimensions,
   getBoardSymbolDiameter,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
 } from '../../puzzles/boardTheme';
@@ -55,10 +57,12 @@ export default function AkariExample({
     [examplePuzzle, solvedGrid]
   );
   const bulbSet = useMemo(() => new Set(bulbCells.map((cell) => `${cell.row},${cell.col}`)), [bulbCells]);
-  const boardWidth = width * CELL_SIZE;
-  const boardHeight = height * CELL_SIZE;
-  const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   const bulbDiameter = getBoardSymbolDiameter(CELL_SIZE);
   const clueTextStyle = getBoardTextStyle(CELL_SIZE);
 
@@ -93,16 +97,16 @@ export default function AkariExample({
           >
             {!showAnswer ? (
               <div
+                className="relative"
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
-                  padding: `${BOARD_PADDING}px`,
                   ...getBoardFrameStyle(BOARD_BORDER),
                 }}
               >
                 <div
                   className="grid"
-                  style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)` }}
+                  style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
                 >
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
@@ -128,11 +132,7 @@ export default function AkariExample({
             >
               <div
                 className="absolute grid"
-                style={{
-                  left: `${BOARD_PADDING}px`,
-                  top: `${BOARD_PADDING}px`,
-                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                }}
+                style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
               >
                 {Array.from({ length: height }).flatMap((_, row) =>
                   Array.from({ length: width }).map((__, col) => {

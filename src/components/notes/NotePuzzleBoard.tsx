@@ -8,13 +8,15 @@ import {
   boardLayoutMetrics,
   getBoardBoundaryStrokeMetrics,
   getBoardBoundaryStrokeWidth,
-  getBoardCenterMarkMetrics,
+  getBoardPillCapsuleMetrics,
   getBoardCellColors,
   getBoardCellStyle,
   getBoardCellOutlineRect,
+  getBoardClueCircleMetrics,
   getBoardDotRadius,
   getBoardFrameStyle,
   getBoardGridStyle,
+  getBoardGridOutlineRect,
   getBoardDominoBadgeStyle,
   getBoardGridStrokeWidth,
   getBoardPanelColors,
@@ -26,7 +28,6 @@ import {
   getBoardTextStyle,
   getBoardTrialCellStyle,
   getLoopLineStrokeWidth,
-  getLoopCrossStrokeWidth,
   getRoomBoundaryStrokeWidth,
   getKurarinClueColors,
   woodBoardTheme,
@@ -34,8 +35,11 @@ import {
   type BoardOutsideClues,
 } from '@/puzzles/boardTheme';
 import BoardCellOutline from '@/puzzles/shared/BoardCellOutline';
+import BoardCellMark from '@/puzzles/shared/BoardCellMark';
+import BoardEdgeCross from '@/puzzles/shared/BoardEdgeCross';
 import { countPlacedDominoPairs, getDominoPairKey } from '@/puzzles/DominoSearch/utils';
 import { getMagicSnailBoundaryLines } from '@/puzzles/MagicSnail/utils';
+import { getPillsPipsLayout } from '@/puzzles/Pills/utils';
 import { getSkyNeighborDisplayClues } from '@/puzzles/SkyNeighbor/utils';
 import {
   filterValidCellEdgeKeys,
@@ -51,6 +55,7 @@ import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import TapaClue from '@/puzzles/Tapa/TapaClue';
+import FourWindsWithParksMark, { type FourWindsWithParksMarkValue } from '@/puzzles/FourWindsWithParks/FourWindsWithParksVisuals';
 import {
   BattleshipFleet,
   BattleshipSegmentSymbol,
@@ -107,8 +112,6 @@ const directionGlyphs: Record<YajilinDirection, string> = {
 const japaneseArrowGlyphs: Record<JapaneseArrowDirection, string> = {
   N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖',
 };
-
-const fourWindsGlyphs = ['X', '↑', '→', '↓', '←'] as const;
 
 function getLocalCellKey(row: number, col: number) {
   return `${row}:${col}`;
@@ -231,34 +234,7 @@ function SlitherCellMark({
   cellSize: number;
   color: string;
 }) {
-  const center = cellSize / 2;
-  const { radius, crossSize, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
-
-  return (
-    <svg
-      className="pointer-events-none absolute inset-0"
-      width={cellSize}
-      height={cellSize}
-      viewBox={`0 0 ${cellSize} ${cellSize}`}
-      aria-hidden="true"
-    >
-      {mark === 'circle' ? (
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-        />
-      ) : (
-        <g stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
-          <line x1={center - crossSize} y1={center - crossSize} x2={center + crossSize} y2={center + crossSize} />
-          <line x1={center - crossSize} y1={center + crossSize} x2={center + crossSize} y2={center - crossSize} />
-        </g>
-      )}
-    </svg>
-  );
+  return <BoardCellMark kind={mark} cellSize={cellSize} color={color} />;
 }
 
 function getCellTrialLevel(snapshot: unknown, row: number, col: number) {
@@ -507,7 +483,9 @@ function getCellView(
     }
     case 'lits': {
       const excluded = puzzle.regionIds[row]?.[col] < 0;
-      return excluded ? { tone: 'marked', content: '×', locked: true } : { tone: 'cell' };
+      return excluded
+        ? { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} />, locked: true }
+        : { tone: 'cell' };
     }
     case 'lakes': {
       const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
@@ -548,6 +526,38 @@ function getCellView(
       const given = puzzle.givens[row]?.[col] ?? null;
       return given ? { tone: 'clue', content: given, locked: true } : { tone: 'cell' };
     }
+    case 'magnets': {
+      const given = puzzle.givens[row]?.[col] ?? null;
+      return given ? { tone: 'clue', content: given, locked: true } : { tone: 'cell' };
+    }
+    case 'pills': {
+      const count = puzzle.dots[row]?.[col] ?? 0;
+      if (count <= 0) return { tone: 'cell' };
+      const { radius, positions } = getPillsPipsLayout(count, cellSize);
+      return {
+        tone: 'cell',
+        content: (
+          <span
+            className="relative flex h-full w-full items-center justify-center"
+            style={{ transform: count > 1 ? 'rotate(18deg)' : undefined }}
+          >
+            {positions.map((position, index) => (
+              <span
+                key={index}
+                className="absolute block rounded-full"
+                style={{
+                  width: `${radius * 2}px`,
+                  height: `${radius * 2}px`,
+                  left: `calc(${(position.x * 100).toFixed(2)}% - ${radius}px)`,
+                  top: `calc(${(position.y * 100).toFixed(2)}% - ${radius}px)`,
+                  background: woodBoardTheme.ink,
+                }}
+              />
+            ))}
+          </span>
+        ),
+      };
+    }
     case 'tapa': {
       const clue = puzzle.clues[row]?.[col] ?? null;
       return clue
@@ -556,7 +566,7 @@ function getCellView(
     }
     case 'magic-summer': {
       const cell = puzzle.cells[row]?.[col] ?? null;
-      if (cell === 'block') return { tone: 'marked', content: '×', locked: true };
+      if (cell === 'block') return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} />, locked: true };
       if (typeof cell === 'number') return { tone: 'prefilled', content: cell, locked: true };
       return { tone: 'cell' };
     }
@@ -588,7 +598,7 @@ function getCellView(
     }
     case 'snail': {
       const cell = puzzle.cells[row]?.[col] ?? null;
-      if (cell === 'block') return { tone: 'marked', content: '×', locked: true };
+      if (cell === 'block') return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} />, locked: true };
       if (typeof cell === 'number') return { tone: 'clue', content: cell, locked: true };
       return { tone: 'cell' };
     }
@@ -633,14 +643,24 @@ function getSnapshotCellView(
 
   if (puzzleType === 'snail') {
     if (value === 'circle') return { tone: 'cell' };
-    if (value === 'cross') return { tone: 'marked' };
+    if (value === 'cross') return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
   if (puzzleType === 'magic-summer') {
     if (value === 'circle') return { tone: 'cell' };
-    if (value === 'cross') return { tone: 'marked' };
+    if (value === 'cross') return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
+  }
+
+  if (puzzleType === 'yajilin' || puzzleType === 'kurarin') {
+    const markColor = getTrialLevelColors(getCellTrialLevel(snapshot, row, col))?.text
+      ?? woodBoardTheme.border;
+    return value === 2
+      ? { tone: 'cell', content: <BoardCellMark kind="circle" cellSize={cellSize} color={markColor} /> }
+      : value === 1
+        ? { tone: 'playerShaded' }
+        : null;
   }
 
   if (
@@ -652,13 +672,24 @@ function getSnapshotCellView(
     puzzleType === 'neighbor' ||
     puzzleType === 'sky-neighbor'
   ) {
+    if (puzzleType === 'slovak-sums' && value === 'cross') {
+      return { tone: 'marked' };
+    }
     return isNumberValue(value) ? { tone: 'cell', content: value } : null;
   }
 
   if (puzzleType === 'four-winds-with-parks') {
-    return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 4
-      ? { tone: value === 0 ? 'marked' : 'cell', content: fourWindsGlyphs[value] }
-      : null;
+    const isDirection = typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 4;
+    const isMark = value === 'circle' || value === 'cross';
+    if (!isDirection && !isMark) return null;
+
+    // `0` is the legacy park representation; both it and the explicit
+    // `circle` mark are rendered as a circle. Crosses remain auxiliary marks.
+    const mark = (value === 0 ? 'circle' : value) as FourWindsWithParksMarkValue;
+    return {
+      tone: value === 'cross' ? 'marked' : 'cell',
+      content: <FourWindsWithParksMark value={mark} cellSize={cellSize} />,
+    };
   }
 
   if (puzzleType === 'japanese-arrows') {
@@ -667,19 +698,48 @@ function getSnapshotCellView(
 
   if (puzzleType === 'japanese-sums-with-zeroes' || puzzleType === 'abc-box') {
     if (puzzleType === 'japanese-sums-with-zeroes' && value === 'circle') return { tone: 'cell', content: '○' };
-    if (puzzleType === 'japanese-sums-with-zeroes' && value === 'cross') return { tone: 'marked', content: '×' };
+    if (puzzleType === 'japanese-sums-with-zeroes' && value === 'cross') return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
     return isNumberValue(value) ? { tone: 'cell', content: puzzleType === 'abc-box' ? ['','A','B','C'][value] : value } : null;
   }
 
   if (puzzleType === 'starbattle') {
     if (value === 1) return { tone: 'cell', content: '★', fontRatio: 0.78 };
-    if (value === 2) return { tone: 'marked', content: '×' };
+    if (value === 2) return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
+    return null;
+  }
+
+  if (puzzleType === 'magnets') {
+    if (value === 1) return { tone: 'cell', content: '+', fontRatio: 0.7 };
+    if (value === 2) return { tone: 'cell', content: '−', fontRatio: 0.7 };
+    return null;
+  }
+
+  if (puzzleType === 'pills') {
+    if (value === 1) {
+      const { inset, radius } = getBoardPillCapsuleMetrics(cellSize);
+      return {
+        tone: 'cell',
+        content: (
+          <span
+            className="absolute rounded-full"
+            style={{
+              left: `${inset}px`,
+              top: `${inset}px`,
+              width: `${radius * 2}px`,
+              height: `${radius * 2}px`,
+              border: `${getBoardThinStrokeWidth(cellSize)}px solid ${woodBoardTheme.ink}`,
+              boxSizing: 'border-box',
+            }}
+          />
+        ),
+      };
+    }
     return null;
   }
 
   if (puzzleType === 'akari') {
     if (value === 1) return { tone: 'brightLit', content: '●', fontRatio: 0.72 };
-    if (value === 2) return { tone: 'marked', content: '×' };
+    if (value === 2) return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
     return null;
   }
 
@@ -706,12 +766,12 @@ function getSnapshotCellView(
         ),
       };
     }
-    if (value === 2) return { tone: 'marked', content: '×' };
+    if (value === 2) return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
     return null;
   }
 
   if (value === 1) return { tone: 'playerShaded' };
-  if (value === 2) return { tone: 'marked', content: '×' };
+  if (value === 2) return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
   return null;
 }
 
@@ -776,6 +836,12 @@ function getSnapshotCellTrialStyle(
 
   if (puzzleType === 'akari') {
     return getBoardTrialCellStyle(trialColors, 'line');
+  }
+
+  // Yajilin and Kurarin circles are overlays on regular cells. Do not tint
+  // the cell background when a circle is recorded during a trial.
+  if ((puzzleType === 'yajilin' || puzzleType === 'kurarin') && value === 2) {
+    return undefined;
   }
 
   if (puzzleType === 'battleship' && value === 1) {
@@ -882,16 +948,25 @@ function ConsecutiveBarsOverlay({
   gridLeft: number;
   gridTop: number;
 }) {
+  const { radius, strokeWidth, outerRadiusOffset } = getBoardClueCircleMetrics(cellSize);
+  const dotColors = getKurarinClueColors('white');
+  const haloFill = getBoardCellColors('cell').background;
+  const renderDot = (key: string, x: number, y: number) => (
+    <g key={key}>
+      <circle cx={x} cy={y} r={radius + outerRadiusOffset} fill={haloFill} />
+      <circle cx={x} cy={y} r={radius} fill={dotColors.fill} stroke={dotColors.stroke} strokeWidth={strokeWidth} />
+    </g>
+  );
   const bars = [
-    ...puzzle.horizontalBars.flatMap((row, r) => row.map((bar, c) => bar ? (
-      <line key={`h-${r}-${c}`} x1={gridLeft + (c + 1) * cellSize - 3} y1={gridTop + r * cellSize + cellSize / 2}
-        x2={gridLeft + (c + 1) * cellSize + 3} y2={gridTop + r * cellSize + cellSize / 2}
-        stroke={woodBoardTheme.whiteCell} strokeWidth={getBoardGridStrokeWidth(cellSize)} strokeLinecap="round" />
+    ...puzzle.horizontalBars.flatMap((row, r) => row.map((bar, c) => bar ? renderDot(
+      `h-${r}-${c}`,
+      gridLeft + (c + 1) * cellSize,
+      gridTop + r * cellSize + cellSize / 2
     ) : null)),
-    ...puzzle.verticalBars.flatMap((row, r) => row.map((bar, c) => bar ? (
-      <line key={`v-${r}-${c}`} x1={gridLeft + c * cellSize + cellSize / 2} y1={gridTop + (r + 1) * cellSize - 3}
-        x2={gridLeft + c * cellSize + cellSize / 2} y2={gridTop + (r + 1) * cellSize + 3}
-        stroke={woodBoardTheme.whiteCell} strokeWidth={getBoardGridStrokeWidth(cellSize)} strokeLinecap="round" />
+    ...puzzle.verticalBars.flatMap((row, r) => row.map((bar, c) => bar ? renderDot(
+      `v-${r}-${c}`,
+      gridLeft + c * cellSize + cellSize / 2,
+      gridTop + (r + 1) * cellSize
     ) : null)),
   ];
   return (
@@ -1158,11 +1233,13 @@ function DominoOutlineOverlay({
         return (
           <rect
             key={`domino-outline-${key}`}
-            {...rect}
-            fill="none"
-            stroke={getSnapshotTrialColor(snapshot, key, ['levels'], 'line', woodBoardTheme.ink, visibleTrialLevel)}
-            strokeWidth={getRoomBoundaryStrokeWidth()}
-            strokeLinejoin="miter"
+            {...getBoardGridOutlineRect(
+              rect.x,
+              rect.y,
+              rect.width,
+              rect.height,
+              getSnapshotTrialColor(snapshot, key, ['levels'], 'line', woodBoardTheme.border, visibleTrialLevel)
+            )}
           />
         );
       })}
@@ -1256,8 +1333,6 @@ function CrossOverlay({
 }) {
   if (keys.length === 0) return null;
 
-  const size = Math.max(4, Math.floor(cellSize * 0.12));
-
   return (
     <svg className="pointer-events-none absolute left-0 top-0" width="100%" height="100%">
       {keys.map((key) => {
@@ -1267,15 +1342,13 @@ function CrossOverlay({
         const y = (points.y1 + points.y2) / 2;
 
         return (
-          <g
+          <BoardEdgeCross
             key={`${keyPrefix}-${key}`}
-            stroke={typeof stroke === 'function' ? stroke(key) : stroke}
-            strokeLinecap="round"
-            strokeWidth={getLoopCrossStrokeWidth()}
-          >
-            <line x1={x - size} y1={y - size} x2={x + size} y2={y + size} />
-            <line x1={x - size} y1={y + size} x2={x + size} y2={y - size} />
-          </g>
+            x={x}
+            y={y}
+            cellSize={cellSize}
+            color={typeof stroke === 'function' ? stroke(key) : stroke}
+          />
         );
       })}
     </svg>
@@ -1412,7 +1485,17 @@ export default function NotePuzzleBoard({
           top: activePuzzle.columnClues,
           left: activePuzzle.rowClues,
         }
-      : null;
+      : activePuzzle?.type === 'pills'
+        ? {
+            top: activePuzzle.topClues,
+            left: activePuzzle.leftClues,
+          }
+        : activePuzzle?.type === 'magnets'
+          ? {
+              top: activePuzzle.topClues,
+              left: activePuzzle.leftClues,
+            }
+          : null;
   const outsideDirectionCount = Number(outsideClues?.left !== undefined) +
     Number(outsideClues?.right !== undefined) +
     Number(outsideClues?.top !== undefined) +
@@ -1480,9 +1563,12 @@ export default function NotePuzzleBoard({
   const regionIds = getRegionIds(activePuzzle);
   const isSlither = activePuzzle?.type === 'slither' || activePuzzle?.type === 'wolvesandsheepfences' ||
     (!activePuzzle && (puzzleType === 'slither' || puzzleType === 'wolvesandsheepfences'));
+  const isPills = activePuzzle?.type === 'pills' || (!activePuzzle && puzzleType === 'pills');
+  const isFourWindsWithParks = activePuzzle?.type === 'four-winds-with-parks' ||
+    (!activePuzzle && puzzleType === 'four-winds-with-parks');
   const isDominoSearch = activePuzzle?.type === 'domino-search' || (!activePuzzle && puzzleType === 'domino-search');
   const dominoes = activePuzzle?.type === 'domino-search' ? activePuzzle.dominoes : null;
-  const lineEdges = isSlither
+  const lineEdges = (isSlither || isPills)
     ? filterValidGridLineEdgeKeys(getStringArray(snapshot, 'lineEdges'), width, height)
     : filterValidCellEdgeKeys(getStringArray(snapshot, 'lineEdges'), width, height);
   const loopEdges = filterValidCellEdgeKeys(getStringArray(snapshot, 'loopEdges'), width, height);
@@ -1549,7 +1635,7 @@ export default function NotePuzzleBoard({
       waterClueKeys: getBattleshipWaterClueKeys(activePuzzle),
     };
   }, [activePuzzle, snapshot, visibleTrialLevel]);
-  const crossedEdges = isSlither
+  const crossedEdges = isSlither || isFourWindsWithParks
     ? filterValidGridLineEdgeKeys(getStringArray(snapshot, 'crossedEdges'), width, height)
     : filterValidCellEdgeKeys(getStringArray(snapshot, 'crossedEdges'), width, height);
   const deepLines = filterValidInternalBoundaryEdgeKeys(
@@ -1566,10 +1652,10 @@ export default function NotePuzzleBoard({
   const vertexDots = filterValidGridVertexKeys(getStringArray(snapshot, 'vertexDots'), width, height);
   const dominoOutlineKeys = isDominoSearch ? dominoEdges : [];
   const centerLoopKeys = loopEdges;
-  const centerPathKeys = isSlither ? [] : lineEdges;
-  const gridLineKeys = isSlither ? lineEdges : [];
-  const centerCrossKeys = isSlither ? [] : crossedEdges;
-  const gridCrossKeys = isSlither ? crossedEdges : [];
+  const centerPathKeys = isSlither || isPills ? [] : lineEdges;
+  const gridLineKeys = isSlither || isPills ? lineEdges : [];
+  const centerCrossKeys = isSlither || isFourWindsWithParks ? [] : crossedEdges;
+  const gridCrossKeys = isSlither || isFourWindsWithParks ? crossedEdges : [];
   const boardWidth = width * cellSize + outsideLeft + outsideRight;
   const boardHeight = height * cellSize + outsideTop + outsideBottom;
   const frameWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
@@ -1909,7 +1995,7 @@ export default function NotePuzzleBoard({
               getSnapshotTrialColor(
                 snapshot,
                 key,
-                ['crossedLevels'],
+                isFourWindsWithParks ? ['crossedEdgeLevels'] : ['crossedLevels'],
                 'text',
                 woodBoardTheme.border,
                 visibleTrialLevel

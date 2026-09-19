@@ -3,13 +3,11 @@ import { useI18n } from '@/i18n/useI18n';
 import NumberPlacementBoard, { type NumberPlacementCellValue } from '../shared/NumberPlacementBoard';
 import type { MagicSummerPuzzleData } from '../types';
 import {
-  getBoardCenterMarkMetrics,
-  getBoardCrossFontSize,
   getBoardTextStyle,
-  getCrossMarkStyle,
   woodBoardTheme,
 } from '../boardTheme';
 import { validateMagicSummer } from './utils';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: MagicSummerPuzzleData;
@@ -26,31 +24,11 @@ const magicSummerExtraValues: Array<Exclude<NumberPlacementCellValue, number | n
 
 function renderMagicSummerCellValue(value: NumberPlacementCellValue, cellSize: number) {
   if (value === 'circle') {
-    const center = cellSize / 2;
-    const { radius, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
-
-    return (
-      <svg
-        className="pointer-events-none absolute inset-0"
-        width={cellSize}
-        height={cellSize}
-        viewBox={`0 0 ${cellSize} ${cellSize}`}
-        aria-hidden="true"
-      >
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke={woodBoardTheme.border}
-          strokeWidth={strokeWidth}
-        />
-      </svg>
-    );
+    return <BoardCellMark kind="circle" cellSize={cellSize} />;
   }
 
   if (value === 'cross') {
-    return <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span>;
+    return <BoardCellMark kind="cross" cellSize={cellSize} />;
   }
 
   return value;
@@ -142,7 +120,7 @@ export default function MagicSummerBoard({
         getFixedValue={getFixedValue}
         isBlockedCell={isBlockedCell}
         renderBlockedCell={(_row, _col, cellSize) => (
-          <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), woodBoardTheme.darkCellText)}>×</span>
+          <BoardCellMark kind="cross" cellSize={cellSize} color={woodBoardTheme.darkCellText} />
         )}
         renderCellValue={renderMagicSummerCellValue}
         renderCandidates={renderCandidates}

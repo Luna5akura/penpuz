@@ -8,8 +8,10 @@ import {
   boardOverlayStyle,
   commonBoardChrome,
   getBoardBoundaryStrokeWidth,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardGridStrokeWidth,
   getBoardNumpadPanelStyle,
   getBoardNumpadButtonStyle,
@@ -75,8 +77,6 @@ export default function FillominoExample({
   const boardRef = useRef<HTMLDivElement>(null);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressThreshold = 500;
-
-  const gap = 0;
 
   // 自适应尺寸
   useLayoutEffect(() => {
@@ -148,9 +148,8 @@ export default function FillominoExample({
   }, [handleKeyDown]);
 
   const getCenter = useCallback((r: number, c: number) => {
-    const step = cellSize + gap;
-    return { x: c * step + cellSize / 2, y: r * step + cellSize / 2 };
-  }, [cellSize, gap]);
+    return { x: c * cellSize + cellSize / 2, y: r * cellSize + cellSize / 2 };
+  }, [cellSize]);
 
   const autoThinLines = useMemo(
     () => getFillominoAutoBoundaryLines(grid, width, height),
@@ -214,18 +213,16 @@ export default function FillominoExample({
   }, [cluesGrid]);
 
   const getCellFromPos = useCallback((effectiveX: number, effectiveY: number) => {
-    const step = cellSize + gap;
     return {
-      row: Math.max(0, Math.min(height - 1, Math.floor(effectiveY / step))),
-      col: Math.max(0, Math.min(width - 1, Math.floor(effectiveX / step))),
+      row: Math.max(0, Math.min(height - 1, Math.floor(effectiveY / cellSize))),
+      col: Math.max(0, Math.min(width - 1, Math.floor(effectiveX / cellSize))),
     };
   }, [cellSize, height, width]);
 
   const getNearestVertex = useCallback((effectiveX: number, effectiveY: number) => {
-    const step = cellSize + gap;
     return {
-      rowLine: Math.max(0, Math.min(height, Math.round(effectiveY / step))),
-      colLine: Math.max(0, Math.min(width, Math.round(effectiveX / step))),
+      rowLine: Math.max(0, Math.min(height, Math.round(effectiveY / cellSize))),
+      colLine: Math.max(0, Math.min(width, Math.round(effectiveX / cellSize))),
     };
   }, [cellSize, height, width]);
 
@@ -257,9 +254,9 @@ export default function FillominoExample({
     if (!isDragging.current || pointerIdRef.current === null) return;
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const padding = 3;
-    const effectiveX = e.clientX - rect.left - padding;
-    const effectiveY = e.clientY - rect.top - padding;
+    const boardInset = commonBoardChrome.border + BOARD_PADDING;
+    const effectiveX = e.clientX - rect.left - boardInset;
+    const effectiveY = e.clientY - rect.top - boardInset;
     const currentCell = getCellFromPos(effectiveX, effectiveY);
 
     if (longPressTimerRef.current) {
@@ -415,9 +412,9 @@ export default function FillominoExample({
     if (mode === 'deepLine') {
       const rect = boardRef.current?.getBoundingClientRect();
       if (rect) {
-        const padding = 3;
-        const mouseX = e.clientX - rect.left - padding;
-        const mouseY = e.clientY - rect.top - padding;
+        const boardInset = commonBoardChrome.border + BOARD_PADDING;
+        const mouseX = e.clientX - rect.left - boardInset;
+        const mouseY = e.clientY - rect.top - boardInset;
         lastVertexRef.current = getNearestVertex(mouseX, mouseY);
       }
     }
@@ -426,8 +423,14 @@ export default function FillominoExample({
     document.addEventListener('pointerup', handleDocumentPointerUp, { passive: true, once: true });
   };
 
-  const svgWidth = width * cellSize;
-  const svgHeight = height * cellSize;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: commonBoardChrome.border, padding: BOARD_PADDING }
+  );
+  const svgWidth = boardWidth;
+  const svgHeight = boardHeight;
 
   return (
     <>
@@ -442,19 +445,16 @@ export default function FillominoExample({
             className="mx-auto select-none"
             style={{
               position: 'relative',
-              display: 'inline-block',
-              padding: `${BOARD_PADDING}px`,
+              width: `${outerWidth}px`,
+              height: `${outerHeight}px`,
               touchAction: 'none',
-              ...getBoardFrameStyle(),
+              ...getBoardFrameStyle(commonBoardChrome.border),
             }}
             onContextMenu={(e) => e.preventDefault()}
           >
             <div
-              style={{
-                display: 'inline-grid',
-                gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-                gap: `${gap}px`,
-              }}
+              className="grid"
+              style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
             >
               {grid.flatMap((row, r) =>
                 row.map((value, c) => {
@@ -473,12 +473,8 @@ export default function FillominoExample({
                         ${isClue ? '' : 'hover:bg-gray-100 active:bg-gray-200'}
                         ${invalidCells.some(cell => cell.r === r && cell.c === c) ? 'text-red-600' : ''}`}
                       style={{
-                        width: `${cellSize}px`,
-                        height: `${cellSize}px`,
+                        ...getBoardCellStyle(cellSize, isClue ? 'clue' : 'cell'),
                         ...getBoardTextStyle(cellSize),
-                        ...(isClue
-                          ? getBoardCellColors('clue')
-                          : getBoardCellColors('cell')),
                       }}
                     >
                       {value ?? ''}
@@ -504,6 +500,7 @@ export default function FillominoExample({
               {Array.from({ length: height }, (_, r) =>
                 Array.from({ length: width - 1 }, (_, c) => {
                   const key = `h-${r}-${c}`;
+                  if (!autoThinLines.has(key)) return null;
                   const { stroke, strokeWidth } = getLineStyle(key);
                   const x = alignStrokeCoordinate((c + 1) * cellSize, strokeWidth);
                   const y1 = r * cellSize;
@@ -514,6 +511,7 @@ export default function FillominoExample({
               {Array.from({ length: height - 1 }, (_, r) =>
                 Array.from({ length: width }, (_, c) => {
                   const key = `v-${r}-${c}`;
+                  if (!autoThinLines.has(key)) return null;
                   const { stroke, strokeWidth } = getLineStyle(key);
                   const y = alignStrokeCoordinate((r + 1) * cellSize, strokeWidth);
                   const x1 = c * cellSize;
@@ -598,17 +596,14 @@ export default function FillominoExample({
               className="mx-auto select-none"
               style={{
                 position: 'relative',
-                display: 'inline-block',
-                padding: `${BOARD_PADDING}px`,
-                ...getBoardFrameStyle(),
+                width: `${outerWidth}px`,
+                height: `${outerHeight}px`,
+                ...getBoardFrameStyle(commonBoardChrome.border),
               }}
             >
               <div
-                style={{
-                  display: 'inline-grid',
-                  gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-                  gap: `${gap}px`,
-                }}
+                className="grid"
+                style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
               >
                 {correctGrid.flatMap((row, r) =>
                   row.map((val, c) => (
@@ -616,10 +611,8 @@ export default function FillominoExample({
                       key={`${r}-${c}`}
                       className={`flex items-center justify-center ${boardClassNames.cellText}`}
                       style={{
-                        width: `${cellSize}px`,
-                        height: `${cellSize}px`,
+                        ...getBoardCellStyle(cellSize, 'cell'),
                         ...getBoardTextStyle(cellSize),
-                        ...getBoardCellColors('cell'),
                       }}
                     >
                       {val ?? ''}
@@ -644,6 +637,7 @@ export default function FillominoExample({
                 {Array.from({ length: height }, (_, r) =>
                   Array.from({ length: width - 1 }, (_, c) => {
                     const key = `h-${r}-${c}`;
+                    if (!autoThinLinesAnswer.has(key)) return null;
                     const { stroke, strokeWidth } = getLineStyle(key, true);
                     const x = alignStrokeCoordinate((c + 1) * cellSize, strokeWidth);
                     const y1 = r * cellSize;
@@ -654,6 +648,7 @@ export default function FillominoExample({
                 {Array.from({ length: height - 1 }, (_, r) =>
                   Array.from({ length: width }, (_, c) => {
                     const key = `v-${r}-${c}`;
+                    if (!autoThinLinesAnswer.has(key)) return null;
                     const { stroke, strokeWidth } = getLineStyle(key, true);
                     const y = alignStrokeCoordinate((r + 1) * cellSize, strokeWidth);
                     const x1 = c * cellSize;

@@ -8,14 +8,13 @@ import type { AqrePuzzleData } from '../types';
 import {
   boardClassNames,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
   getBoardBoundaryStrokeMetrics,
-  getBoardCrossFontSize,
   getBoardFrameStyle,
+  getBoardFrameDimensions,
+  getBoardGridStyle,
   getBoardTextStyle,
   getBoardTrialCellStyle,
-  getCellDividerStyle,
-  getCrossMarkStyle,
   getInvalidBoardCellColors,
   getResponsiveCellSize,
   woodBoardTheme,
@@ -28,6 +27,7 @@ import {
 } from './utils';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: AqrePuzzleData;
@@ -264,8 +264,9 @@ export default function AqreBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
-    const x = clientX - rect.left - BOARD_PADDING;
-    const y = clientY - rect.top - BOARD_PADDING;
+    const boardInset = BOARD_BORDER + BOARD_PADDING;
+    const x = clientX - rect.left - boardInset;
+    const y = clientY - rect.top - boardInset;
     if (x < 0 || y < 0) return null;
 
     const col = Math.floor(x / cellSize);
@@ -346,12 +347,13 @@ export default function AqreBoard({
     applyDragToCell(hitCell.row, hitCell.col);
   };
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   const clueTextStyle = getBoardTextStyle(cellSize);
-  const crossFontSize = getBoardCrossFontSize(cellSize);
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
 
   return (
@@ -372,11 +374,7 @@ export default function AqreBoard({
       >
         <div
           className="absolute grid"
-          style={{
-            left: `${BOARD_PADDING}px`,
-            top: `${BOARD_PADDING}px`,
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {grid.flatMap((currentRow, row) =>
             currentRow.map((state, col) => {
@@ -385,7 +383,7 @@ export default function AqreBoard({
               const isInvalid = showValidationMessage && invalidCellSet.has(`${row},${col}`);
               const isShaded = state === 1;
               const isMarked = state === 2;
-              const baseStyle = getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell');
+              const baseTone = isShaded ? 'playerShaded' as const : isMarked ? 'marked' as const : 'cell' as const;
               const invalidStyle = isInvalid
                 ? getInvalidBoardCellColors(isShaded ? 'dark' : isMarked ? 'marked' : 'soft')
                 : undefined;
@@ -399,10 +397,7 @@ export default function AqreBoard({
                   onPointerDown={(event) => handleCellPointerDown(row, col, event)}
                   className="relative flex items-center justify-center touch-none"
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
-                    ...baseStyle,
-                    ...getCellDividerStyle(),
+                    ...getBoardCellStyle(cellSize, baseTone),
                     ...invalidStyle,
                     ...trialStyle,
                   }}
@@ -418,14 +413,10 @@ export default function AqreBoard({
                       {clueValue}
                     </span>
                   ) : isMarked ? (
-                    <span
-                      style={getCrossMarkStyle(
-                        crossFontSize,
-                        trialColors?.text ?? woodBoardTheme.border
-                      )}
-                    >
-                      ×
-                    </span>
+                    <BoardCellMark
+                      kind="cross"
+                      cellSize={cellSize}
+                    />
                   ) : null}
                 </div>
               );

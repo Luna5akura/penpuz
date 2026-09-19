@@ -176,6 +176,14 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
       return [isZh ? '填入 0–6 的数字' : 'digits 0–6'];
     case 'abc-box':
       return [isZh ? 'A、B、C 三种字母' : 'letters A, B and C'];
+    case 'magnets':
+      return [isZh
+        ? `${puzzle.regions.length} 个两格区域`
+        : `${puzzle.regions.length} domino regions`];
+    case 'pills':
+      return [isZh
+        ? `${puzzle.pillValues.length} 枚药丸`
+        : `${puzzle.pillValues.length} pills to locate`];
     case 'japanese-arrows':
       return [isZh
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个箭头线索`

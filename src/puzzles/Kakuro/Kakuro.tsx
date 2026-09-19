@@ -61,6 +61,7 @@ export default function KakuroBoard({
         return <KakuroClue right={clue.right} down={clue.down} cellSize={cellSize} />;
       }}
       renderCandidates={renderCandidates}
+      renderCellValue={(value) => (typeof value === 'number' ? value : null)}
       inputModeOptions={[
         { mode: 'select', label: copy.shared.numberInputModes.normal },
         { mode: 'candidates', label: copy.shared.numberInputModes.candidates },

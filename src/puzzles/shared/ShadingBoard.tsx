@@ -15,13 +15,14 @@ import { sanitizeMatrix } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import type { BoundarySegments, CellCoord } from '../gridUtils';
 import BoardCellOutline from './BoardCellOutline';
+import BoardCellMark from './BoardCellMark';
 import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import {
   boardClassNames,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardBoundaryStrokeMetrics,
-  getBoardCrossFontSize,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
   getBoardOutsideClueLayout,
@@ -29,7 +30,6 @@ import {
   getBoardOutsideClueTextStyle,
   getBoardTextStyle,
   getBoardTrialCellStyle,
-  getCrossMarkStyle,
   getResponsiveCellSize,
   woodBoardTheme,
   type BoardCellTone,
@@ -370,11 +370,19 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
     applyDragToCell(hitCell.row, hitCell.col);
   };
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + outsideLeft + outsideRight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + outsideTop + outsideBottom + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const crossFontSize = getBoardCrossFontSize(cellSize);
+  const {
+    boardWidth: boardWidthPx,
+    boardHeight: boardHeightPx,
+    outerWidth,
+    outerHeight,
+  } = getBoardFrameDimensions(width, height, cellSize, {
+    outsideLeft,
+    outsideRight,
+    outsideTop,
+    outsideBottom,
+    borderWidth: BOARD_BORDER,
+    padding: BOARD_PADDING,
+  });
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
 
   return (
@@ -426,9 +434,10 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                   {tone === 'outlined' ? <BoardCellOutline cellSize={cellSize} /> : null}
                   {renderCellContent?.(row, col, state, cellSize, grid, levels) ??
                     (isMarked ? (
-                      <span style={getCrossMarkStyle(crossFontSize, trialColors?.text ?? woodBoardTheme.border)}>
-                        ×
-                      </span>
+                      <BoardCellMark
+                        kind="cross"
+                        cellSize={cellSize}
+                      />
                     ) : null)}
                 </div>
               );

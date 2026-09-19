@@ -76,6 +76,7 @@ export default function SkyscrapersBoard({
           puzzle.givens[row]?.[col] === null ? 'cell' : 'prefilled'
         }
         renderCandidates={renderCandidates}
+        renderCellValue={(value) => (typeof value === 'number' ? value : null)}
         outsideClues={puzzle.clues}
         cellInputMode="cycle"
         cycleValues={cycleValues}

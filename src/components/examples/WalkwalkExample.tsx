@@ -8,11 +8,11 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardBoundaryStrokeMetrics,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
@@ -21,6 +21,7 @@ import {
   getWalkwalkBoundarySegments,
   parseWalkwalkEdgeKey,
 } from '../../puzzles/Walkwalk/utils';
+import BoardEdgeCross from '../../puzzles/shared/BoardEdgeCross';
 
 interface Props extends Omit<WalkwalkPuzzleData, 'type'> {
   solutionEdges: YajilinSolutionEdge[];
@@ -52,15 +53,15 @@ function StaticWalkwalkBoard({
     () => getWalkwalkBoundarySegments(regionIds, width, height),
     [height, regionIds, width]
   );
-  const boardWidth = width * CELL_SIZE;
-  const boardHeight = height * CELL_SIZE;
-  const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   const clueTextStyle = getBoardTextStyle(CELL_SIZE);
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
   const loopLineStrokeWidth = getLoopLineStrokeWidth(CELL_SIZE);
-  const loopCrossSize = getLoopCrossSize(CELL_SIZE);
-  const loopCrossStrokeWidth = getLoopCrossStrokeWidth();
   const getCenter = (row: number, col: number) => ({
     x: BOARD_PADDING + col * CELL_SIZE + CELL_SIZE / 2,
     y: BOARD_PADDING + row * CELL_SIZE + CELL_SIZE / 2,
@@ -77,11 +78,7 @@ function StaticWalkwalkBoard({
     >
       <div
         className="absolute grid"
-        style={{
-          left: `${BOARD_PADDING}px`,
-          top: `${BOARD_PADDING}px`,
-          gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-        }}
+        style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => (
@@ -201,15 +198,12 @@ function StaticWalkwalkBoard({
           const centerX = (getCenter(edge.r1, edge.c1).x + getCenter(edge.r2, edge.c2).x) / 2;
           const centerY = (getCenter(edge.r1, edge.c1).y + getCenter(edge.r2, edge.c2).y) / 2;
           return (
-            <g
+            <BoardEdgeCross
               key={`cross-${edgeKey}`}
-              stroke={woodBoardTheme.border}
-              strokeWidth={loopCrossStrokeWidth}
-              strokeLinecap="round"
-            >
-              <line x1={centerX - loopCrossSize} y1={centerY - loopCrossSize} x2={centerX + loopCrossSize} y2={centerY + loopCrossSize} />
-              <line x1={centerX - loopCrossSize} y1={centerY + loopCrossSize} x2={centerX + loopCrossSize} y2={centerY - loopCrossSize} />
-            </g>
+              x={centerX}
+              y={centerY}
+              cellSize={CELL_SIZE}
+            />
           );
         })}
       </svg>
@@ -236,8 +230,12 @@ export default function WalkwalkExample({
   );
   const solutionEdgeSet = useMemo(() => createWalkwalkEdgeSet(solutionEdges), [solutionEdges]);
   const crossedEdgeSet = useMemo(() => createWalkwalkEdgeSet(crossedEdges), [crossedEdges]);
-  const outerWidth = width * CELL_SIZE + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = height * CELL_SIZE + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
 
   return (
     <>
@@ -272,19 +270,15 @@ export default function WalkwalkExample({
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
-                  padding: `${BOARD_PADDING}px`,
-                  ...getBoardFrameStyle(),
+                  ...getBoardFrameStyle(BOARD_BORDER),
                 }}
               >
-                <div className="grid" style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)` }}>
+                <div className="grid" style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}>
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
                       key={index}
                       style={{
-                        width: `${CELL_SIZE}px`,
-                        height: `${CELL_SIZE}px`,
-                        ...getBoardCellColors('cell'),
-                        ...getCellDividerStyle(),
+                        ...getBoardCellStyle(CELL_SIZE, 'cell'),
                       }}
                     />
                   ))}

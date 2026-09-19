@@ -16,7 +16,12 @@ import { Badge } from './components/ui/badge';
 import { useI18n } from './i18n/useI18n';
 import { setDocumentMetadata } from './lib/documentMetadata';
 import { getPuzzleMetadata } from './puzzles/puzzleMetadata';
-import { puzzleDifficultyLabels, type PuzzleData } from './puzzles/types';
+import {
+  puzzleDifficultyLabels,
+  type PuzzleData,
+  type PuzzleDifficulty,
+  type PuzzleType,
+} from './puzzles/types';
 import { formatMinutesSeconds } from './lib/formatDuration';
 import { Card } from './components/ui/card';
 
@@ -80,6 +85,8 @@ function App() {
   const [activePage, setActivePage] = useState<ActivePage>(() => readActivePageFromUrl());
   const [urlVersion, setUrlVersion] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
+  const [historyTypeFilter, setHistoryTypeFilter] = useState<PuzzleType | 'all'>('all');
+  const [historyDifficultyFilter, setHistoryDifficultyFilter] = useState<PuzzleDifficulty | 'all'>('all');
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
   const [ruleReferenceOpen, setRuleReferenceOpen] = useState(false);
   const [copiedHistoryDate, setCopiedHistoryDate] = useState<string | null>(null);
@@ -127,6 +134,8 @@ function App() {
 
   const handleOpenHistory = useCallback(() => {
     setHistoryPage(1);
+    setHistoryTypeFilter('all');
+    setHistoryDifficultyFilter('all');
     openHistory();
   }, [openHistory]);
   const handleOpenRestartDialog = useCallback(() => {
@@ -270,13 +279,31 @@ function App() {
         };
       });
   }, [daily, history, todayDaily]);
-  const totalHistoryPages = Math.max(1, Math.ceil(historyItems.length / HISTORY_PAGE_SIZE));
+  const historyTypes = useMemo(() => {
+    const types = Array.from(new Set(historyItems.map((item) => item.puzzle.type)));
+    return types.sort((left, right) =>
+      getPuzzleTemplate(left).name[locale].localeCompare(getPuzzleTemplate(right).name[locale], locale)
+    );
+  }, [historyItems, locale]);
+  const filteredHistoryItems = useMemo(() => {
+    return historyItems.filter((item) => {
+      const typeMatches = historyTypeFilter === 'all' || item.puzzle.type === historyTypeFilter;
+      const difficultyMatches =
+        historyDifficultyFilter === 'all' || item.difficulty === historyDifficultyFilter;
+      return typeMatches && difficultyMatches;
+    });
+  }, [historyDifficultyFilter, historyItems, historyTypeFilter]);
+  const totalHistoryPages = Math.max(1, Math.ceil(filteredHistoryItems.length / HISTORY_PAGE_SIZE));
   const safeHistoryPage = Math.min(historyPage, totalHistoryPages);
   const pagedHistoryItems = useMemo(() => {
     const startIndex = (safeHistoryPage - 1) * HISTORY_PAGE_SIZE;
-    return historyItems.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
-  }, [historyItems, safeHistoryPage]);
+    return filteredHistoryItems.slice(startIndex, startIndex + HISTORY_PAGE_SIZE);
+  }, [filteredHistoryItems, safeHistoryPage]);
   const historyPlaceholderCount = Math.max(0, HISTORY_PAGE_SIZE - pagedHistoryItems.length);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyDifficultyFilter, historyTypeFilter]);
 
   useEffect(() => {
     if (!showHistory) return;
@@ -551,7 +578,7 @@ function App() {
             onClick={closeHistory}
           >
             <Card
-              className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden border-[#d7c7b4] bg-card dark:border-gray-700 dark:bg-card"
+              className="flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden border-[#d7c7b4] bg-card dark:border-gray-700 dark:bg-card"
               onClick={(event) => event.stopPropagation()}
               role="dialog"
               aria-modal="true"
@@ -570,9 +597,80 @@ function App() {
                   </Button>
                 </div>
               </div>
-              <div className="flex-1 overflow-y-auto px-4 py-3">
+              <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+                <aside className="max-h-[34vh] shrink-0 overflow-y-auto border-b bg-muted/20 px-4 py-3 dark:bg-muted/10 md:max-h-none md:w-64 md:border-b-0 md:border-r md:px-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">{copy.app.historyTypeFilter}</h3>
+                    {(historyTypeFilter !== 'all' || historyDifficultyFilter !== 'all') && (
+                      <Button
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => {
+                          setHistoryTypeFilter('all');
+                          setHistoryDifficultyFilter('all');
+                        }}
+                      >
+                        {copy.app.clearHistoryFilters}
+                      </Button>
+                    )}
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    <Button
+                      variant={historyTypeFilter === 'all' ? 'secondary' : 'outline'}
+                      size="xs"
+                      className="w-full justify-start truncate"
+                      aria-pressed={historyTypeFilter === 'all'}
+                      onClick={() => setHistoryTypeFilter('all')}
+                    >
+                      {copy.app.allHistoryTypes}
+                    </Button>
+                    {historyTypes.map((type) => (
+                      <Button
+                        key={type}
+                        variant={historyTypeFilter === type ? 'secondary' : 'outline'}
+                        size="xs"
+                        className="w-full justify-start truncate"
+                        aria-pressed={historyTypeFilter === type}
+                        onClick={() => setHistoryTypeFilter(type)}
+                        title={getPuzzleTemplate(type).name[locale]}
+                      >
+                        {getPuzzleTemplate(type).name[locale]}
+                      </Button>
+                    ))}
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold text-foreground">{copy.app.historyDifficultyFilter}</h3>
+                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                    <Button
+                      variant={historyDifficultyFilter === 'all' ? 'secondary' : 'outline'}
+                      size="xs"
+                      className="w-full justify-center truncate"
+                      aria-pressed={historyDifficultyFilter === 'all'}
+                      onClick={() => setHistoryDifficultyFilter('all')}
+                    >
+                      {copy.app.allHistoryDifficulties}
+                    </Button>
+                    {(Object.keys(puzzleDifficultyLabels) as PuzzleDifficulty[]).map((difficulty) => (
+                      <Button
+                        key={difficulty}
+                        variant={historyDifficultyFilter === difficulty ? 'secondary' : 'outline'}
+                        size="xs"
+                        className="w-full justify-center truncate"
+                        aria-pressed={historyDifficultyFilter === difficulty}
+                        onClick={() => setHistoryDifficultyFilter(difficulty)}
+                      >
+                        {puzzleDifficultyLabels[difficulty][locale]}
+                      </Button>
+                    ))}
+                  </div>
+                </aside>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                  <div className="flex-1 overflow-y-auto px-4 py-3">
                 {historyItems.length === 0 ? (
                   <p className="text-muted-foreground dark:text-gray-400 text-center py-8">{copy.app.noHistory}</p>
+                ) : filteredHistoryItems.length === 0 ? (
+                  <p className="text-muted-foreground dark:text-gray-400 text-center py-8">
+                    {copy.app.noHistoryMatch}
+                  </p>
                 ) : (
                   <div className="space-y-1">
                     {pagedHistoryItems.map((item) => {
@@ -702,7 +800,7 @@ function App() {
                   </div>
                 )}
               </div>
-              {historyItems.length > HISTORY_PAGE_SIZE && (
+              {filteredHistoryItems.length > HISTORY_PAGE_SIZE && (
                 <div className="flex items-center justify-between border-t px-4 py-3">
                   <Button
                     variant="outline"
@@ -723,6 +821,8 @@ function App() {
                   </Button>
                 </div>
               )}
+                </div>
+              </div>
             </Card>
           </div>
         )}

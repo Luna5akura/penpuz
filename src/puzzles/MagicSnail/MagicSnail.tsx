@@ -4,15 +4,13 @@ import NumberPlacementBoard, { type NumberPlacementCellValue } from '../shared/N
 import type { MagicSnailPuzzleData } from '../types';
 import {
   getBoardBoundaryStrokeWidth,
-  getBoardCenterMarkMetrics,
-  getBoardCrossFontSize,
-  getCrossMarkStyle,
   woodBoardTheme,
 } from '../boardTheme';
 import {
   getMagicSnailBoundaryLines,
   validateMagicSnail,
 } from './utils';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: MagicSnailPuzzleData;
@@ -29,31 +27,11 @@ const magicSnailExtraValues: Array<Exclude<NumberPlacementCellValue, number | nu
 
 function renderMagicSnailCellValue(value: NumberPlacementCellValue, cellSize: number) {
   if (value === 'circle') {
-    const center = cellSize / 2;
-    const { radius, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
-
-    return (
-      <svg
-        className="pointer-events-none absolute inset-0"
-        width={cellSize}
-        height={cellSize}
-        viewBox={`0 0 ${cellSize} ${cellSize}`}
-        aria-hidden="true"
-      >
-        <circle
-          cx={center}
-          cy={center}
-          r={radius}
-          fill="none"
-          stroke={woodBoardTheme.border}
-          strokeWidth={strokeWidth}
-        />
-      </svg>
-    );
+    return <BoardCellMark kind="circle" cellSize={cellSize} />;
   }
 
   if (value === 'cross') {
-    return <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span>;
+    return <BoardCellMark kind="cross" cellSize={cellSize} />;
   }
 
   return value;
@@ -118,7 +96,7 @@ export default function MagicSnailBoard({
   );
   const renderBlockedCell = useCallback(
     (_row: number, _col: number, cellSize: number) => (
-      <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span>
+      <BoardCellMark kind="cross" cellSize={cellSize} />
     ),
     []
   );

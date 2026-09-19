@@ -17,6 +17,7 @@ import {
   commonBoardChrome,
   getBoardCellStyle,
   getBoardFrameStyle,
+  getBoardFrameDimensions,
   getBoardGridStyle,
   getBoardInkStyle,
   getBoardOutsideClueLayout,
@@ -36,7 +37,7 @@ export interface NumberPlacementValidationResult {
   badCells: CellCoord[];
 }
 
-export type NumberPlacementCellValue = number | 'circle' | 'cross' | null;
+export type NumberPlacementCellValue = number | 'circle' | 'cross' | 'shaded' | null;
 export type NumberPlacementInputMode = 'select' | 'cycle' | 'candidates';
 
 /** The four sides used by a board with answer cells outside the main grid. */
@@ -105,18 +106,24 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   renderOverlay?: (cellSize: number, boardWidthPx: number, boardHeightPx: number) => ReactNode;
   renderCellValue?: (value: NumberPlacementCellValue, cellSize: number, row: number, col: number) => ReactNode;
   renderCandidates?: (values: number[], cellSize: number, row: number, col: number) => ReactNode;
-  getCellTone?: (row: number, col: number, value: NumberPlacementCellValue) => BoardCellTone;
+  getCellTone?: (row: number, col: number, value: NumberPlacementCellValue) => BoardCellTone | null | undefined;
   extraCellValues?: Array<Exclude<NumberPlacementCellValue, number | null>>;
   cellInputMode?: NumberPlacementInputMode;
   cycleValues?: NumberPlacementCellValue[];
   cycleValuesLeft?: NumberPlacementCellValue[];
   cycleValuesRight?: NumberPlacementCellValue[];
+  /** Ordered cells of the group containing a cell, for group-wide cycling (e.g. Magnets). */
+  getGroupCells?: (row: number, col: number) => Array<CellCoord> | null;
+  /** Left-click state sequence for a group; each state's values align with getGroupCells order. */
+  getGroupStates?: (cells: CellCoord[]) => NumberPlacementCellValue[][];
+  /** Value applied to every cell of a group on right click (marks "no magnet"). */
+  groupBlackValue?: NumberPlacementCellValue;
   inputModeOptions?: Array<{ mode: NumberPlacementInputMode; label: string }>;
   showValueButtons?: boolean;
   /** Static outside clues, or a resolver used for answer cells derived from the grid. */
   outsideClues?: NumberPlacementOutsideClues | NumberPlacementOutsideClueResolver;
   /** Optional multiple clue rows/columns for Japanese Sums-style clues. */
-  outsideClueStacks?: Partial<Record<NumberPlacementOutsideSide, readonly (readonly number[])[]>>;
+  outsideClueStacks?: Partial<Record<NumberPlacementOutsideSide, readonly (readonly (number | string | null)[])[]>>;
   /** Enable editable answer cells in one or more outside sides. */
   outsideInput?: NumberPlacementOutsideInput;
   initialSnapshot?: unknown;
@@ -320,6 +327,9 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   cycleValues = EMPTY_CYCLE_VALUES,
   cycleValuesLeft,
   cycleValuesRight,
+  getGroupCells,
+  getGroupStates,
+  groupBlackValue,
   inputModeOptions,
   showValueButtons = true,
   outsideClues,
@@ -719,19 +729,31 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       );
       const currentValue = current.grid[row][col];
       const hasCircleCrossCycle = cycleValues.includes('circle') && cycleValues.includes('cross');
+      const directionalValues = direction === 1 ? cycleValuesLeft : cycleValuesRight;
+      const values = directionalValues ?? cycleValues;
+      const currentIndex = values.findIndex((value) => value === currentValue);
+      let nextValue: NumberPlacementCellValue | null;
+
       if (hasCircleCrossCycle && ((currentValue === 'circle' && direction === -1) || (currentValue === 'cross' && direction === 1))) {
-        const nextGrid = current.grid.map((rowValues) => [...rowValues]);
-        const nextLevels = current.levels.map((rowValues) => [...rowValues]);
-        const nextCandidates = current.candidates.map((rowValues) => rowValues.map((values) => [...values]));
-        nextGrid[row][col] = null;
-        nextLevels[row][col] = 0;
-        nextCandidates[row][col] = [];
-        return { ...current, grid: nextGrid, levels: nextLevels, candidates: nextCandidates };
+        // Explicit circle/cross cycles omit null from their directional order;
+        // crossing either endpoint should still clear the cell.
+        nextValue = null;
+      } else if (directionalValues) {
+        // A supplied directional order describes the values encountered by
+        // repeated clicks of that button (Japanese Sums uses a reversed order
+        // for the right button). Keep the endpoint stable unless the special
+        // circle/cross rule above turns it into an explicit clear action.
+        const nextIndex = currentIndex < 0 ? 0 : Math.min(values.length - 1, currentIndex + 1);
+        nextValue = values[nextIndex] ?? null;
+      } else {
+        // With the normal cycle, left moves forward and right moves backward.
+        // Starting from an empty cell therefore chooses the corresponding end
+        // of the cycle.
+        const nextIndex = currentIndex < 0
+          ? direction === 1 ? 0 : values.length - 1
+          : (currentIndex + direction + values.length) % values.length;
+        nextValue = values[nextIndex] ?? null;
       }
-      const directionalValues = direction === 1 ? (cycleValuesLeft ?? cycleValues) : (cycleValuesRight ?? cycleValues);
-      const currentIndex = directionalValues.findIndex((value) => value === currentValue);
-      const nextIndex = currentIndex < 0 ? 0 : Math.min(directionalValues.length - 1, currentIndex + 1);
-      const nextValue = directionalValues[nextIndex] ?? null;
 
       if (currentValue === nextValue) return current;
 
@@ -780,6 +802,84 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     }
   }, [cycleCellValue, cycleValues, getOutsidePosition, getOutsideValue, isPositionEditable, setOutsideCellValue]);
 
+  /**
+   * Group-wide interaction for puzzles like Magnets: a left click advances
+   * the whole group through its state sequence (pole orientation cycles),
+   * while a right click toggles the group-wide "no magnet" mark.
+   */
+  const cycleGroupValue = useCallback((row: number, col: number, button: number) => {
+    const cells = getGroupCells?.(row, col) ?? null;
+    const states = cells ? getGroupStates?.(cells) ?? [] : [];
+    if (!cells || cells.length === 0 || states.length === 0) return;
+
+    applyChange((currentSnapshot) => {
+      const current = normalizeNumberPlacementSnapshot(
+        currentSnapshot,
+        width,
+        height,
+        numbers,
+        getFixedValue,
+        isBlockedCell,
+        extraCellValues,
+        outsideInput
+      );
+
+      let nextValues: Array<NumberPlacementCellValue | null>;
+      if (button === 2) {
+        // Right click toggles the black "no magnet" mark across the group.
+        // Only cells the player can edit take part in the toggle, so groups
+        // with a pre-given pole still black/un-black consistently.
+        const freeCells = cells.filter(({ row: r, col: c }) =>
+          !isBlockedCell(r, c) && getFixedValue(r, c) === null
+        );
+        const isBlack = freeCells.length > 0 &&
+          freeCells.every(({ row: r, col: c }) => current.grid[r][c] === groupBlackValue);
+        nextValues = cells.map(() => (isBlack ? null : groupBlackValue ?? null));
+      } else {
+        // Left click advances the group through its state sequence. A black
+        // group matches no state, so the first click clears the mark.
+        const matchesState = (state: NumberPlacementCellValue[]) =>
+          cells.every(({ row: r, col: c }, index) => {
+            const fixed = getFixedValue(r, c);
+            if (fixed !== null) return (state[index] ?? null) === fixed;
+            return current.grid[r][c] === (state[index] ?? null);
+          });
+        const currentIndex = states.findIndex(matchesState);
+        nextValues = [...(states[(currentIndex < 0 ? 0 : currentIndex + 1) % states.length] ?? [])];
+      }
+
+      const nextGrid = current.grid.map((rowValues) => [...rowValues]);
+      const nextLevels = current.levels.map((rowValues) => [...rowValues]);
+      const nextCandidates = current.candidates.map((rowValues) => rowValues.map((values) => [...values]));
+      let changed = false;
+      cells.forEach(({ row: r, col: c }, index) => {
+        if (isBlockedCell(r, c) || getFixedValue(r, c) !== null) return;
+        const nextValue = nextValues[index] ?? null;
+        if (current.grid[r][c] === nextValue) return;
+        nextGrid[r][c] = nextValue;
+        nextLevels[r][c] = nextValue === null ? 0 : trialActive ? currentTrialLevel : 0;
+        nextCandidates[r][c] = [];
+        changed = true;
+      });
+      if (!changed) return current;
+      return { ...current, grid: nextGrid, levels: nextLevels, candidates: nextCandidates };
+    });
+  }, [
+    applyChange,
+    currentTrialLevel,
+    extraCellValues,
+    getFixedValue,
+    getGroupCells,
+    getGroupStates,
+    groupBlackValue,
+    height,
+    isBlockedCell,
+    numbers,
+    outsideInput,
+    trialActive,
+    width,
+  ]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isKeyboardInputTarget(event.target)) return;
@@ -787,7 +887,11 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       const selectedOutside = getOutsidePosition(selectedCell.row, selectedCell.col) !== null;
 
       const value = getKeyboardDigit(event);
-      if (event.key === 'Backspace' || event.key === 'Delete' || value === 0) {
+      // Treat 0 as a clear shortcut only for puzzles whose number set does
+      // not include zero. Japanese Sums allows zero as a regular digit
+      // (including in candidate mode); Four Winds with Parks has its own circle/arrow
+      // pointer interaction and does not use this shared keyboard path.
+      if (event.key === 'Backspace' || event.key === 'Delete' || (value === 0 && !numbers.includes(0))) {
         event.preventDefault();
         keyboardEntryRef.current = null;
         setPositionValue(selectedCell.row, selectedCell.col, null);
@@ -853,7 +957,11 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       if (!isPositionEditable(row, col)) return;
       if (event.button !== 0 && event.button !== 2) return;
 
-      cycleCellValue(row, col, event.button === 2 ? -1 : 1);
+      if (getGroupCells && getGroupStates) {
+        cycleGroupValue(row, col, event.button);
+      } else {
+        cycleCellValue(row, col, event.button === 2 ? -1 : 1);
+      }
       setSelectedCell({ row, col });
       return;
     }
@@ -888,10 +996,19 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     setSelectedCell({ row, col });
   };
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + outsideLeft + outsideRight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + outsideTop + outsideBottom + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const {
+    boardWidth: boardWidthPx,
+    boardHeight: boardHeightPx,
+    outerWidth,
+    outerHeight,
+  } = getBoardFrameDimensions(width, height, cellSize, {
+    outsideLeft,
+    outsideRight,
+    outsideTop,
+    outsideBottom,
+    borderWidth: BOARD_BORDER,
+    padding: BOARD_PADDING,
+  });
   const renderOutsideCell = (side: NumberPlacementOutsideSide, index: number) => {
     if (!outsideInput?.[side]) return null;
     const coordinate = getOutsideCoordinate(side, index);
@@ -933,7 +1050,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         }}
       >
         {tone === 'outlined' ? <BoardCellOutline cellSize={cellSize} /> : null}
-        {renderCellValue?.(value, cellSize, coordinate.row, coordinate.col) ?? value}
+        {renderCellValue?.(value, cellSize, coordinate.row, coordinate.col)}
       </div>
     );
   };
@@ -1018,10 +1135,10 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                     : candidates[row][col].length > 0
                       ? (
                         <span style={getBoardInkStyle(trialColors?.text ?? woodBoardTheme.border)}>
-                          {renderCandidates?.(candidates[row][col], cellSize, row, col) ?? candidates[row][col].join(' ')}
+                          {renderCandidates?.(candidates[row][col], cellSize, row, col)}
                         </span>
                       )
-                      : renderCellValue?.(value, cellSize, row, col) ?? value}
+                      : renderCellValue?.(value, cellSize, row, col)}
                 </div>
               );
             })
@@ -1092,6 +1209,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
           <div className="pointer-events-none absolute inset-0">
             {(['top', 'bottom', 'left', 'right'] as NumberPlacementOutsideSide[]).flatMap((side) =>
               (outsideClueStacks[side] ?? []).flatMap((values, index) => values.map((value, stack) => {
+                if (value === null) return null;
                 const topSlot = stackRows - values.length + stack;
                 const leftSlot = stackLeftCols - values.length + stack;
                 const x = side === 'left' ? BOARD_PADDING + leftSlot * outsideClueLayout.clueSize : side === 'right' ? gridLeft + boardWidthPx + stack * outsideClueLayout.clueSize : gridLeft + index * cellSize;

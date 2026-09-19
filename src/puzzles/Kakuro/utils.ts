@@ -10,6 +10,16 @@ export interface KakuroRun {
   clueCell: { row: number; col: number } | null;
 }
 
+/**
+ * The subset of Kakuro board data the run builder and validator read.
+ * Consecutive Kakuro extends Kakuro with bar data and narrows `type`, so
+ * accepting this structural shape lets it share the Kakuro validator.
+ */
+export type KakuroBoardData = Pick<
+  KakuroPuzzleData,
+  'width' | 'height' | 'cells' | 'topClues' | 'leftClues'
+>;
+
 /** Returns undefined for an invalid character; null is the PuzzLink '-' value. */
 function decodeKakuroValue(char: string): number | null | undefined {
   if (char === '-') return null;
@@ -29,7 +39,11 @@ function decodeOutsideKakuroValue(char: string): number | null | undefined {
   return decodeKakuroValue(char);
 }
 
-function decodeInterior(
+/**
+ * Decode the in-board portion of a PuzzLink Kakuro payload.  Shared with
+ * Consecutive Kakuro, whose links reuse the same cell encoding.
+ */
+export function decodeInterior(
   encoded: string,
   width: number,
   height: number
@@ -81,7 +95,11 @@ function decodeInterior(
   };
 }
 
-function readOutsideClues(
+/**
+ * Decode the out-of-board top/left ExCell clues that follow the in-board
+ * portion of a PuzzLink Kakuro payload.  Shared with Consecutive Kakuro.
+ */
+export function readOutsideClues(
   encoded: string,
   startIndex: number,
   cells: KakuroCell[][],
@@ -124,7 +142,7 @@ function readOutsideClues(
  * clue was present; links that already contain in-grid edge clue cells keep
  * their original dimensions.
  */
-function promoteOutsideClues(
+export function promoteOutsideClues(
   cells: KakuroCell[][],
   topClues: (number | null)[],
   leftClues: (number | null)[],
@@ -218,7 +236,7 @@ function isClueCell(cell: KakuroCell): cell is KakuroClueCell {
   return cell !== null;
 }
 
-function getAcrossRuns(puzzle: KakuroPuzzleData): KakuroRun[] {
+function getAcrossRuns(puzzle: KakuroBoardData): KakuroRun[] {
   const runs: KakuroRun[] = [];
   const { width, height, cells, leftClues } = puzzle;
 
@@ -254,7 +272,7 @@ function getAcrossRuns(puzzle: KakuroPuzzleData): KakuroRun[] {
   return runs;
 }
 
-function getDownRuns(puzzle: KakuroPuzzleData): KakuroRun[] {
+function getDownRuns(puzzle: KakuroBoardData): KakuroRun[] {
   const runs: KakuroRun[] = [];
   const { width, height, cells, topClues } = puzzle;
 
@@ -290,13 +308,13 @@ function getDownRuns(puzzle: KakuroPuzzleData): KakuroRun[] {
   return runs;
 }
 
-export function getKakuroRuns(puzzle: KakuroPuzzleData): KakuroRun[] {
+export function getKakuroRuns(puzzle: KakuroBoardData): KakuroRun[] {
   return [...getAcrossRuns(puzzle), ...getDownRuns(puzzle)];
 }
 
 export function validateKakuro(
   grid: (number | null)[][],
-  puzzle: KakuroPuzzleData
+  puzzle: KakuroBoardData
 ): NumberPlacementValidationResult {
   const badCells = new Set<string>();
   let message: string | undefined;

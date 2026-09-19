@@ -4,10 +4,11 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
 } from '@/puzzles/boardTheme';
 import ShapeInventory from '@/puzzles/ShapeMinesweeper/ShapeInventory';
 import type { CavePuzzleData, ShapeMinesweeperPuzzleData } from '@/puzzles/types';
@@ -28,8 +29,12 @@ function Diagram({
   puzzle: Props['puzzle'];
   solution?: (0 | 1)[][];
 }) {
-  const outerWidth = puzzle.width * CELL_SIZE + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
-  const outerHeight = puzzle.height * CELL_SIZE + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    puzzle.width,
+    puzzle.height,
+    CELL_SIZE,
+    { borderWidth: commonBoardChrome.border, padding: commonBoardChrome.padding }
+  );
 
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
@@ -44,11 +49,7 @@ function Diagram({
         >
           <div
             className="absolute grid"
-            style={{
-              left: `${commonBoardChrome.padding}px`,
-              top: `${commonBoardChrome.padding}px`,
-              gridTemplateColumns: `repeat(${puzzle.width}, ${CELL_SIZE}px)`,
-            }}
+            style={getBoardGridStyle(commonBoardChrome.padding, commonBoardChrome.padding, puzzle.width, CELL_SIZE)}
           >
             {Array.from({ length: puzzle.height }, (_, row) =>
               Array.from({ length: puzzle.width }, (_, col) => {
@@ -59,10 +60,7 @@ function Diagram({
                     key={`${row}-${col}`}
                     className={boardClassNames.cellContent}
                     style={{
-                      width: `${CELL_SIZE}px`,
-                      height: `${CELL_SIZE}px`,
-                      ...getBoardCellColors(shaded ? 'playerShaded' : clue === null ? 'cell' : 'clue'),
-                      ...getCellDividerStyle(),
+                      ...getBoardCellStyle(CELL_SIZE, shaded ? 'playerShaded' : clue === null ? 'cell' : 'clue'),
                       ...getBoardTextStyle(CELL_SIZE),
                     }}
                   >

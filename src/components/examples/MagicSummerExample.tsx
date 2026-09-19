@@ -4,16 +4,17 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardOutsideClueGutter,
   getBoardOutsideClueTextStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
-  getCrossMarkStyle,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import type { MagicSummerPuzzleData } from '@/puzzles/types';
+import BoardCellMark from '@/puzzles/shared/BoardCellMark';
 
 interface Props {
   puzzle: MagicSummerPuzzleData;
@@ -36,25 +37,32 @@ function MagicSummerDiagram({
     top: puzzle.columnSums,
     left: puzzle.rowSums,
   };
-  const boardWidth = puzzle.width * CELL_SIZE + CLUE_GUTTER;
-  const boardHeight = puzzle.height * CELL_SIZE + CLUE_GUTTER;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    puzzle.width,
+    puzzle.height,
+    CELL_SIZE,
+    {
+      outsideLeft: CLUE_GUTTER,
+      outsideTop: CLUE_GUTTER,
+      borderWidth: commonBoardChrome.border,
+      padding: commonBoardChrome.padding,
+    }
+  );
+  const gridLeft = commonBoardChrome.padding + CLUE_GUTTER;
+  const gridTop = commonBoardChrome.padding + CLUE_GUTTER;
 
   return (
     <div
       className="relative select-none"
       style={{
-        width: `${boardWidth + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
-        height: `${boardHeight + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
+        width: `${outerWidth}px`,
+        height: `${outerHeight}px`,
         ...getBoardFrameStyle(),
       }}
     >
       <div
         className="absolute grid"
-        style={{
-          left: `${commonBoardChrome.padding + CLUE_GUTTER}px`,
-          top: `${commonBoardChrome.padding + CLUE_GUTTER}px`,
-          gridTemplateColumns: `repeat(${puzzle.width}, ${CELL_SIZE}px)`,
-        }}
+        style={getBoardGridStyle(gridLeft, gridTop, puzzle.width, CELL_SIZE)}
       >
         {puzzle.cells.flatMap((row, rowIndex) =>
           row.map((cell, colIndex) => {
@@ -71,17 +79,12 @@ function MagicSummerDiagram({
                 key={`${rowIndex}-${colIndex}`}
                 className={boardClassNames.cellContent}
                 style={{
-                  width: `${CELL_SIZE}px`,
-                  height: `${CELL_SIZE}px`,
-                  ...getBoardCellColors(tone),
+                  ...getBoardCellStyle(CELL_SIZE, tone),
                   ...getBoardTextStyle(CELL_SIZE),
-                  ...getCellDividerStyle(),
                 }}
               >
                 {isBlocked ? (
-                  <span style={getCrossMarkStyle(Math.max(18, Math.floor(CELL_SIZE * 0.52)), woodBoardTheme.markedText)}>
-                    ×
-                  </span>
+                  <BoardCellMark kind="cross" cellSize={CELL_SIZE} />
                 ) : value}
               </div>
             );

@@ -8,15 +8,17 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardFixedTextStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardGridSurfaceStyle,
   getDirectionalClueNumberFontSize,
-  getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { ClueArrow } from '../../puzzles/Yajilin/ClueArrow';
 import { createYajilinEdgeSet, parseYajilinEdgeKey } from '../../puzzles/Yajilin/utils';
+import BoardEdgeCross from '../../puzzles/shared/BoardEdgeCross';
 
 interface Props {
   width: number;
@@ -60,8 +62,14 @@ export default function YajilinExample({
   const shadedSet = useMemo(() => new Set(shadedCells.map((cell) => `${cell.row},${cell.col}`)), [shadedCells]);
   const loopSet = useMemo(() => createYajilinEdgeSet(loopEdges), [loopEdges]);
   const crossedSet = useMemo(() => createYajilinEdgeSet(crossedEdges), [crossedEdges]);
-  const boardWidthPx = width * CELL_SIZE + (width - 1) * GAP + PADDING * 2;
-  const boardHeightPx = height * CELL_SIZE + (height - 1) * GAP + PADDING * 2;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { columnGap: GAP, rowGap: GAP, borderWidth: BORDER, padding: PADDING }
+  );
+  const boardWidthPx = boardWidth + PADDING * 2;
+  const boardHeightPx = boardHeight + PADDING * 2;
   const clueNumberFontSize = useMemo(() => getDirectionalClueNumberFontSize(CELL_SIZE), []);
   const verticalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.5), []);
   const horizontalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.52), []);
@@ -97,17 +105,15 @@ export default function YajilinExample({
               <div
                 className="relative"
                 style={{
-                  width: `${boardWidthPx + BORDER * 2}px`,
-                  height: `${boardHeightPx + BORDER * 2}px`,
-                  padding: `${PADDING}px`,
+                  width: `${outerWidth}px`,
+                  height: `${outerHeight}px`,
                   ...getBoardFrameStyle(BORDER),
                 }}
               >
                 <div
                   className="grid"
                   style={{
-                    gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                    gap: `${GAP}px`,
+                    ...getBoardGridStyle(PADDING, PADDING, width, CELL_SIZE, GAP, GAP),
                     ...getBoardGridSurfaceStyle(),
                   }}
                 >
@@ -123,17 +129,15 @@ export default function YajilinExample({
             <div
               className="relative"
               style={{
-                width: `${boardWidthPx + BORDER * 2}px`,
-                height: `${boardHeightPx + BORDER * 2}px`,
-                padding: `${PADDING}px`,
+                width: `${outerWidth}px`,
+                height: `${outerHeight}px`,
                 ...getBoardFrameStyle(BORDER),
               }}
             >
               <div
                 className="grid"
                 style={{
-                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                  gap: `${GAP}px`,
+                  ...getBoardGridStyle(PADDING, PADDING, width, CELL_SIZE, GAP, GAP),
                   ...getBoardGridSurfaceStyle(),
                 }}
               >
@@ -207,10 +211,7 @@ export default function YajilinExample({
                   const centerX = PADDING + ((edge.c1 + edge.c2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   const centerY = PADDING + ((edge.r1 + edge.r2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
                   return (
-                    <g key={`cross-${edgeKey}`} stroke={woodBoardTheme.border} strokeWidth={getLoopCrossStrokeWidth()} strokeLinecap="round">
-                      <line x1={centerX - 3} y1={centerY - 3} x2={centerX + 3} y2={centerY + 3} />
-                      <line x1={centerX - 3} y1={centerY + 3} x2={centerX + 3} y2={centerY - 3} />
-                    </g>
+                    <BoardEdgeCross key={`cross-${edgeKey}`} x={centerX} y={centerY} cellSize={CELL_SIZE} />
                   );
                 })}
               </svg>

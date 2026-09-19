@@ -422,15 +422,16 @@ export interface JapaneseArrowsPuzzleData {
   clues: (number | null)[][];
 }
 
-export type FourWindsDirection = 0 | 1 | 2 | 3 | 4; // X, N, E, S, W
-export interface FourWindsPuzzleData {
+export type FourWindsWithParksDirection = 0 | 1 | 2 | 3 | 4; // Park/circle, N, E, S, W
+export type FourWindsWithParksCellValue = FourWindsWithParksDirection | 'circle' | 'cross' | null;
+export interface FourWindsWithParksPuzzleData {
   type: 'four-winds-with-parks';
   width: number;
   height: number;
   clues: (number | null)[][];
 }
 
-export interface ConsecutiveKakuroPuzzleData extends KakuroPuzzleData {
+export interface ConsecutiveKakuroPuzzleData extends Omit<KakuroPuzzleData, 'type'> {
   type: 'consecutive-kakuro';
   horizontalBars: boolean[][];
   verticalBars: boolean[][];
@@ -452,6 +453,39 @@ export interface ABCBoxPuzzleData {
   height: number;
   givens: (('A' | 'B' | 'C') | null)[][];
   clues: { top: ABCBoxSymbol[][]; right: ABCBoxSymbol[][]; bottom: ABCBoxSymbol[][]; left: ABCBoxSymbol[][] };
+}
+
+export type MagnetsPole = '+' | '-';
+export interface MagnetsPuzzleData {
+  type: 'magnets';
+  width: number;
+  height: number;
+  /** Domino regions; each entry is a pair of orthogonally adjacent cells. */
+  regions: Array<Array<{ row: number; col: number }>>;
+  /** '+' count per column, farther top strip (null = no constraint). */
+  topClues: (number | null)[];
+  /** '−' count per column, nearer top strip (null = no constraint). */
+  topMinusClues: (number | null)[];
+  /** '−' count per row, nearer left strip (null = no constraint). */
+  leftClues: (number | null)[];
+  /** '+' count per row, farther left strip (null = no constraint). */
+  leftPlusClues: (number | null)[];
+  /** Pre-given poles. */
+  givens: (MagnetsPole | null)[][];
+}
+
+export interface PillsPuzzleData {
+  type: 'pills';
+  width: number;
+  height: number;
+  /** Given dot counts per cell; dots outside any pill are decorative. */
+  dots: number[][];
+  /** Number of dots inside pills per column (null = no constraint). */
+  topClues: (number | null)[];
+  /** Number of dots inside pills per row (null = no constraint). */
+  leftClues: (number | null)[];
+  /** The pill values indicated to the right of the grid (one per pill). */
+  pillValues: number[];
 }
 
 export type PuzzleData =
@@ -484,10 +518,12 @@ export type PuzzleData =
   | ShapeMinesweeperPuzzleData
   | CavePuzzleData
   | JapaneseArrowsPuzzleData
-  | FourWindsPuzzleData
+  | FourWindsWithParksPuzzleData
   | ConsecutiveKakuroPuzzleData
   | JapaneseSumsWithZeroesPuzzleData
-  | ABCBoxPuzzleData;
+  | ABCBoxPuzzleData
+  | MagnetsPuzzleData
+  | PillsPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -757,7 +793,7 @@ export type PuzzleExample =
       width: number;
       height: number;
       clues: (number | null)[][];
-      correctGrid: FourWindsDirection[][];
+      correctGrid: FourWindsWithParksDirection[][];
     }
   | {
       puzzleType: 'consecutive-kakuro';
@@ -771,7 +807,9 @@ export type PuzzleExample =
       correctGrid: (number | null)[][];
     }
   | { puzzleType: 'japanese-sums-with-zeroes'; width: number; height: number; clues: JapaneseSumsWithZeroesPuzzleData['clues']; correctGrid: (number | null)[][]; }
-  | { puzzleType: 'abc-box'; width: number; height: number; givens: ABCBoxPuzzleData['givens']; clues: ABCBoxPuzzleData['clues']; correctGrid: string[][]; };
+  | { puzzleType: 'abc-box'; width: number; height: number; givens: ABCBoxPuzzleData['givens']; clues: ABCBoxPuzzleData['clues']; correctGrid: string[][]; }
+  | { puzzleType: 'magnets'; width: number; height: number; regions: MagnetsPuzzleData['regions']; topClues: MagnetsPuzzleData['topClues']; topMinusClues: MagnetsPuzzleData['topMinusClues']; leftClues: MagnetsPuzzleData['leftClues']; leftPlusClues: MagnetsPuzzleData['leftPlusClues']; givens: MagnetsPuzzleData['givens']; correctGrid: (number | null)[][]; }
+  | { puzzleType: 'pills'; width: number; height: number; dots: PillsPuzzleData['dots']; topClues: PillsPuzzleData['topClues']; leftClues: PillsPuzzleData['leftClues']; pillValues: PillsPuzzleData['pillValues']; correctGrid: (0 | 1)[][]; };
 
 export interface PuzzleTemplate {
   type: PuzzleType;
@@ -789,6 +827,7 @@ export type DailyPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
   difficulty: PuzzleDifficulty;
+  /** Continuous zero-based public puzzle number (parseable entries only). */
   index: number;
   daysSinceStart: number;
   dateStr: string;
@@ -798,6 +837,7 @@ export type HistoryPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
   difficulty: PuzzleDifficulty;
+  /** Continuous zero-based public puzzle number (parseable entries only). */
   index: number;
   dateStr: string;
   daysSinceStart: number;

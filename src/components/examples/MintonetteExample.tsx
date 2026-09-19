@@ -7,17 +7,18 @@ import {
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
-  getBoardCrossStrokeWidth,
-  getBoardCrossSize,
   getBoardRegionStrokeWidth,
   getBoardCircleClueDiameter,
   getBoardCircleClueStrokeWidth,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { createMintonetteEdgeSet, parseMintonetteEdgeKey } from '../../puzzles/Mintonette/utils';
+import BoardEdgeCross from '../../puzzles/shared/BoardEdgeCross';
 
 interface Props extends Omit<MintonettePuzzleData, 'type'> {
   solutionEdges: MintonetteSolutionEdge[];
@@ -45,10 +46,12 @@ function StaticMintonetteBoard({
     return map;
   }, [clues]);
 
-  const boardWidth = width * CELL_SIZE;
-  const boardHeight = height * CELL_SIZE;
-  const outerWidth = boardWidth + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
-  const outerHeight = boardHeight + BOARD_PADDING * 2 + commonBoardChrome.border * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: commonBoardChrome.border, padding: BOARD_PADDING }
+  );
   const clueNumberTextStyle = getBoardTextStyle(CELL_SIZE, 0.58, 18);
   const clueCircleDiameter = getBoardCircleClueDiameter(CELL_SIZE);
   const clueCircleStrokeWidth = getBoardCircleClueStrokeWidth(CELL_SIZE);
@@ -68,11 +71,7 @@ function StaticMintonetteBoard({
     >
       <div
         className="absolute grid"
-        style={{
-          left: `${BOARD_PADDING}px`,
-          top: `${BOARD_PADDING}px`,
-          gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-        }}
+        style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => {
@@ -140,17 +139,13 @@ function StaticMintonetteBoard({
           if (!edge) return null;
           const centerX = (getCenter(edge.r1, edge.c1).x + getCenter(edge.r2, edge.c2).x) / 2;
           const centerY = (getCenter(edge.r1, edge.c1).y + getCenter(edge.r2, edge.c2).y) / 2;
-          const size = getBoardCrossSize(CELL_SIZE);
           return (
-            <g
+            <BoardEdgeCross
               key={`cross-${edgeKey}`}
-              stroke={woodBoardTheme.border}
-              strokeWidth={getBoardCrossStrokeWidth()}
-              strokeLinecap="round"
-            >
-              <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
-              <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
-            </g>
+              x={centerX}
+              y={centerY}
+              cellSize={CELL_SIZE}
+            />
           );
         })}
       </svg>

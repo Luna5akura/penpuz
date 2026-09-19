@@ -71,7 +71,6 @@ export const boardStrokeWidths = {
   clueDiagonal: 2.2,
   icon: 2.2,
   marker: 2,
-  cross: 1.7,
   selection: 3,
 } as const;
 
@@ -88,8 +87,6 @@ export const boardGeometry = {
   regionMin: 4,
   thinRatio: 0.05,
   thinMin: 2,
-  crossRatio: 0.12,
-  crossMin: 4,
   /** Shared panel shadow used by numeric keypad/popovers. */
   panelShadow: '0 10px 25px -5px rgb(0 0 0 / 0.2)',
 } as const;
@@ -285,19 +282,67 @@ export function getBoardTrialCellStyle(
     : { background: colors.softFill, color: textColor ?? colors.text };
 }
 
+/**
+ * Return the content and frame dimensions for a fixed-cell board.
+ *
+ * Keeping this calculation beside the frame/grid tokens is important: a
+ * board that uses an auto-sized inline element can end up with a different
+ * content box (and therefore different pointer coordinates) from a board
+ * that uses the normal fixed frame.  All board renderers should use these
+ * dimensions when they need an explicit width/height.
+ */
+export function getBoardFrameDimensions(
+  width: number,
+  height: number,
+  cellSize: number,
+  options: {
+    columnGap?: number;
+    rowGap?: number;
+    outsideLeft?: number;
+    outsideRight?: number;
+    outsideTop?: number;
+    outsideBottom?: number;
+    borderWidth?: number;
+    padding?: number;
+  } = {}
+) {
+  const {
+    columnGap = 0,
+    rowGap = columnGap,
+    outsideLeft = 0,
+    outsideRight = 0,
+    outsideTop = 0,
+    outsideBottom = 0,
+    borderWidth = commonBoardChrome.border,
+    padding = commonBoardChrome.padding,
+  } = options;
+  const boardWidth = width * cellSize + Math.max(0, width - 1) * columnGap;
+  const boardHeight = height * cellSize + Math.max(0, height - 1) * rowGap;
+  return {
+    boardWidth,
+    boardHeight,
+    outerWidth: boardWidth + outsideLeft + outsideRight + padding * 2 + borderWidth * 2,
+    outerHeight: boardHeight + outsideTop + outsideBottom + padding * 2 + borderWidth * 2,
+  } as const;
+}
+
 /** Grid container geometry shared by every fixed-cell board. */
 export function getBoardGridStyle(
   left: number,
   top: number,
   width: number,
   cellSize: number,
-  columnGap = 0
+  columnGap = 0,
+  rowGap = columnGap
 ) {
   return {
+    position: 'absolute',
+    display: 'grid',
     left: `${left}px`,
     top: `${top}px`,
     gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
     columnGap: columnGap ? `${columnGap}px` : undefined,
+    rowGap: rowGap ? `${rowGap}px` : undefined,
   } as const;
 }
 
@@ -434,15 +479,6 @@ export function getInvalidBoardCellColors(kind: 'dark' | 'soft' | 'marked' = 'so
   } as const;
 }
 
-export function getCrossMarkStyle(fontSize: number, color: string = woodBoardTheme.markedText) {
-  return {
-    fontSize: `${fontSize}px`,
-    lineHeight: 1,
-    color,
-    fontWeight: boardTypography.markWeight,
-  } as const;
-}
-
 export function getBoardTextStyle(cellSize: number, ratio = 0.68, min = 22, lineHeight = boardTypography.lineHeight) {
   return {
     fontSize: `${getBoardNumberFontSize(cellSize, ratio, min)}px`,
@@ -480,10 +516,10 @@ export function getBoardInkStyle(color = woodBoardTheme.border) {
 export function getBoardOutsideClueTextStyle(
   cellSize: number,
   availableWidth: number,
-  value: number
+  value: number | string
 ) {
   const baseFontSize = getBoardNumberFontSize(cellSize, 0.48, 14);
-  const digitCount = Math.max(1, String(Math.abs(value)).length);
+  const digitCount = Math.max(1, String(value).length);
   // Tabular digits are roughly 0.62em wide. Keep a small horizontal buffer
   // so the glyphs remain inside the gutter even with font-rendering variance.
   const widthLimitedFontSize = Math.floor(Math.max(0, availableWidth - 4) / (digitCount * 0.62));
@@ -527,10 +563,6 @@ export function getBoardSvgTextProps(cellSize: number, ratio = 0.68, min = 22) {
   } as const;
 }
 
-export function getBoardCrossFontSize(cellSize: number, ratio = 0.52, min = 18) {
-  return Math.max(min, Math.floor(cellSize * ratio));
-}
-
 export function getBoardNumberFontSize(cellSize: number, ratio = 0.68, min = 22) {
   return Math.max(min, Math.floor(cellSize * ratio));
 }
@@ -539,9 +571,66 @@ export function getLoopLineStrokeWidth(cellSize: number, ratio = 0.08, min = 2.5
   return Math.max(min, Math.floor(cellSize * ratio));
 }
 
+/**
+ * Shared edge-drawing input styles (Slitherlink and Pills): the hit radius
+ * around a grid vertex and the pick distance for a grid-line segment.
+ */
+export function getBoardVertexHitRadius(cellSize: number) {
+  return Math.max(14, Math.floor(cellSize * 0.3));
+}
+
+export function getBoardEdgeHitThreshold(cellSize: number) {
+  return Math.max(8, Math.floor(cellSize * 0.18));
+}
+
+/**
+ * Geometry for the hollow capsule outline drawn over placed pills: the
+ * capsule is inset inside the covered cells so the dot clues stay visible.
+ * A single marked cell renders as a circle of the same diameter.
+ */
+export function getBoardPillCapsuleMetrics(cellSize: number) {
+  const inset = Math.max(2, Math.floor(cellSize * 0.12));
+  return {
+    inset,
+    radius: (cellSize - inset * 2) / 2,
+  } as const;
+}
+
 /** Stroke used by thin internal grid separators. */
 export function getBoardGridStrokeWidth() {
   return boardStrokeWidths.grid;
+}
+
+/**
+ * Build an SVG rectangle whose stroke occupies the same pixels as the shared
+ * CSS cell dividers.
+ *
+ * `getCellDividerStyle` paints right/bottom borders inside each cell, whereas
+ * SVG centres a stroke on the rectangle edge. Moving each SVG edge toward the
+ * preceding cell by half the stroke width makes all four edges occupy the same
+ * strip as the shared grid divider instead of creating a wider overlap.
+ */
+export function getBoardGridOutlineRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  stroke = woodBoardTheme.border
+) {
+  const strokeWidth = getBoardGridStrokeWidth();
+  const strokeOffset = strokeWidth / 2;
+
+  return {
+    x: x - strokeOffset,
+    y: y - strokeOffset,
+    width,
+    height,
+    fill: 'none',
+    stroke,
+    strokeWidth,
+    strokeLinejoin: 'miter',
+    shapeRendering: 'crispEdges',
+  } as const;
 }
 
 /** Stroke used by a prominent region/deep separator. */
@@ -581,11 +670,6 @@ export function getBoardMarkerStrokeWidth() {
   return boardStrokeWidths.marker;
 }
 
-/** Stroke used by small edge-cross marks (Mintonette and similar boards). */
-export function getBoardCrossStrokeWidth() {
-  return boardStrokeWidths.cross;
-}
-
 /** Stroke used by compact symbol outlines (sheep/wolf and similar icons). */
 export function getBoardSymbolStrokeWidth() {
   return boardStrokeWidths.boundary + 1;
@@ -595,10 +679,22 @@ export function getBoardSymbolDetailStrokeWidth() {
   return boardStrokeWidths.boundary;
 }
 
-export function getLoopCrossSize(cellSize: number, ratio = 0.07, min = 3) {
-  return Math.max(min, Math.floor(cellSize * ratio));
+/** Canonical size of every cross drawn on a cell boundary. */
+export function getLoopCrossSize(cellSize: number) {
+  return Math.max(5, Math.floor(cellSize * 0.12));
 }
 
+/**
+ * Magnets pole-symbol metrics: the bar length and thickness used to draw
+ * the '+' (cross) and '−' (single bar) marks, matching the pzpr magnets
+ * proportions (length 0.7 of the cell, thickness at least cellSize/12).
+ */
+export function getBoardPoleMarkMetrics(cellSize: number) {
+  return {
+    length: Math.max(8, Math.floor(cellSize * 0.7)),
+    thickness: Math.max(3, Math.floor(cellSize / 12)),
+  } as const;
+}
 export function getLoopCrossStrokeWidth() {
   return boardStrokeWidths.loopCross;
 }
@@ -631,23 +727,6 @@ export function getBoardPreviewCellSize(boardCellSize: number, compact = false) 
 
 export function getBoardSymbolDiameter(cellSize: number, ratio = boardGeometry.symbolRatio, min = 20) {
   return Math.max(min, Math.floor(cellSize * ratio));
-}
-
-/** Size of an edge cross used by path/adjacency puzzles. */
-export function getBoardCrossSize(
-  cellSize: number,
-  ratio = boardGeometry.crossRatio,
-  min = boardGeometry.crossMin
-) {
-  return Math.max(min, Math.floor(cellSize * ratio));
-}
-
-export function getBoardCornerMarkMetrics(cellSize: number) {
-  return {
-    right: Math.max(2, Math.floor(cellSize * boardGeometry.clueInsetRatio)),
-    bottom: Math.max(0, Math.floor(cellSize * 0.02)),
-    fontSize: Math.max(12, Math.floor(cellSize * 0.28)),
-  } as const;
 }
 
 export function getBoardClueCircleMetrics(cellSize: number) {

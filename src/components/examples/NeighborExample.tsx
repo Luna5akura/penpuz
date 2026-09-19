@@ -7,10 +7,11 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
 } from '@/puzzles/boardTheme';
 
 interface Props {
@@ -38,24 +39,25 @@ function AnswerDiagram({
   grayCells: boolean[][];
   values: NeighborDigit[][];
 }) {
-  const boardWidth = width * CELL_SIZE + BOARD_PADDING * 2;
-  const boardHeight = height * CELL_SIZE + BOARD_PADDING * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   return (
     <div
       className="relative select-none"
       style={{
-        width: `${boardWidth + BOARD_BORDER * 2}px`,
-        height: `${boardHeight + BOARD_BORDER * 2}px`,
-        padding: `${BOARD_PADDING}px`,
+        width: `${outerWidth}px`,
+        height: `${outerHeight}px`,
         ...getBoardFrameStyle(BOARD_BORDER),
         maxWidth: 'none',
       }}
     >
       <div
         className="grid"
-        style={{
-          gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-        }}
+        style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => (
@@ -63,12 +65,7 @@ function AnswerDiagram({
               key={`${row}-${col}`}
               className={boardClassNames.cellContent}
               style={{
-                width: `${CELL_SIZE}px`,
-                height: `${CELL_SIZE}px`,
-                // Gray-marked cells intentionally use the same base color as
-                // the rest of the Neighbors grid.
-                ...getBoardCellColors('cell'),
-                ...getCellDividerStyle(),
+                ...getBoardCellStyle(CELL_SIZE, grayCells[row]?.[col] ? 'outlined' : 'cell'),
                 ...getBoardTextStyle(CELL_SIZE, 0.68, 18),
               }}
             >

@@ -150,7 +150,6 @@ export function validateFillomino(
 ) {
   const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
   const autoThinLines = getFillominoAutoBoundaryLines(grid, width, height);
-
   const hasBoundary = (r1: number, c1: number, r2: number, c2: number): boolean => {
     if (
       r1 < 0 ||
@@ -211,6 +210,10 @@ export function validateFillomino(
         }
       }
 
+      // A region may carry one number (its area), conflicting numbers are
+      // invalid, and a region without any number is allowed: its size is
+      // simply the number of cells it encloses, which still participates
+      // in the adjacent-areas-must-differ rule below.
       if (values.size > 1) invalidRegionIds.add(regionId);
 
       const [regionValue] = values;
@@ -252,7 +255,7 @@ export function validateFillomino(
 
   const invalidCells = Array.from(invalidRegionIds).flatMap((regionId) => regions[regionId].cells);
   const valid = invalidCells.length === 0;
-  const uniqueInvalid = [...new Set(invalidCells.map((cell) => `${cell.r},${cell.c}`))].map((key) => {
+  const uniqueInvalid = Array.from(new Set(invalidCells.map((cell) => `${cell.r},${cell.c}`))).map((key) => {
     const [rr, cc] = key.split(',').map(Number);
     return { r: rr, c: cc };
   });

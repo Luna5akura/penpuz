@@ -9,17 +9,18 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCellStyle,
-  getBoardCrossStrokeWidth,
-  getBoardCrossSize,
   getInvalidBoardCellColors,
   getBoardRegionStrokeWidth,
   getBoardCircleClueDiameter,
   getBoardCircleClueStrokeWidth,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import BoardEdgeCross from '../shared/BoardEdgeCross';
 import { getTrialLevelColors } from '../trialStyles';
 import {
   detectMintonetteHitTarget,
@@ -50,6 +51,7 @@ type MintonetteSnapshot = {
 };
 
 const BOARD_PADDING = commonBoardChrome.padding;
+const BOARD_BORDER = commonBoardChrome.border;
 
 function normalizeMintonetteSnapshot(snapshot: unknown, width: number, height: number): MintonetteSnapshot {
   const source = snapshot as Partial<MintonetteSnapshot> | null | undefined;
@@ -126,7 +128,6 @@ export default function MintonetteBoard({
   const lineEdges = normalizedSnapshot.lineEdges;
   const crossedEdges = normalizedSnapshot.crossedEdges;
   const lineEdgeLevels = normalizedSnapshot.lineEdgeLevels;
-  const crossedEdgeLevels = normalizedSnapshot.crossedEdgeLevels;
   const lineEdgeSet = useMemo(() => new Set(lineEdges), [lineEdges]);
   const clueMap = useMemo(() => {
     const map = new Map<string, { value: number | null }>();
@@ -172,8 +173,9 @@ export default function MintonetteBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
-    const x = clientX - rect.left - BOARD_PADDING;
-    const y = clientY - rect.top - BOARD_PADDING;
+    const boardInset = BOARD_BORDER + BOARD_PADDING;
+    const x = clientX - rect.left - boardInset;
+    const y = clientY - rect.top - boardInset;
     if (x < 0 || y < 0 || x > width * cellSize || y > height * cellSize) return null;
     return { x, y };
   }, [cellSize, height, width]);
@@ -327,20 +329,23 @@ export default function MintonetteBoard({
     finishPointer();
   };
 
-  const boardWidth = width * cellSize;
-  const boardHeight = height * cellSize;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
 
   return (
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div
         ref={boardRef}
-        className="mx-auto select-none"
+        className="relative mx-auto select-none"
         style={{
-          position: 'relative',
-          display: 'inline-block',
-          padding: `${BOARD_PADDING}px`,
+          width: `${outerWidth}px`,
+          height: `${outerHeight}px`,
           touchAction: 'none',
-          ...getBoardFrameStyle(),
+          ...getBoardFrameStyle(BOARD_BORDER),
         }}
         onPointerDown={handlePointerDown}
         onPointerMove={handleBoardPointerMove}
@@ -350,9 +355,7 @@ export default function MintonetteBoard({
       >
         <div
           className="grid"
-          style={{
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {Array.from({ length: height }, (_, row) =>
             Array.from({ length: width }, (_, col) => {
@@ -410,18 +413,13 @@ export default function MintonetteBoard({
             if (!edge) return null;
             const centerX = (getCenter(edge.r1, edge.c1).x + getCenter(edge.r2, edge.c2).x) / 2;
             const centerY = (getCenter(edge.r1, edge.c1).y + getCenter(edge.r2, edge.c2).y) / 2;
-            const size = getBoardCrossSize(cellSize);
-            const trialColors = getTrialLevelColors(crossedEdgeLevels[edgeKey] ?? 0);
             return (
-              <g
+              <BoardEdgeCross
                 key={`cross-${edgeKey}`}
-                stroke={trialColors?.text ?? woodBoardTheme.border}
-                strokeWidth={getBoardCrossStrokeWidth()}
-                strokeLinecap="round"
-              >
-                <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
-                <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
-              </g>
+                x={centerX}
+                y={centerY}
+                cellSize={cellSize}
+              />
             );
           })}
         </svg>

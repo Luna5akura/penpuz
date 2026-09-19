@@ -8,7 +8,9 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardBoundaryStrokeMetrics,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
   woodBoardTheme,
@@ -49,10 +51,12 @@ export default function AqreExample({
     () => getAqreBoundarySegments(regionIds, width, height),
     [height, regionIds, width]
   );
-  const boardWidth = width * CELL_SIZE;
-  const boardHeight = height * CELL_SIZE;
-  const outerWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
 
   return (
@@ -85,16 +89,16 @@ export default function AqreExample({
           >
             {!showAnswer ? (
               <div
+                className="relative"
                 style={{
                   width: `${outerWidth}px`,
                   height: `${outerHeight}px`,
-                  padding: `${BOARD_PADDING}px`,
                   ...getBoardFrameStyle(BOARD_BORDER),
                 }}
               >
                 <div
                   className="grid"
-                  style={{ gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)` }}
+                  style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
                 >
                   {Array.from({ length: width * height }, (_, index) => (
                     <div
@@ -120,11 +124,7 @@ export default function AqreExample({
             >
               <div
                 className="absolute grid"
-                style={{
-                  left: `${BOARD_PADDING}px`,
-                  top: `${BOARD_PADDING}px`,
-                  gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                }}
+                style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
               >
                 {correctSolution.flatMap((row, rowIndex) =>
                   row.map((isBlack, colIndex) => {

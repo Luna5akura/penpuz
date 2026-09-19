@@ -23,7 +23,9 @@ import {
   getBoardModeButtonStyle,
   getBoardRegionStrokeWidth,
   getBoardThinStrokeWidth,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getBoardTrialCellStyle,
   getResponsiveCellSize,
@@ -128,7 +130,6 @@ export default function FillominoBoard({
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressThreshold = 500;
 
-  const gap = 0;
   const resetTransientUiState = useCallback(() => {
     setShowNumpad(false);
     setNumpadTarget(null);
@@ -336,12 +337,11 @@ export default function FillominoBoard({
 
   // ==================== getCenter（用于 thinLines 中心连线） ====================
   const getCenter = useCallback((r: number, c: number) => {
-    const step = cellSize + gap;
     return {
-      x: c * step + cellSize / 2,
-      y: r * step + cellSize / 2,
+      x: c * cellSize + cellSize / 2,
+      y: r * cellSize + cellSize / 2,
     };
-  }, [cellSize, gap]);
+  }, [cellSize]);
 
   // ==================== getEdgeKey ====================
   // ==================== 自动灰色边界线 ====================
@@ -408,18 +408,16 @@ export default function FillominoBoard({
   }, [setCellValue]);
 
   const getCellFromPos = useCallback((effectiveX: number, effectiveY: number) => {
-    const step = cellSize + gap;
     return {
-      row: Math.max(0, Math.min(height - 1, Math.floor(effectiveY / step))),
-      col: Math.max(0, Math.min(width - 1, Math.floor(effectiveX / step))),
+      row: Math.max(0, Math.min(height - 1, Math.floor(effectiveY / cellSize))),
+      col: Math.max(0, Math.min(width - 1, Math.floor(effectiveX / cellSize))),
     };
   }, [cellSize, height, width]);
 
   const getNearestVertex = useCallback((effectiveX: number, effectiveY: number) => {
-    const step = cellSize + gap;
     return {
-      rowLine: Math.max(0, Math.min(height, Math.round(effectiveY / step))),
-      colLine: Math.max(0, Math.min(width, Math.round(effectiveX / step))),
+      rowLine: Math.max(0, Math.min(height, Math.round(effectiveY / cellSize))),
+      colLine: Math.max(0, Math.min(width, Math.round(effectiveX / cellSize))),
     };
   }, [cellSize, height, width]);
 
@@ -471,9 +469,9 @@ export default function FillominoBoard({
     if (!isDragging.current || pointerIdRef.current === null) return;
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const padding = BOARD_PADDING;
-    const effectiveX = e.clientX - rect.left - padding;
-    const effectiveY = e.clientY - rect.top - padding;
+    const boardInset = commonBoardChrome.border + BOARD_PADDING;
+    const effectiveX = e.clientX - rect.left - boardInset;
+    const effectiveY = e.clientY - rect.top - boardInset;
     const currentCell = getCellFromPos(effectiveX, effectiveY);
 
     if (longPressTimerRef.current) {
@@ -630,9 +628,9 @@ export default function FillominoBoard({
     if (mode === 'deepLine') {
       const rect = boardRef.current?.getBoundingClientRect();
       if (rect) {
-        const padding = BOARD_PADDING;
-        const mouseX = e.clientX - rect.left - padding;
-        const mouseY = e.clientY - rect.top - padding;
+        const boardInset = commonBoardChrome.border + BOARD_PADDING;
+        const mouseX = e.clientX - rect.left - boardInset;
+        const mouseY = e.clientY - rect.top - boardInset;
         lastVertexRef.current = getNearestVertex(mouseX, mouseY);
       }
     }
@@ -648,8 +646,14 @@ export default function FillominoBoard({
     handleDocumentPointerUp();
   };
 
-  const svgWidth = width * cellSize;
-  const svgHeight = height * cellSize;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: commonBoardChrome.border, padding: BOARD_PADDING }
+  );
+  const svgWidth = boardWidth;
+  const svgHeight = boardHeight;
 
   // 辅助函数（长按数字面板）
   const closeNumpad = () => {
@@ -695,26 +699,22 @@ export default function FillominoBoard({
 
       <div
         ref={boardRef}
-        className="mx-auto select-none"
+        className="relative mx-auto select-none"
         style={{
-          position: 'relative',
-          display: 'inline-block',
-          padding: `${BOARD_PADDING}px`,
+          width: `${outerWidth}px`,
+          height: `${outerHeight}px`,
           touchAction: 'none',
-          ...getBoardFrameStyle(),
+          ...getBoardFrameStyle(commonBoardChrome.border),
         }}
         onPointerMove={handleBoardPointerMove}
         onPointerUp={handleBoardPointerEnd}
         onPointerCancel={handleBoardPointerEnd}
         onContextMenu={(e) => e.preventDefault()}
       >
-      {/* 单元格网格 */}
+        {/* 单元格网格 */}
         <div
-          style={{
-            display: 'inline-grid',
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-            gap: `${gap}px`,
-          }}
+          className="grid"
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {grid.flatMap((row, r) =>
             row.map((value, c) => {
@@ -768,6 +768,7 @@ export default function FillominoBoard({
           {Array.from({ length: height }, (_, r) =>
             Array.from({ length: width - 1 }, (_, c) => {
               const key = `h-${r}-${c}`;
+              if (!deepLineSet.has(key) && !autoThinLineSet.has(key)) return null;
               const { stroke, strokeWidth } = getLineStyle(key);
               const x = alignStrokeCoordinate((c + 1) * cellSize, strokeWidth);
               const y1 = r * cellSize;
@@ -786,6 +787,7 @@ export default function FillominoBoard({
           {Array.from({ length: height - 1 }, (_, r) =>
             Array.from({ length: width }, (_, c) => {
               const key = `v-${r}-${c}`;
+              if (!deepLineSet.has(key) && !autoThinLineSet.has(key)) return null;
               const { stroke, strokeWidth } = getLineStyle(key);
               const y = alignStrokeCoordinate((r + 1) * cellSize, strokeWidth);
               const x1 = c * cellSize;

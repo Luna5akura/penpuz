@@ -549,20 +549,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '极难',
   },
   {
-    // Compact JSON payloads are used for the three competition-only formats
-    // until an upstream PuzzLink encoder is available.
-    puzzLink: 'http://localhost:8080/p.html?japanesearrows/2/1/eyJjbHVlcyI6W1sxLG51bGxdXSwiYXJyb3dzIjpbWyJFIiwiVyJdXX0',
-    difficulty: '简单',
-  },
-  {
-    puzzLink: 'http://localhost:8080/p.html?fourwindswithparks/2/2/eyJjbHVlcyI6W1sxLG51bGxdLFtudWxsLDFdXX0',
-    difficulty: '困难',
-  },
-  {
-    puzzLink: 'http://localhost:8080/p.html?consecutivekakuro/2/2/eyJjZWxscyI6W1t7InJpZ2h0IjoxLCJkb3duIjoxfSxudWxsXSxbbnVsbCxudWxsXV0sInRvcENsdWVzIjpbbnVsbCxudWxsXSwibGVmdENsdWVzIjpbbnVsbCxudWxsXSwiaG9yaXpvbnRhbEJhcnMiOltbdHJ1ZV0sW2ZhbHNlXV0sInZlcnRpY2FsQmFycyI6W1t0cnVlLGZhbHNlXV19',
-    difficulty: '极难',
-  },
-  {
     puzzLink: 'http://localhost:8080/p.html?japanesesumswithzeroes/5/5/6/55g56gah89g99g-14hfh2h-13hah',
     difficulty: '困难',
   },
@@ -602,9 +588,94 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?skyscrapers/7/7/4g4g4g4h44g4i4g3h4g4h4g',
     difficulty: '极难',
   },
-
-
-
+  {
+    puzzLink: 'http://localhost:8080/p.html?fourwindswithparks/8/8/1l3h2h4i1j1x3j1i1h1h9l1',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fourwindswithparks/10/10/4j8l1j6l2j3g2j1l6j1g8j8l3j3l3j2g1j1l3j4g',
+    difficulty: '极难',
+  },
+  {
+    // Atol-Solver pzpr links: standard Kakuro cell encoding plus a number16
+    // grid packing the white-bar bits (2 = right, 1 = bottom) per cell.
+    puzzLink: 'http://localhost:8080/p.html?consecutivekakuro/10/10/iCn-hsICqdimehpIjmS-O-l9Bm6jpDhmEclf-CCmgGp8im9Dq-Ds-Bn.JidbA8ADI8Ae7aAD0011000000002000021011000210202000002000000031000000002000000000100210010300020030000021000000002000',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?consecutivekakuro/10/10/oi--8sGhpDBrFPq-fm.-flL-.E-Eal9-Fgma-qjarcep-Os.-Hohib8iQhdiGdcLDBi0030000031030000002030000031200000002000000000200000100000000230100000010230000023000021300000000200',
+    difficulty: '极难',
+  },
+  {
+    // WPF Puzzle GP 2015 Round 7, puzzle 22 (8×8, pill values 1-8).
+    puzzLink: 'http://localhost:8080/p.html?pills/8/8/120222112101230321112120001332223232311111221211100101111010101032499333233ad311',
+    difficulty: '困难',
+  },
+  {
+    // WPF Puzzle GP 2015 Round 7, puzzle 21b (10×10, pill values 1-12).
+    puzzLink: 'http://localhost:8080/p.html?pills/10/10/111222122212212322211200140021210014001122111444321122233322210023002412002300142112121122122112121142222-1a77dd2675-10b9a66',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/5/5/j34h3h4h3h4h',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/6/6/2l5h4i2l5g4',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/6/6/g1h2g43l3h2g5h4g',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/7/7/i2h2362k2i624h6i',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fillomino/10/10/g3o1h3ah1j2h2k21h12i7h-14i4h6l9i21h12k2h2j1h85h1g6m5g',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fillomino/10/10/g3o1h3ah1j2h2k21h12i7h-14i4h6l9i21h12k2h2j1h85h1g6m5g',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fillomino/10/10/o98g7m472g8525j7g5g1j2h3j4g5i15h82h1g579h3h4g4k2k87h3j4i',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fillomino/12/12/c91k1848i1291zv1291g1291c91p8s1291i1848zh1815j1291j1848',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?tapa/12/12/i3l2g3jafiaeva8ha8iafg3s3ibloa8j44mafl4na8k6waeh2ga8ga8ha8i2',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/10/10/5gqnd5trdp858rc9144ea14e14lhfcsafler',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/10/10/ikq5q5ks3o65cr4jikai1uke6c00ecubdld2',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/9/9/18evmj242grum9guaoiaho3025ah28',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?lits/12/12/4m2f1bgqhqub6pouu4k4dk5m25008041qjlauf2mf1hokvfns4g0k0s1v0fo3g00000000000003g7s1v0e',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?pills/10/10/444222244442411114244441001444211100111221000000122100000012211100111244410014444241111424444222244448-1111275828541314ed2',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?magnets/10/10/2452233014223522424444222442233223322244ldlrrnrtrlqvvvvemqfrnn9rmsffvmo97mrf',
+    difficulty: '困难',
+  },
 
 
 
@@ -639,6 +710,16 @@ export function getDatabasePuzzleSamples(): DatabasePuzzleSample[] {
 
 const START_DATE = '2026-04-09';
 const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
+const parsedPuzzleCache = new Map<number, PuzzleData | null>();
+
+function getPuzzleForDatabaseIndex(index: number): PuzzleData | null {
+  const cached = parsedPuzzleCache.get(index);
+  if (cached !== undefined || parsedPuzzleCache.has(index)) return cached ?? null;
+
+  const puzzle = resolvePuzzleEntry(allPuzzles[index]) ?? null;
+  parsedPuzzleCache.set(index, puzzle);
+  return puzzle;
+}
 
 export function getPuzzleDateStr(daysSinceStart: number): string {
   const start = new Date(`${START_DATE}T00:00:00+08:00`);
@@ -657,20 +738,48 @@ function getDaysSinceStartFromDateStr(dateStr: string): number | null {
   return daysSinceStart >= 0 ? daysSinceStart : null;
 }
 
+/**
+ * Return the continuous public number for a day, counting only entries that
+ * can actually be parsed and displayed.  The database is rotated when the
+ * number of days exceeds its length, so the raw database position cannot be
+ * used as a user-facing number.  Unparseable entries are omitted from the
+ * history list; excluding them from the count keeps the numbers visible to
+ * users gap-free as well.
+ */
+function getPublicPuzzleIndex(daysSinceStart: number): number | null {
+  const databaseIndex = daysSinceStart % allPuzzles.length;
+  let parseablePerCycle = 0;
+  for (let index = 0; index < allPuzzles.length; index += 1) {
+    if (getPuzzleForDatabaseIndex(index)) parseablePerCycle += 1;
+  }
+
+  let publicIndex = Math.floor(daysSinceStart / allPuzzles.length) * parseablePerCycle;
+  for (let index = 0; index <= databaseIndex; index += 1) {
+    const puzzle = getPuzzleForDatabaseIndex(index);
+    if (!puzzle) continue;
+    if (index === databaseIndex) return publicIndex;
+    publicIndex += 1;
+  }
+  return null;
+}
+
 export function getPuzzleByDateStr(dateStr: string): DailyPuzzleData | null {
   const daysSinceStart = getDaysSinceStartFromDateStr(dateStr);
   if (daysSinceStart === null) return null;
 
-  const index = daysSinceStart % allPuzzles.length;
-  const entry = allPuzzles[index];
-  const puzzle = resolvePuzzleEntry(entry);
+  const databaseIndex = daysSinceStart % allPuzzles.length;
+  const entry = allPuzzles[databaseIndex];
+  const puzzle = getPuzzleForDatabaseIndex(databaseIndex);
   if (!puzzle) return null;
+
+  const publicIndex = getPublicPuzzleIndex(daysSinceStart);
+  if (publicIndex === null) return null;
 
   return {
     puzzle,
     template: getPuzzleTemplate(puzzle.type),
     difficulty: entry.difficulty,
-    index,
+    index: publicIndex,
     daysSinceStart,
     dateStr,
   };
@@ -685,21 +794,25 @@ export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {
   if (daysSinceStart <= 0) return [];
 
   const history: HistoryPuzzleData[] = [];
+  let publicIndex = 0;
 
   for (let d = 0; d < daysSinceStart; d++) {
-    const idx = d % allPuzzles.length;
-    const entry = allPuzzles[idx];
-    const puzzle = resolvePuzzleEntry(entry);
+    const databaseIndex = d % allPuzzles.length;
+    const entry = allPuzzles[databaseIndex];
+    const puzzle = getPuzzleForDatabaseIndex(databaseIndex);
     if (!puzzle) continue;
 
     history.push({
       puzzle,
       template: getPuzzleTemplate(puzzle.type),
       difficulty: entry.difficulty,
-      index: idx,
+      // Keep history numbers continuous.  The database index above is only an
+      // implementation detail used to select the rotating entry.
+      index: publicIndex,
       dateStr: getPuzzleDateStr(d),
       daysSinceStart: d,
     });
+    publicIndex += 1;
   }
   return history;
 }

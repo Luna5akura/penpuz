@@ -1,16 +1,11 @@
 import { useCallback, useMemo } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import NumberPlacementBoard, { type NumberPlacementCellValue } from '../shared/NumberPlacementBoard';
-import {
-  getBoardCenterMarkMetrics,
-  getBoardCrossFontSize,
-  getBoardTextStyle,
-  getCrossMarkStyle,
-  woodBoardTheme,
-} from '../boardTheme';
+import { getBoardTextStyle } from '../boardTheme';
 import type { SlovakSumsPuzzleData } from '../types';
 import SlovakSumsClue from './SlovakSumsClue';
 import { validateSlovakSums } from './utils';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: SlovakSumsPuzzleData;
@@ -47,31 +42,11 @@ export default function SlovakSumsBoard({
 
   const renderCellValue = useCallback((value: NumberPlacementCellValue, cellSize: number) => {
     if (value === 'circle') {
-      const center = cellSize / 2;
-      const { radius, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
-
-      return (
-        <svg
-          className="pointer-events-none absolute inset-0"
-          width={cellSize}
-          height={cellSize}
-          viewBox={`0 0 ${cellSize} ${cellSize}`}
-          aria-hidden="true"
-        >
-          <circle
-            cx={center}
-            cy={center}
-            r={radius}
-            fill="none"
-            stroke={woodBoardTheme.border}
-            strokeWidth={strokeWidth}
-          />
-        </svg>
-      );
+      return <BoardCellMark kind="circle" cellSize={cellSize} />;
     }
 
     if (value === 'cross') {
-      return <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize))}>×</span>;
+      return <BoardCellMark kind="cross" cellSize={cellSize} />;
     }
 
     return value;
@@ -88,6 +63,10 @@ export default function SlovakSumsBoard({
       {values.map((value) => <span key={value}>{value}</span>)}
     </span>
   ), []);
+  const getCellTone = useCallback((row: number, col: number, value: NumberPlacementCellValue) => {
+    if (puzzle.cells[row][col] !== null) return 'shaded';
+    return value === 'cross' ? 'marked' : 'cell';
+  }, [puzzle.cells]);
 
   return (
     <NumberPlacementBoard
@@ -99,6 +78,7 @@ export default function SlovakSumsBoard({
       validate={validateSlovakSums}
       isBlockedCell={isBlockedCell}
       renderCellValue={renderCellValue}
+      getCellTone={getCellTone}
       renderCandidates={renderCandidates}
       extraCellValues={SLOVAK_EXTRA_CELL_VALUES}
       cellInputMode="cycle"

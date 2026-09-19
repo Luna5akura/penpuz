@@ -16,17 +16,19 @@ import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import type { SlitherlinkPuzzleData } from '../types';
 import {
   commonBoardChrome,
-  getBoardCenterMarkMetrics,
   getBoardDotRadius,
+  getBoardEdgeHitThreshold,
+  getBoardVertexHitRadius,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStrokeWidth,
   getBoardSvgTextProps,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
+import BoardEdgeCross from '../shared/BoardEdgeCross';
+import BoardCellMark from '../shared/BoardCellMark';
 import {
   filterValidGridLineEdgeKeys,
   getCellKey,
@@ -137,39 +139,11 @@ function renderCellCenterMark(
 ) {
   const centerX = BOARD_PADDING + (col + 0.5) * cellSize;
   const centerY = BOARD_PADDING + (row + 0.5) * cellSize;
-  const { radius, crossSize, strokeWidth } = getBoardCenterMarkMetrics(cellSize);
-
-  if (mark === 'circle') {
-    return (
-      <circle
-        cx={centerX}
-        cy={centerY}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-      />
-    );
-  }
-
-  return (
-    <g stroke={color} strokeWidth={strokeWidth} strokeLinecap="round">
-      <line x1={centerX - crossSize} y1={centerY - crossSize} x2={centerX + crossSize} y2={centerY + crossSize} />
-      <line x1={centerX - crossSize} y1={centerY + crossSize} x2={centerX + crossSize} y2={centerY - crossSize} />
-    </g>
-  );
-}
-
-function getVertexHitRadius(cellSize: number) {
-  return Math.max(14, Math.floor(cellSize * 0.3));
+  return <BoardCellMark kind={mark} cellSize={cellSize} color={color} x={centerX} y={centerY} />;
 }
 
 function getCellCenterHitRadius(cellSize: number) {
   return Math.max(10, Math.floor(cellSize * 0.28));
-}
-
-function getEdgeHitThreshold(cellSize: number) {
-  return Math.max(8, Math.floor(cellSize * 0.18));
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -192,7 +166,7 @@ function getBoardPointerPoint(clientX: number, clientY: number, rect: DOMRect) {
 function detectVertexAtPoint(x: number, y: number, width: number, height: number, cellSize: number) {
   const boardWidth = width * cellSize;
   const boardHeight = height * cellSize;
-  const threshold = getVertexHitRadius(cellSize);
+  const threshold = getBoardVertexHitRadius(cellSize);
 
   if (x < -threshold || x > boardWidth + threshold || y < -threshold || y > boardHeight + threshold) {
     return null;
@@ -226,7 +200,7 @@ function detectCellCenterAtPoint(x: number, y: number, width: number, height: nu
 function detectEdgeAtPoint(x: number, y: number, width: number, height: number, cellSize: number) {
   const boardWidth = width * cellSize;
   const boardHeight = height * cellSize;
-  const threshold = getEdgeHitThreshold(cellSize);
+  const threshold = getBoardEdgeHitThreshold(cellSize);
 
   if (x < -threshold || x > boardWidth + threshold || y < -threshold || y > boardHeight + threshold) {
     return null;
@@ -711,13 +685,12 @@ export default function SlitherlinkBoard({
     };
   }, [finishPointer, handlePointerMoveAt]);
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, cellSize, {
+    borderWidth: BOARD_BORDER,
+    padding: BOARD_PADDING,
+  });
   const clueTextProps = getBoardSvgTextProps(cellSize);
   const lineStroke = getLoopLineStrokeWidth(cellSize);
-  const crossSize = getLoopCrossSize(cellSize, 0.12, 5);
   const svgWidth = outerWidth - BOARD_BORDER * 2;
   const svgHeight = outerHeight - BOARD_BORDER * 2;
 
@@ -815,19 +788,13 @@ export default function SlitherlinkBoard({
           {Array.from(crossedSet).map((key) => {
             const midpoint = getEdgeMidpoint(key, cellSize);
             if (!midpoint) return null;
-            const trialColors = getTrialLevelColors(normalizedSnapshot.crossedLevels[key] ?? 0);
-            const color = trialColors?.text ?? woodBoardTheme.border;
-
             return (
-              <g
+              <BoardEdgeCross
                 key={`cross-${key}`}
-                stroke={color}
-                strokeWidth={getLoopCrossStrokeWidth()}
-                strokeLinecap="round"
-              >
-                <line x1={midpoint.x - crossSize} y1={midpoint.y - crossSize} x2={midpoint.x + crossSize} y2={midpoint.y + crossSize} />
-                <line x1={midpoint.x - crossSize} y1={midpoint.y + crossSize} x2={midpoint.x + crossSize} y2={midpoint.y - crossSize} />
-              </g>
+                x={midpoint.x}
+                y={midpoint.y}
+                cellSize={cellSize}
+              />
             );
           })}
         </svg>

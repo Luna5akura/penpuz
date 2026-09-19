@@ -28,10 +28,12 @@ import WolvesAndSheepBoard from './WolvesAndSheep/WolvesAndSheep';
 import ShapeMinesweeperBoard from './ShapeMinesweeper/ShapeMinesweeper';
 import CaveBoard from './Cave/Cave';
 import JapaneseArrowsBoard from './JapaneseArrows/JapaneseArrows';
-import FourWindsBoard from './FourWinds/FourWinds';
+import FourWindsWithParksBoard from './FourWindsWithParks/FourWindsWithParks';
 import ConsecutiveKakuroBoard from './ConsecutiveKakuro/ConsecutiveKakuro';
 import JapaneseSumsBoard from './JapaneseSums/JapaneseSums';
 import ABCBoxBoard from './ABCBox/ABCBox';
+import MagnetsBoard from './Magnets/Magnets';
+import PillsBoard from './Pills/Pills';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
@@ -106,10 +108,13 @@ import type {
   ShapeMinesweeperPuzzleData,
   CavePuzzleData,
   JapaneseArrowsPuzzleData,
-  FourWindsPuzzleData,
+  FourWindsWithParksPuzzleData,
   ConsecutiveKakuroPuzzleData,
   JapaneseSumsWithZeroesPuzzleData,
   ABCBoxPuzzleData,
+  MagnetsPole,
+  MagnetsPuzzleData,
+  PillsPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
 import TapaExample from '../components/examples/TapaExample';
@@ -128,10 +133,12 @@ import {
 import { parseShapeMinesweeperLink, validateShapeMinesweeper } from './ShapeMinesweeper/utils';
 import { parseCaveLink, validateCave } from './Cave/utils';
 import { parseJapaneseArrowsLink } from './JapaneseArrows/utils';
-import { parseFourWindsLink } from './FourWinds/utils';
+import { parseFourWindsWithParksLink } from './FourWindsWithParks/utils';
 import { parseConsecutiveKakuroLink } from './ConsecutiveKakuro/utils';
 import { parseJapaneseSumsLink } from './JapaneseSums/utils';
 import { parseABCBoxLink } from './ABCBox/utils';
+import { parseMagnetsLink } from './Magnets/utils';
+import { parsePillsLink } from './Pills/utils';
 
 const WALKWALK_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/5/5/8gh20v00l1g6m7l3g';
 const walkwalkExamplePuzzle = parseWalkwalkLink(WALKWALK_EXAMPLE_LINK);
@@ -458,10 +465,12 @@ type PuzzleRegistry = {
   'shape-minesweeper': PuzzleRegistryEntry<ShapeMinesweeperPuzzleData>;
   cave: PuzzleRegistryEntry<CavePuzzleData>;
   'japanese-arrows': PuzzleRegistryEntry<JapaneseArrowsPuzzleData>;
-  'four-winds-with-parks': PuzzleRegistryEntry<FourWindsPuzzleData>;
+  'four-winds-with-parks': PuzzleRegistryEntry<FourWindsWithParksPuzzleData>;
   'consecutive-kakuro': PuzzleRegistryEntry<ConsecutiveKakuroPuzzleData>;
   'japanese-sums-with-zeroes': PuzzleRegistryEntry<JapaneseSumsWithZeroesPuzzleData>;
   'abc-box': PuzzleRegistryEntry<ABCBoxPuzzleData>;
+  magnets: PuzzleRegistryEntry<MagnetsPuzzleData>;
+  pills: PuzzleRegistryEntry<PillsPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -2828,17 +2837,17 @@ export const puzzleRegistry: PuzzleRegistry = {
     },
   },
   'four-winds-with-parks': {
-    parsePuzzLink: parseFourWindsLink,
+    parsePuzzLink: parseFourWindsWithParksLink,
     template: {
       type: 'four-winds-with-parks', name: { 'zh-CN': '四风带公园', en: 'Four Winds with Parks' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
-      rules: { 'zh-CN': ['从数字格边缘画出指向四个方向的箭头；箭头不能重叠。每行每列恰好有一个空格。数字是从该格出发的箭头总长度。'], en: ['Draw non-overlapping arrows from numbered cell edges. Every row and column has exactly one empty cell. A clue is the total length of arrows starting beside it.'] },
+      rules: { 'zh-CN': ['从数字格边缘画出指向四个方向的箭头；箭头不能重叠。每行每列恰好有一个公园（圈）。数字是从该格出发的箭头总长度。'], en: ['Draw non-overlapping arrows from numbered cell edges. Every row and column has exactly one park (circle). A clue is the total length of arrows starting beside it.'] },
       exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
       example: { puzzleType: 'four-winds-with-parks', width: 2, height: 2, clues: [[1, null], [null, 1]], correctGrid: [[0, 4], [1, 0]] },
     },
-    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <FourWindsBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <FourWindsWithParksBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
     renderExample: (template, locale) => {
       const example = template.example;
-      if (example.puzzleType !== 'four-winds-with-parks') throw new Error('Four Winds template example type mismatch.');
+      if (example.puzzleType !== 'four-winds-with-parks') throw new Error('Four Winds with Parks template example type mismatch.');
       return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
     },
   },
@@ -2868,6 +2877,101 @@ export const puzzleRegistry: PuzzleRegistry = {
     template: { type: 'abc-box', name: { 'zh-CN': 'ABC 盒', en: 'ABC-Box' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' }, rules: { 'zh-CN': ['每格填入 A、B、C 之一；外侧符号描述同字母连续区段的长度或字母。'], en: ['Fill each cell with A, B, or C. Outside symbols describe the lengths or letters of consecutive runs.'] }, exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' }, example: { puzzleType: 'abc-box', width: 2, height: 2, givens: [['A', null], [null, 'B']], clues: { top: [[],[]], right: [[],[]], bottom: [[],[]], left: [[],[]] }, correctGrid: [['A','B'],['C','A']] } },
     renderBoard: (props) => <ABCBoxBoard {...props} />,
     renderExample: () => <div className="rounded-md border p-4 text-center">ABC-Box</div>,
+  },
+  magnets: {
+    parsePuzzLink: parseMagnetsLink,
+    template: {
+      type: 'magnets', name: { 'zh-CN': '磁铁', en: 'Magnets' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '盘面被分割成若干个两格区域（只画出区域边界）。在部分格子中放置 + 或 −，每格至多一个符号。',
+          '每个区域要么恰好放置两个符号，要么一个都不放。',
+          '相邻的格子（即使在同一区域内）不能放置相同的符号。',
+          '上方的数字表示该列中 + 的个数，左侧的数字表示该行中 − 的个数；没有数字表示个数不限。',
+        ],
+        en: [
+          'The grid is partitioned into regions of two square cells each (only region borders are drawn). Put + and − symbols into some cells, at most one symbol per cell.',
+          'Each region either has two symbols or no symbols at all.',
+          'Adjacent cells (even within a region) cannot contain the same symbol.',
+          'The numbers above and to the left of the grid indicate the exact number of + in each column and − in each row. If a number is not given, there might be any number of the specified symbol.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      example: {
+        puzzleType: 'magnets',
+        width: 4,
+        height: 4,
+        regions: [
+          [{ row: 0, col: 0 }, { row: 0, col: 1 }],
+          [{ row: 0, col: 2 }, { row: 1, col: 2 }],
+          [{ row: 0, col: 3 }, { row: 1, col: 3 }],
+          [{ row: 1, col: 0 }, { row: 1, col: 1 }],
+          [{ row: 2, col: 0 }, { row: 2, col: 1 }],
+          [{ row: 2, col: 2 }, { row: 3, col: 2 }],
+          [{ row: 2, col: 3 }, { row: 3, col: 3 }],
+          [{ row: 3, col: 0 }, { row: 3, col: 1 }],
+        ],
+        topClues: [1, 2, 2, 2],
+        topMinusClues: [2, 1, 2, 2],
+        leftClues: [2, 2, 1, 2],
+        leftPlusClues: [2, 2, 1, 2],
+        givens: Array.from({ length: 4 }, () => Array<MagnetsPole | null>(4).fill(null)),
+        correctGrid: [[1, 2, 1, 2], [2, 1, 2, 1], [null, null, 1, 2], [2, 1, 2, 1]],
+      },
+    },
+    renderBoard: (props) => <MagnetsBoard {...props} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'magnets') throw new Error('Magnets template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
+  },
+  pills: {
+    parsePuzzLink: parsePillsLink,
+    template: {
+      type: 'pills', name: { 'zh-CN': '药丸', en: 'Pills' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '在盘面中定位给定的一组药丸。药丸是 1×3 或 3×1 的形状，且互不重叠。',
+          '每个药丸有一个互不相同的“值”（药丸内部圆点的数量），如盘面右侧所示。',
+          '盘面左侧和上方的每个数字表示该行或该列中位于药丸内部的圆点数量。',
+        ],
+        en: [
+          'Locate the indicated set of pills in the grid. Pills have a 1×3 or 3×1 shape and do not overlap each other.',
+          'Each pill has a different "value" (number of dots inside the pill), as indicated to the right of the grid.',
+          'Each number to the left and top of the grid reveals the number of dots in that row or column that are inside pills.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      example: {
+        puzzleType: 'pills',
+        width: 5,
+        height: 5,
+        dots: [
+          [1, 0, 0, 0, 0],
+          [0, 0, 0, 0, 1],
+          [1, 1, 1, 0, 1],
+          [0, 0, 0, 0, 0],
+          [1, 1, 2, 0, 0],
+        ],
+        topClues: [3, 2, 3, 0, 2],
+        leftClues: [1, 1, 4, 0, 4],
+        pillValues: [1, 2, 3, 4],
+        correctGrid: [
+          [1, 1, 1, 0, 1],
+          [0, 0, 0, 0, 1],
+          [1, 1, 1, 0, 1],
+          [0, 0, 0, 0, 0],
+          [1, 1, 1, 0, 0],
+        ],
+      },
+    },
+    renderBoard: (props) => <PillsBoard {...props} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'pills') throw new Error('Pills template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
   },
 };
 
@@ -3078,6 +3182,20 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
         (value.clues.left as unknown[]).length === height && (value.clues.right as unknown[]).length === height;
     case 'abc-box':
       return isTypedMatrix(value.givens, width, height, (cell) => cell === null || cell === 'A' || cell === 'B' || cell === 'C') && isRecord(value.clues);
+    case 'magnets':
+      return Array.isArray(value.regions) && value.regions.every((region) =>
+          Array.isArray(region) && region.length === 2 && region.every((cell) => isCoordinate(cell, width, height))
+        ) &&
+        isTypedMatrix(value.givens, width, height, (cell) => cell === null || cell === '+' || cell === '-') &&
+        isNullableNumberArray(value.topClues, width, 0) &&
+        isNullableNumberArray(value.topMinusClues, width, 0) &&
+        isNullableNumberArray(value.leftClues, height, 0) &&
+        isNullableNumberArray(value.leftPlusClues, height, 0);
+    case 'pills':
+      return isTypedMatrix(value.dots, width, height, (cell) => isFiniteInteger(cell, 0) && cell <= 15) &&
+        isNullableNumberArray(value.topClues, width, 0) &&
+        isNullableNumberArray(value.leftClues, height, 0) &&
+        Array.isArray(value.pillValues) && value.pillValues.every((item) => isFiniteInteger(item, 1));
     case 'tapa':
       return isTypedMatrix(value.clues, width, height, (cell) =>
         cell === null || (Array.isArray(cell) && cell.every((item) => item === '?' || (isFiniteInteger(item, 0) && item <= 8)))
@@ -3186,7 +3304,6 @@ export function getPuzzleTypeFromLink(link: string | undefined | null): PuzzleTy
     japanesearrows: 'japanese-arrows',
     japanese: 'japanese-arrows',
     fourwindswithparks: 'four-winds-with-parks',
-    fourwinds: 'four-winds-with-parks',
     consecutivekakuro: 'consecutive-kakuro',
     japanesesumswithzeroes: 'japanese-sums-with-zeroes',
     japanesesums: 'japanese-sums-with-zeroes',

@@ -8,17 +8,16 @@ import ValidationMessage from '@/components/ValidationMessage';
 import { getTrialLevelColors } from '../trialStyles';
 import {
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
   getBoardBoundaryStrokeMetrics,
   getBoardBadgeStyle,
-  getBoardCrossFontSize,
   getBoardDotRadius,
   getBoardFixedTextStyle,
   getBoardFrameStyle,
+  getBoardFrameDimensions,
+  getBoardGridStyle,
   getBoardSymbolFontSize,
   getBoardTrialCellStyle,
-  getCellDividerStyle,
-  getCrossMarkStyle,
   getInvalidBoardCellColors,
   getResponsiveCellSize,
   woodBoardTheme,
@@ -35,6 +34,7 @@ import {
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { filterValidGridLineEdgeKeys, filterValidGridVertexKeys } from '../gridUtils';
+import BoardCellMark from '../shared/BoardCellMark';
 
 interface Props {
   puzzle: StarbattlePuzzleData;
@@ -342,8 +342,8 @@ export default function StarbattleBoard({
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
     return {
-      x: clientX - rect.left - BOARD_PADDING,
-      y: clientY - rect.top - BOARD_PADDING,
+      x: clientX - rect.left - BOARD_BORDER - BOARD_PADDING,
+      y: clientY - rect.top - BOARD_BORDER - BOARD_PADDING,
     };
   }, []);
 
@@ -500,12 +500,13 @@ export default function StarbattleBoard({
     applyDragToCell(hitTarget.row, hitTarget.col);
   };
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
   const starFontSize = getBoardSymbolFontSize(cellSize);
-  const crossFontSize = getBoardCrossFontSize(cellSize);
   const dotRadius = getBoardDotRadius(cellSize, 0.16, 6);
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
 
@@ -539,20 +540,14 @@ export default function StarbattleBoard({
       >
         <div
           className="absolute grid"
-          style={{
-            left: `${BOARD_PADDING}px`,
-            top: `${BOARD_PADDING}px`,
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {grid.flatMap((row, r) =>
             row.map((state, c) => {
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const isInvalid = showValidationMessage && invalidCellSet.has(`${r},${c}`);
               const isMarked = state === 2;
-              const baseStyle = isMarked
-                ? getBoardCellColors('marked')
-                : getBoardCellColors('cell');
+              const baseTone = isMarked ? 'marked' as const : 'cell' as const;
               const trialStyle = trialColors
                 ? getBoardTrialCellStyle(trialColors, state === 1 ? 'filled' : 'soft')
                 : undefined;
@@ -562,17 +557,18 @@ export default function StarbattleBoard({
                   key={`${r}-${c}`}
                   className="relative flex items-center justify-center dark:text-gray-100"
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
-                    ...(isInvalid ? getInvalidBoardCellColors(isMarked ? 'marked' : 'soft') : baseStyle),
-                    ...getCellDividerStyle(),
+                    ...getBoardCellStyle(cellSize, baseTone),
+                    ...(isInvalid ? getInvalidBoardCellColors(isMarked ? 'marked' : 'soft') : undefined),
                     ...trialStyle,
                   }}
                 >
                   {state === 1 ? (
                     <span style={getBoardFixedTextStyle(starFontSize)}>★</span>
                   ) : state === 2 ? (
-                    <span style={getCrossMarkStyle(crossFontSize, trialColors?.text ?? woodBoardTheme.markedText)}>×</span>
+                    <BoardCellMark
+                      kind="cross"
+                      cellSize={cellSize}
+                    />
                   ) : null}
                 </div>
               );

@@ -4,11 +4,12 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardOutsideClueLayout,
   getBoardTextStyle,
-  getCellDividerStyle,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import {
@@ -58,12 +59,21 @@ function BattleshipDiagram({
     top: puzzle.columnClues,
     left: puzzle.rowClues,
   });
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    puzzle.width,
+    puzzle.height,
+    CELL_SIZE,
+    {
+      outsideLeft: outsideClueLayout.left,
+      outsideRight: outsideClueLayout.right,
+      outsideTop: outsideClueLayout.top,
+      outsideBottom: outsideClueLayout.bottom,
+      borderWidth: commonBoardChrome.border,
+      padding: commonBoardChrome.padding,
+    }
+  );
   const gridLeft = commonBoardChrome.padding + outsideClueLayout.left;
   const gridTop = commonBoardChrome.padding + outsideClueLayout.top;
-  const boardWidth = puzzle.width * CELL_SIZE;
-  const boardHeight = puzzle.height * CELL_SIZE;
-  const outerWidth = boardWidth + outsideClueLayout.left + outsideClueLayout.right + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
-  const outerHeight = boardHeight + outsideClueLayout.top + outsideClueLayout.bottom + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2;
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -77,11 +87,7 @@ function BattleshipDiagram({
       >
         <div
           className="absolute grid"
-          style={{
-            left: `${gridLeft}px`,
-            top: `${gridTop}px`,
-            gridTemplateColumns: `repeat(${puzzle.width}, ${CELL_SIZE}px)`,
-          }}
+          style={getBoardGridStyle(gridLeft, gridTop, puzzle.width, CELL_SIZE)}
         >
           {Array.from({ length: puzzle.height }, (_, row) =>
             Array.from({ length: puzzle.width }, (_, col) => {
@@ -93,10 +99,7 @@ function BattleshipDiagram({
                   key={`${row}-${col}`}
                   className={boardClassNames.cellContent}
                   style={{
-                    width: `${CELL_SIZE}px`,
-                    height: `${CELL_SIZE}px`,
-                    ...getBoardCellColors(clue ? 'clue' : 'cell'),
-                    ...getCellDividerStyle(),
+                    ...getBoardCellStyle(CELL_SIZE, clue ? 'clue' : 'cell'),
                   }}
                 >
                   {clue?.kind === 'water' ? <BattleshipWaterSymbol cellSize={CELL_SIZE} /> : null}

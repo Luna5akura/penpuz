@@ -8,13 +8,14 @@ import {
   commonBoardChrome,
   getBoardCellColors,
   getBoardCellStyle,
-  getBoardCrossFontSize,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getCrossMarkStyle,
   getInvalidBoardCellColors,
 } from '../../puzzles/boardTheme';
 import type { NurikabeClue } from '../../puzzles/types';
+import BoardCellMark from '../../puzzles/shared/BoardCellMark';
 
 interface Props {
   width: number;
@@ -26,6 +27,8 @@ interface Props {
 }
 
 const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
+const BOARD_PADDING = commonBoardChrome.padding;
+const BOARD_BORDER = commonBoardChrome.border;
 
 export default function NurikabeExample({ width, height, clues, correctSolution, playableLabel, answerLabel }: Props) {
   const [exampleGrid, setExampleGrid] = useState<(0 | 1 | 2)[][]>(() =>
@@ -111,10 +114,11 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging.current || dragMode.current === 'none') return;
     const rect = e.currentTarget.getBoundingClientRect();
-    const relativeX = e.clientX - rect.left - commonBoardChrome.padding;
-    const relativeY = e.clientY - rect.top - commonBoardChrome.padding;
-    const col = Math.floor(relativeX / 45);
-    const row = Math.floor(relativeY / 45);
+    const boardInset = BOARD_BORDER + BOARD_PADDING;
+    const relativeX = e.clientX - rect.left - boardInset;
+    const relativeY = e.clientY - rect.top - boardInset;
+    const col = Math.floor(relativeX / CELL_SIZE);
+    const row = Math.floor(relativeY / CELL_SIZE);
     if (row >= 0 && row < height && col >= 0 && col < width) {
       if (dragMode.current.includes('shade') && isClue(row, col)) return;
       hasDragged.current = true;
@@ -142,6 +146,11 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
     return clue ? clue.value : '';
   };
 
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
+    borderWidth: BOARD_BORDER,
+    padding: BOARD_PADDING,
+  });
+
   return (
     <>
       <div className="flex flex-col lg:flex-row gap-10 justify-center">
@@ -151,18 +160,23 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
             {playableLabel}
           </p>
           <div
-            className="inline-grid select-none"
+            className="relative select-none"
             style={{
-              gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-              padding: `${commonBoardChrome.padding}px`,
-              ...getBoardFrameStyle(),
+              width: `${outerWidth}px`,
+              height: `${outerHeight}px`,
+              ...getBoardFrameStyle(BOARD_BORDER),
             }}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
+            onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); }}
           >
-            {exampleGrid.flatMap((row, r) =>
-              row.map((state, c) => {
+            <div
+              className="grid"
+              style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
+            >
+              {exampleGrid.flatMap((row, r) =>
+                row.map((state, c) => {
                 const isShaded = state === 1;
                 const isMarked = state === 2;
                 const isBad2x2 = violations.bad2x2Cells.some(cell =>
@@ -185,17 +199,18 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
                           ? getBoardCellColors('clue')
                           : getBoardCellColors(isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell')),
                     }}
-                    className={`flex items-center justify-center border-0 cursor-pointer ${boardClassNames.cellTextTight}`}
+                    className={`relative flex items-center justify-center border-0 cursor-pointer ${boardClassNames.cellTextTight}`}
                   >
                     {isClue(r, c) ? (
                       <span className={isBadClue ? 'text-red-600 dark:text-red-400' : ''}>
                         {getClueValue(r, c)}
                       </span>
-                    ) : isMarked ? <span style={getCrossMarkStyle(getBoardCrossFontSize(CELL_SIZE))}>{'×'}</span> : ''}
+                    ) : isMarked ? <BoardCellMark kind="cross" cellSize={CELL_SIZE} /> : ''}
                   </div>
-                );
-              })
-            )}
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
 
@@ -212,27 +227,32 @@ export default function NurikabeExample({ width, height, clues, correctSolution,
             rounded
           >
             <div
-              className="inline-grid"
+              className="relative select-none"
               style={{
-                gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-                padding: `${commonBoardChrome.padding}px`,
-                ...getBoardFrameStyle(),
+                width: `${outerWidth}px`,
+                height: `${outerHeight}px`,
+                ...getBoardFrameStyle(BOARD_BORDER),
               }}
             >
-              {correctSolution.flatMap((row, r) =>
-                row.map((isBlack, c) => (
-                  <div
-                    key={`${r}-${c}`}
-                    className={`flex items-center justify-center border-0 ${boardClassNames.cellTextTight}`}
-                    style={{
-                      ...getBoardCellStyle(CELL_SIZE, isBlack ? 'shaded' : 'cell'),
-                      ...getBoardTextStyle(CELL_SIZE),
-                    }}
-                  >
-                    {getClueValue(r, c)}
-                  </div>
-                ))
-              )}
+              <div
+                className="grid"
+                style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
+              >
+                {correctSolution.flatMap((row, r) =>
+                  row.map((isBlack, c) => (
+                    <div
+                      key={`${r}-${c}`}
+                      className={`flex items-center justify-center border-0 ${boardClassNames.cellTextTight}`}
+                      style={{
+                        ...getBoardCellStyle(CELL_SIZE, isBlack ? 'shaded' : 'cell'),
+                        ...getBoardTextStyle(CELL_SIZE),
+                      }}
+                    >
+                      {getClueValue(r, c)}
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </ExampleAnswerReveal>
         </div>

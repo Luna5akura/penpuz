@@ -7,20 +7,29 @@ import {
   commonBoardChrome,
   getBoardCellStyle,
   getBoardCellColors,
+  getBoardClueCircleMetrics,
   getBoardDotRadius,
   getBoardBoundaryStrokeMetrics,
+  getBoardBoundaryStrokeWidth,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
+  getBoardGridOutlineRect,
+  getBoardPillCapsuleMetrics,
+  getBoardPoleMarkMetrics,
   getBoardSvgTextProps,
   getBoardTextStyle,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
+  getKurarinClueColors,
   getLoopLineStrokeWidth,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import { getEdgeKey, getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
+import { getPillComponents, getPillsPipsLayout } from '@/puzzles/Pills/utils';
 import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
+import FourWindsWithParksMark from '@/puzzles/FourWindsWithParks/FourWindsWithParksVisuals';
+import BoardEdgeCross from '@/puzzles/shared/BoardEdgeCross';
 
 type AdditionalPuzzleExampleData = Extract<
   PuzzleExample,
@@ -34,6 +43,8 @@ type AdditionalPuzzleExampleData = Extract<
   | { puzzleType: 'japanese-arrows' }
   | { puzzleType: 'four-winds-with-parks' }
   | { puzzleType: 'consecutive-kakuro' }
+  | { puzzleType: 'magnets' }
+  | { puzzleType: 'pills' }
 >;
 
 interface Props {
@@ -71,13 +82,17 @@ function ExamplePair({ left, right, playableLabel, answerLabel }: Props & { left
 }
 
 function BoardFrame({ width, height, children }: { width: number; height: number; children: ReactNode }) {
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
+    borderWidth: BOARD_BORDER,
+    padding: BOARD_PADDING,
+  });
   return (
     <div className="flex justify-center overflow-x-auto">
       <div
         className="relative select-none"
         style={{
-          width: `${width * CELL_SIZE + BOARD_PADDING * 2 + BOARD_BORDER * 2}px`,
-          height: `${height * CELL_SIZE + BOARD_PADDING * 2 + BOARD_BORDER * 2}px`,
+          width: `${outerWidth}px`,
+          height: `${outerHeight}px`,
           ...getBoardFrameStyle(BOARD_BORDER),
         }}
       >
@@ -99,11 +114,7 @@ function CellGrid({
   return (
     <div
       className="absolute grid"
-      style={{
-        left: `${BOARD_PADDING}px`,
-        top: `${BOARD_PADDING}px`,
-        gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-      }}
+      style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
     >
       {Array.from({ length: height }, (_, row) =>
         Array.from({ length: width }, (_, col) => (
@@ -243,7 +254,6 @@ function SlitherBoard({ example, answer }: {
   const crossSet = new Set(answer ? example.crossedEdges ?? [] : []);
   const stroke = getLoopLineStrokeWidth(CELL_SIZE);
   const clueTextProps = getBoardSvgTextProps(CELL_SIZE);
-  const crossSize = getLoopCrossSize(CELL_SIZE, 0.12, 4);
 
   return (
     <BoardFrame width={example.width} height={example.height}>
@@ -322,10 +332,7 @@ function SlitherBoard({ example, answer }: {
           const x = BOARD_PADDING + (edge.col + (edge.orientation === 'h' ? 0.5 : 0)) * CELL_SIZE;
           const y = BOARD_PADDING + (edge.row + (edge.orientation === 'h' ? 0 : 0.5)) * CELL_SIZE;
           return (
-            <g key={`x-${key}`} stroke={woodBoardTheme.border} strokeWidth={getLoopCrossStrokeWidth()} strokeLinecap="round">
-              <line x1={x - crossSize} y1={y - crossSize} x2={x + crossSize} y2={y + crossSize} />
-              <line x1={x - crossSize} y1={y + crossSize} x2={x + crossSize} y2={y - crossSize} />
-            </g>
+            <BoardEdgeCross key={`x-${key}`} x={x} y={y} cellSize={CELL_SIZE} />
           );
         })}
       </svg>
@@ -335,7 +342,6 @@ function SlitherBoard({ example, answer }: {
 
 function DominoBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'domino-search' }>; answer: boolean }) {
   const edges = answer ? example.solutionEdges.map(getEdgeKey) : [];
-  const { strokeWidth } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
 
   return (
     <BoardFrame width={example.width} height={example.height}>
@@ -357,14 +363,12 @@ function DominoBoard({ example, answer }: { example: Extract<AdditionalPuzzleExa
           return (
             <rect
               key={key}
-              x={BOARD_PADDING + col * CELL_SIZE}
-              y={BOARD_PADDING + row * CELL_SIZE}
-              width={(horizontal ? 2 : 1) * CELL_SIZE}
-              height={(horizontal ? 1 : 2) * CELL_SIZE}
-              fill="none"
-              stroke={woodBoardTheme.ink}
-              strokeWidth={strokeWidth}
-              strokeLinejoin="miter"
+              {...getBoardGridOutlineRect(
+                BOARD_PADDING + col * CELL_SIZE,
+                BOARD_PADDING + row * CELL_SIZE,
+                (horizontal ? 2 : 1) * CELL_SIZE,
+                (horizontal ? 1 : 2) * CELL_SIZE
+              )}
             />
           );
         })}
@@ -425,20 +429,169 @@ function JapaneseArrowsBoard({ example, answer }: { example: Extract<AdditionalP
   }}</CellGrid></BoardFrame>;
 }
 
-function FourWindsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'four-winds-with-parks' }>; answer: boolean }) {
-  const glyphs = ['X', '↑', '→', '↓', '←'];
+function FourWindsWithParksExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'four-winds-with-parks' }>; answer: boolean }) {
   return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
     const clue = example.clues[row][col];
-    return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <span className={boardClassNames.cellText}>{glyphs[example.correctGrid[row][col]]}</span> : null;
+    return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <FourWindsWithParksMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} /> : null;
   }}</CellGrid></BoardFrame>;
 }
 
 function ConsecutiveKakuroExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'consecutive-kakuro' }>; answer: boolean }) {
+  const { radius, strokeWidth, outerRadiusOffset } = getBoardClueCircleMetrics(CELL_SIZE);
+  const dotColors = getKurarinClueColors('white');
+  const haloFill = getBoardCellColors('cell').background;
+  const renderBarDot = (key: string, x: number, y: number) => (
+    <g key={key}>
+      <circle cx={x} cy={y} r={radius + outerRadiusOffset} fill={haloFill} />
+      <circle cx={x} cy={y} r={radius} fill={dotColors.fill} stroke={dotColors.stroke} strokeWidth={strokeWidth} />
+    </g>
+  );
+  const bars = [
+    ...example.horizontalBars.flatMap((row, r) => row.map((bar, c) =>
+      bar && example.cells[r][c] === null && example.cells[r][c + 1] === null
+        ? renderBarDot(`h-${r}-${c}`, BOARD_PADDING + (c + 1) * CELL_SIZE, BOARD_PADDING + r * CELL_SIZE + CELL_SIZE / 2)
+        : null
+    )),
+    ...example.verticalBars.flatMap((row, r) => row.map((bar, c) =>
+      bar && example.cells[r][c] === null && example.cells[r + 1][c] === null
+        ? renderBarDot(`v-${r}-${c}`, BOARD_PADDING + c * CELL_SIZE + CELL_SIZE / 2, BOARD_PADDING + (r + 1) * CELL_SIZE)
+        : null
+    )),
+  ];
   return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
     const cell = example.cells[row][col];
     if (cell) return <KakuroClue right={cell.right} down={cell.down} cellSize={CELL_SIZE} />;
     return answer ? example.correctGrid[row][col] : null;
-  }}</CellGrid></BoardFrame>;
+  }}</CellGrid><svg className="pointer-events-none absolute left-0 top-0" width={example.width * CELL_SIZE + BOARD_PADDING * 2} height={example.height * CELL_SIZE + BOARD_PADDING * 2} aria-hidden="true">{bars}</svg></BoardFrame>;
+}
+
+function MagnetsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'magnets' }>; answer: boolean }) {
+  const regionOf = Array.from({ length: example.height }, () => Array<number>(example.width).fill(-1));
+  example.regions.forEach((region, index) => {
+    region.forEach(({ row, col }) => { regionOf[row][col] = index; });
+  });
+  const { length, thickness } = getBoardPoleMarkMetrics(CELL_SIZE);
+  const strokeWidth = getBoardBoundaryStrokeWidth(CELL_SIZE);
+  const borders = [] as Array<{ key: string; x1: number; y1: number; x2: number; y2: number }>;
+  for (let row = 0; row < example.height; row++) {
+    for (let col = 0; col < example.width; col++) {
+      if (col + 1 < example.width && regionOf[row][col] !== regionOf[row][col + 1]) {
+        borders.push({ key: `v-${row}-${col}`, x1: BOARD_PADDING + (col + 1) * CELL_SIZE, y1: BOARD_PADDING + row * CELL_SIZE, x2: BOARD_PADDING + (col + 1) * CELL_SIZE, y2: BOARD_PADDING + (row + 1) * CELL_SIZE });
+      }
+      if (row + 1 < example.height && regionOf[row][col] !== regionOf[row + 1][col]) {
+        borders.push({ key: `h-${row}-${col}`, x1: BOARD_PADDING + col * CELL_SIZE, y1: BOARD_PADDING + (row + 1) * CELL_SIZE, x2: BOARD_PADDING + (col + 1) * CELL_SIZE, y2: BOARD_PADDING + (row + 1) * CELL_SIZE });
+      }
+    }
+  }
+  const renderPole = (key: string, cx: number, cy: number, value: number | null) => {
+    if (value === null) return null;
+    const x = BOARD_PADDING + cx * CELL_SIZE;
+    const y = BOARD_PADDING + cy * CELL_SIZE;
+    return (
+      <g key={key}>
+        <rect x={x + (CELL_SIZE - length) / 2} y={y + (CELL_SIZE - thickness) / 2} width={length} height={thickness} fill={woodBoardTheme.ink} />
+        {value === 1 ? <rect x={x + (CELL_SIZE - thickness) / 2} y={y + (CELL_SIZE - length) / 2} width={thickness} height={length} fill={woodBoardTheme.ink} /> : null}
+      </g>
+    );
+  };
+  const clues = [] as Array<{ key: string; x: number; y: number; value: number }>;
+  example.topClues.forEach((value, col) => {
+    if (value !== null) clues.push({ key: `top-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.22, value });
+  });
+  example.topMinusClues.forEach((value, col) => {
+    if (value !== null) clues.push({ key: `topm-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.68, value });
+  });
+  example.leftPlusClues.forEach((value, row) => {
+    if (value !== null) clues.push({ key: `leftp-${row}`, x: BOARD_PADDING * 0.22, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
+  });
+  example.leftClues.forEach((value, row) => {
+    if (value !== null) clues.push({ key: `left-${row}`, x: BOARD_PADDING * 0.68, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
+  });
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{() => null}</CellGrid><svg className="pointer-events-none absolute left-0 top-0" width={example.width * CELL_SIZE + BOARD_PADDING * 2} height={example.height * CELL_SIZE + BOARD_PADDING * 2} aria-hidden="true">
+    {borders.map((border) => <line key={border.key} x1={border.x1} y1={border.y1} x2={border.x2} y2={border.y2} stroke={woodBoardTheme.ink} strokeWidth={strokeWidth} strokeLinecap="round" />)}
+    {answer ? example.correctGrid.flatMap((row, r) => row.map((value, c) => renderPole(`p-${r}-${c}`, c, r, value))) : example.givens.flatMap((row, r) => row.map((value, c) => value ? renderPole(`p-${r}-${c}`, c, r, value === '+' ? 1 : 2) : null))}
+    {clues.map((clue) => <text key={clue.key} x={clue.x} y={clue.y} textAnchor="middle" dominantBaseline="middle" {...getBoardSvgTextProps(CELL_SIZE)}>{clue.value}</text>)}
+  </svg></BoardFrame>;
+}
+
+function PillsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'pills' }>; answer: boolean }) {
+  const clues = [] as Array<{ key: string; x: number; y: number; value: number }>;
+  example.topClues.forEach((value, col) => {
+    if (value !== null) clues.push({ key: `top-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.22, value });
+  });
+  example.topMinusClues.forEach((value, col) => {
+    if (value !== null) clues.push({ key: `topm-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.68, value });
+  });
+  example.leftPlusClues.forEach((value, row) => {
+    if (value !== null) clues.push({ key: `leftp-${row}`, x: BOARD_PADDING * 0.22, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
+  });
+  example.leftClues.forEach((value, row) => {
+    if (value !== null) clues.push({ key: `left-${row}`, x: BOARD_PADDING * 0.68, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
+  });
+  const pills = answer
+    ? getPillComponents(example.correctGrid.map((row) => row.map((value) => (value === 1 ? 1 : 0))), [], example.width, example.height)
+    : [];
+  const lineStroke = getLoopLineStrokeWidth(CELL_SIZE);
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+    const count = example.dots[row][col];
+    if (count <= 0) return null;
+    const { radius, positions } = getPillsPipsLayout(count, CELL_SIZE);
+    return (
+      <span
+        className="relative flex h-full w-full items-center justify-center"
+        style={{ transform: count > 1 ? 'rotate(18deg)' : undefined }}
+      >
+        {positions.map((position, index) => (
+          <span
+            key={index}
+            className="absolute block rounded-full"
+            style={{
+              width: `${radius * 2}px`,
+              height: `${radius * 2}px`,
+              left: `calc(${(position.x * 100).toFixed(2)}% - ${radius}px)`,
+              top: `calc(${(position.y * 100).toFixed(2)}% - ${radius}px)`,
+              background: woodBoardTheme.ink,
+            }}
+          />
+        ))}
+      </span>
+    );
+  }}</CellGrid><svg className="pointer-events-none absolute left-0 top-0" width={example.width * CELL_SIZE + BOARD_PADDING * 2} height={example.height * CELL_SIZE + BOARD_PADDING * 2} aria-hidden="true">
+    {pills.map((pill, index) => {
+      const { inset, radius } = getBoardPillCapsuleMetrics(CELL_SIZE);
+      if (pill.orientation === 'h') {
+        const minCol = Math.min(...pill.cells.map((cell) => cell.col));
+        return (
+          <rect
+            key={`capsule-${index}`}
+            x={BOARD_PADDING + minCol * CELL_SIZE + inset}
+            y={BOARD_PADDING + pill.cells[0].row * CELL_SIZE + inset}
+            width={CELL_SIZE * pill.cells.length - inset * 2}
+            height={CELL_SIZE - inset * 2}
+            rx={radius}
+            fill="none"
+            stroke={woodBoardTheme.ink}
+            strokeWidth={lineStroke}
+          />
+        );
+      }
+      const minRow = Math.min(...pill.cells.map((cell) => cell.row));
+      return (
+        <rect
+          key={`capsule-${index}`}
+          x={BOARD_PADDING + pill.cells[0].col * CELL_SIZE + inset}
+          y={BOARD_PADDING + minRow * CELL_SIZE + inset}
+          width={CELL_SIZE - inset * 2}
+          height={CELL_SIZE * pill.cells.length - inset * 2}
+          rx={radius}
+          fill="none"
+          stroke={woodBoardTheme.ink}
+          strokeWidth={lineStroke}
+        />
+      );
+    })}
+    {clues.map((clue) => <text key={clue.key} x={clue.x} y={clue.y} textAnchor="middle" dominantBaseline="middle" {...getBoardSvgTextProps(CELL_SIZE)}>{clue.value}</text>)}
+  </svg></BoardFrame>;
 }
 
 export default function AdditionalPuzzleExample({ example, playableLabel, answerLabel }: Props) {
@@ -509,7 +662,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
 
   if (example.puzzleType === 'four-winds-with-parks') {
     return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
-      left={<FourWindsExampleBoard example={example} answer={false} />} right={<FourWindsExampleBoard example={example} answer />} />;
+      left={<FourWindsWithParksExampleBoard example={example} answer={false} />} right={<FourWindsWithParksExampleBoard example={example} answer />} />;
   }
 
   if (example.puzzleType === 'consecutive-kakuro') {
@@ -517,6 +670,14 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
       left={<ConsecutiveKakuroExampleBoard example={example} answer={false} />} right={<ConsecutiveKakuroExampleBoard example={example} answer />} />;
   }
 
+  if (example.puzzleType === 'magnets') {
+    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
+      left={<MagnetsExampleBoard example={example} answer={false} />} right={<MagnetsExampleBoard example={example} answer />} />;
+  }
+  if (example.puzzleType === 'pills') {
+    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
+      left={<PillsExampleBoard example={example} answer={false} />} right={<PillsExampleBoard example={example} answer />} />;
+  }
   return (
     <ExamplePair
       example={example}

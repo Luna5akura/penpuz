@@ -13,10 +13,11 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
   getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
@@ -66,8 +67,12 @@ function SkyNeighborDiagram({
   values?: NeighborDigit[][];
 }) {
   const outside = getOutsideGray(outsideGrayCells, width, height);
-  const boardWidth = width * CELL_SIZE + CLUE_GUTTER * 2;
-  const boardHeight = height * CELL_SIZE + CLUE_GUTTER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width + 2,
+    height + 2,
+    CELL_SIZE,
+    { borderWidth: commonBoardChrome.border, padding: commonBoardChrome.padding }
+  );
 
   const renderCell = (row: number, col: number) => {
     const isCorner = (row === 0 || row === height + 1) && (col === 0 || col === width + 1);
@@ -104,10 +109,7 @@ function SkyNeighborDiagram({
         key={`${row}-${col}`}
         className={boardClassNames.cellContent}
         style={{
-          width: `${cellWidth}px`,
-          height: `${cellHeight}px`,
-          ...getBoardCellColors(isGray ? 'outlined' : 'cell'),
-          ...getCellDividerStyle(),
+          ...getBoardCellStyle(CELL_SIZE, isGray ? 'outlined' : 'cell'),
           ...getBoardTextStyle(CELL_SIZE, inner ? 0.68 : 0.48, 14),
         }}
       >
@@ -117,28 +119,24 @@ function SkyNeighborDiagram({
     );
   };
 
-  const gridColumns = `${CLUE_GUTTER}px repeat(${width}, ${CELL_SIZE}px) ${CLUE_GUTTER}px`;
-  const gridRows = `${CLUE_GUTTER}px repeat(${height}, ${CELL_SIZE}px) ${CLUE_GUTTER}px`;
-
   return (
     <div
       className="relative mx-auto select-none"
       style={{
-        width: `${boardWidth + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
-        height: `${boardHeight + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
+        width: `${outerWidth}px`,
+        height: `${outerHeight}px`,
         ...getBoardFrameStyle(),
         maxWidth: 'none',
       }}
     >
       <div
         className="grid"
-        style={{
-          position: 'absolute',
-          left: `${commonBoardChrome.padding}px`,
-          top: `${commonBoardChrome.padding}px`,
-          gridTemplateColumns: gridColumns,
-          gridTemplateRows: gridRows,
-        }}
+        style={getBoardGridStyle(
+          commonBoardChrome.padding,
+          commonBoardChrome.padding,
+          width + 2,
+          CELL_SIZE
+        )}
       >
         {Array.from({ length: height + 2 }, (_, row) =>
           Array.from({ length: width + 2 }, (_, col) => renderCell(row, col))

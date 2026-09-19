@@ -5,14 +5,15 @@ import {
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
-  getBoardCrossFontSize,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
-  getCrossMarkStyle,
 } from '@/puzzles/boardTheme';
 import type { TapaClue } from '@/puzzles/types';
 import TapaClueView from '@/puzzles/Tapa/TapaClue';
+import BoardCellMark from '@/puzzles/shared/BoardCellMark';
 
 interface Props {
   width: number;
@@ -39,6 +40,7 @@ export default function TapaExample({
     Array.from({ length: height }, () => Array(width).fill(0) as ExampleCellState[])
   );
   const [showAnswer, setShowAnswer] = useState(false);
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE);
   const handlePointerDown = (row: number, col: number, event: PointerEvent<HTMLDivElement>) => {
     if (clues[row][col]) return;
     event.preventDefault();
@@ -57,16 +59,17 @@ export default function TapaExample({
 
   const renderBoard = (states: ExampleCellState[][], interactive: boolean) => (
     <div
-      className="relative inline-grid select-none"
+      className="relative select-none"
       style={{
-        gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-        padding: `${commonBoardChrome.padding}px`,
-        ...getBoardFrameStyle(),
+        width: `${outerWidth}px`,
+        height: `${outerHeight}px`,
+        ...getBoardFrameStyle(commonBoardChrome.border),
       }}
       onContextMenu={(event) => event.preventDefault()}
     >
-      {states.flatMap((row, rowIndex) =>
-        row.map((state, colIndex) => {
+      <div className="grid" style={getBoardGridStyle(commonBoardChrome.padding, commonBoardChrome.padding, width, CELL_SIZE)}>
+        {states.flatMap((row, rowIndex) =>
+          row.map((state, colIndex) => {
           const clue = clues[rowIndex][colIndex];
           const isClue = clue !== null;
           const isShaded = state === 1;
@@ -88,12 +91,13 @@ export default function TapaExample({
               {isClue ? (
                 <TapaClueView clue={clue} cellSize={CELL_SIZE} />
               ) : isMarked ? (
-                <span style={getCrossMarkStyle(getBoardCrossFontSize(CELL_SIZE))}>×</span>
+                <BoardCellMark kind="cross" cellSize={CELL_SIZE} />
               ) : null}
             </div>
           );
-        })
-      )}
+          })
+        )}
+      </div>
     </div>
   );
 

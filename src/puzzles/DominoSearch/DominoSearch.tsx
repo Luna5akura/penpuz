@@ -13,13 +13,14 @@ import {
   getBoardCellStyle,
   getBoardDominoBadgeStyle,
   getBoardFrameStyle,
+  getBoardFrameDimensions,
+  getBoardGridStyle,
+  getBoardGridOutlineRect,
   getBoardTextStyle,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
   getResponsiveCellSize,
-  getRoomBoundaryStrokeWidth,
   woodBoardTheme,
 } from '../boardTheme';
+import BoardEdgeCross from '../shared/BoardEdgeCross';
 import {
   areOrthogonallyAdjacent,
   filterValidCellEdgeKeys,
@@ -326,13 +327,12 @@ export default function DominoSearchBoard({
     setSelectedCell(current);
   };
 
-  const boardWidthPx = width * cellSize;
-  const boardHeightPx = height * cellSize;
-  const outerWidth = boardWidthPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const outerHeight = boardHeightPx + BOARD_PADDING * 2 + BOARD_BORDER * 2;
-  const dominoBorderStroke = getRoomBoundaryStrokeWidth();
-  const crossSize = getLoopCrossSize(cellSize, 0.12, 5);
-  const crossStroke = getLoopCrossStrokeWidth();
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    cellSize,
+    { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
+  );
 
   return (
     <div ref={containerRef} className="flex w-full min-w-0 flex-col items-center gap-3">
@@ -349,11 +349,7 @@ export default function DominoSearchBoard({
       >
         <div
           className="absolute grid"
-          style={{
-            left: `${BOARD_PADDING}px`,
-            top: `${BOARD_PADDING}px`,
-            gridTemplateColumns: `repeat(${width}, ${cellSize}px)`,
-          }}
+          style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
         >
           {numbers.flatMap((rowNumbers, row) =>
             rowNumbers.map((value, col) => {
@@ -392,31 +388,29 @@ export default function DominoSearchBoard({
             return (
               <rect
                 key={`edge-${edgeKey}`}
-                {...rect}
-                fill="none"
-                stroke={trialColors?.line ?? woodBoardTheme.ink}
-                strokeWidth={dominoBorderStroke}
-                strokeLinejoin="miter"
+                {...getBoardGridOutlineRect(
+                  rect.x,
+                  rect.y,
+                  rect.width,
+                  rect.height,
+                  trialColors?.line ?? woodBoardTheme.border
+                )}
               />
             );
           })}
           {Array.from(crossedEdgeSet).map((edgeKey) => {
             const points = getEdgeLinePoints(edgeKey, cellSize);
             if (!points) return null;
-            const trialColors = getTrialLevelColors(normalizedSnapshot.levels[edgeKey] ?? 0);
             const x = (points.x1 + points.x2) / 2;
             const y = (points.y1 + points.y2) / 2;
 
             return (
-              <g
+              <BoardEdgeCross
                 key={`cross-${edgeKey}`}
-                stroke={trialColors?.text ?? woodBoardTheme.border}
-                strokeWidth={crossStroke}
-                strokeLinecap="round"
-              >
-                <line x1={x - crossSize} y1={y - crossSize} x2={x + crossSize} y2={y + crossSize} />
-                <line x1={x - crossSize} y1={y + crossSize} x2={x + crossSize} y2={y - crossSize} />
-              </g>
+                x={x}
+                y={y}
+                cellSize={cellSize}
+              />
             );
           })}
         </svg>

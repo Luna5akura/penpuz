@@ -7,15 +7,16 @@ import {
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridSurfaceStyle,
+  getBoardGridStyle,
   getBoardTextStyle,
-  getLoopCrossSize,
-  getLoopCrossStrokeWidth,
   getLoopLineStrokeWidth,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import { createKoburinEdgeSet, parseKoburinEdgeKey } from '@/puzzles/Koburin/utils';
+import BoardEdgeCross from '@/puzzles/shared/BoardEdgeCross';
 
 interface Props {
   width: number;
@@ -59,24 +60,28 @@ export default function KoburinExample({
   );
   const loopSet = useMemo(() => createKoburinEdgeSet(loopEdges), [loopEdges]);
   const crossedSet = useMemo(() => createKoburinEdgeSet(crossedEdges), [crossedEdges]);
-  const boardWidth = width * CELL_SIZE + (width - 1) * GAP + PADDING * 2;
-  const boardHeight = height * CELL_SIZE + (height - 1) * GAP + PADDING * 2;
+  const { boardWidth, boardHeight, outerWidth, outerHeight } = getBoardFrameDimensions(
+    width,
+    height,
+    CELL_SIZE,
+    { columnGap: GAP, rowGap: GAP, borderWidth: BORDER, padding: PADDING }
+  );
+  const svgWidth = boardWidth + PADDING * 2;
+  const svgHeight = boardHeight + PADDING * 2;
 
   const answerBoard = (
     <div
       className="relative select-none"
       style={{
-        width: `${boardWidth + BORDER * 2}px`,
-        height: `${boardHeight + BORDER * 2}px`,
-        padding: `${PADDING}px`,
+        width: `${outerWidth}px`,
+        height: `${outerHeight}px`,
         ...getBoardFrameStyle(BORDER),
       }}
     >
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-          gap: `${GAP}px`,
+          ...getBoardGridStyle(PADDING, PADDING, width, CELL_SIZE, GAP, GAP),
           ...getBoardGridSurfaceStyle(),
         }}
       >
@@ -104,7 +109,7 @@ export default function KoburinExample({
         )}
       </div>
 
-      <svg className="pointer-events-none absolute left-0 top-0" width={boardWidth} height={boardHeight}>
+      <svg className="pointer-events-none absolute left-0 top-0" width={svgWidth} height={svgHeight}>
         {[...loopSet].map((key) => {
           const edge = parseKoburinEdgeKey(key);
           if (!edge) return null;
@@ -126,12 +131,8 @@ export default function KoburinExample({
           if (!edge) return null;
           const centerX = PADDING + ((edge.c1 + edge.c2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
           const centerY = PADDING + ((edge.r1 + edge.r2) / 2) * (CELL_SIZE + GAP) + CELL_SIZE / 2;
-          const size = getLoopCrossSize(CELL_SIZE);
           return (
-            <g key={`cross-${key}`} stroke={woodBoardTheme.border} strokeWidth={getLoopCrossStrokeWidth()} strokeLinecap="round">
-              <line x1={centerX - size} y1={centerY - size} x2={centerX + size} y2={centerY + size} />
-              <line x1={centerX - size} y1={centerY + size} x2={centerX + size} y2={centerY - size} />
-            </g>
+            <BoardEdgeCross key={`cross-${key}`} x={centerX} y={centerY} cellSize={CELL_SIZE} />
           );
         })}
       </svg>

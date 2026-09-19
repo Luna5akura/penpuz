@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import type { LitsPuzzleData } from '../types';
 import { getRegionBoundarySegments } from '../gridUtils';
-import { getBoardCrossFontSize, getCrossMarkStyle, woodBoardTheme } from '../boardTheme';
+import BoardCellMark from '../shared/BoardCellMark';
 import { validateLits } from './utils';
 
 interface Props {
@@ -58,9 +58,7 @@ export default function LitsBoard({
         if (!isExcludedCell(row, col)) return null;
 
         return (
-          <span style={getCrossMarkStyle(getBoardCrossFontSize(cellSize), woodBoardTheme.markedText)}>
-            ×
-          </span>
+          <BoardCellMark kind="cross" cellSize={cellSize} />
         );
       }}
     />

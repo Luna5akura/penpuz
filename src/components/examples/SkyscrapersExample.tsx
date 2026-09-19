@@ -4,12 +4,13 @@ import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
-  getBoardCellColors,
+  getBoardCellStyle,
+  getBoardFrameDimensions,
   getBoardFrameStyle,
+  getBoardGridStyle,
   getBoardOutsideClueGutter,
+  getBoardOutsideClueTextStyle,
   getBoardTextStyle,
-  getCellDividerStyle,
-  woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import type { SkyscrapersClues } from '@/puzzles/types';
 
@@ -36,8 +37,14 @@ function SkyscrapersDiagram({
   clues: SkyscrapersClues;
   values?: number[][];
 }) {
-  const boardWidth = width * CELL_SIZE + CLUE_GUTTER * 2;
-  const boardHeight = height * CELL_SIZE + CLUE_GUTTER * 2;
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
+    outsideLeft: CLUE_GUTTER,
+    outsideRight: CLUE_GUTTER,
+    outsideTop: CLUE_GUTTER,
+    outsideBottom: CLUE_GUTTER,
+    borderWidth: commonBoardChrome.border,
+    padding: commonBoardChrome.padding,
+  });
   const left = commonBoardChrome.padding + CLUE_GUTTER;
   const top = commonBoardChrome.padding + CLUE_GUTTER;
 
@@ -45,19 +52,15 @@ function SkyscrapersDiagram({
     <div
       className="relative select-none"
       style={{
-        width: `${boardWidth + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
-        height: `${boardHeight + commonBoardChrome.padding * 2 + commonBoardChrome.border * 2}px`,
+        width: `${outerWidth}px`,
+        height: `${outerHeight}px`,
         ...getBoardFrameStyle(),
         maxWidth: 'none',
       }}
     >
       <div
         className="absolute grid"
-        style={{
-          left: `${left}px`,
-          top: `${top}px`,
-          gridTemplateColumns: `repeat(${width}, ${CELL_SIZE}px)`,
-        }}
+        style={getBoardGridStyle(left, top, width, CELL_SIZE)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => (
@@ -65,11 +68,8 @@ function SkyscrapersDiagram({
               key={`${row}-${col}`}
               className={boardClassNames.cellContent}
               style={{
-                width: `${CELL_SIZE}px`,
-                height: `${CELL_SIZE}px`,
-                ...getBoardCellColors('cell'),
+                ...getBoardCellStyle(CELL_SIZE, 'cell'),
                 ...getBoardTextStyle(CELL_SIZE),
-                ...getCellDividerStyle(),
               }}
             >
               {values?.[row]?.[col] ?? null}
@@ -87,8 +87,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${left + (col + 0.5) * CELL_SIZE}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
-                color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
               }}
             >
               {value}
@@ -103,8 +102,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${left + (col + 0.5) * CELL_SIZE}px`,
                 top: `${top + height * CELL_SIZE + CLUE_GUTTER / 2}px`,
-                color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
               }}
             >
               {value}
@@ -119,8 +117,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
                 top: `${top + (row + 0.5) * CELL_SIZE}px`,
-                color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
               }}
             >
               {value}
@@ -135,8 +132,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${left + width * CELL_SIZE + CLUE_GUTTER / 2}px`,
                 top: `${top + (row + 0.5) * CELL_SIZE}px`,
-                color: woodBoardTheme.border,
-                ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
               }}
             >
               {value}

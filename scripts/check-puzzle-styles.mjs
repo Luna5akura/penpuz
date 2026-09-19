@@ -68,6 +68,11 @@ const rules = [
     pattern: /const\s+(?:CELL_SIZE|CLUE_GUTTER|(?:BOARD_)?GAP|PADDING|DEFAULT_CELL_SIZE)\s*=\s*\d+(?:\.\d+)?\b/g,
     message: 'Use boardLayoutMetrics/commonBoardChrome instead of a per-example geometry literal.',
   },
+  {
+    name: 'legacy inline board shell',
+    pattern: /\binline-(?:grid|block)\b/g,
+    message: 'Use the shared fixed board frame/grid helpers; inline board shells produce inconsistent sizing and pointer offsets.',
+  },
 ];
 
 function walk(path) {
@@ -179,6 +184,9 @@ const requiredStyleLibraryExports = [
   'boardStyleLibrary',
   'getBoardCellStyle',
   'getBoardTrialCellStyle',
+  'getBoardFrameDimensions',
+  'getBoardGridStyle',
+  'getBoardGridOutlineRect',
   'getBoardBoundaryStrokeMetrics',
   'getBoardNumpadPanelStyle',
   'getBoardNumpadButtonStyle',

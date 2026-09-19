@@ -1188,6 +1188,21 @@ export const ruleQuickReferenceItems: RuleQuickReferenceItem[] = [
     "sourceUrl": "https://puzz.link/rules.html?magnets"
   },
   {
+    "id": "pills",
+    "order": 240,
+    "refName": "pills",
+    "englishName": "Pills",
+    "chineseName": "药丸",
+    "chineseAlias": "药丸",
+    "category": "放置",
+    "ruleTags": "放置",
+    "chineseRules": "在盘面中定位给定的一组药丸。药丸是 1×3 或 3×1 的形状，且互不重叠。每个药丸有一个互不相同的“值”（药丸内部圆点的数量），如盘面右侧所示。盘面左侧和上方的每个数字表示该行或该列中位于药丸内部的圆点数量。",
+    "englishRules": "Locate the indicated set of pills in the grid. Pills have a 1x3 or 3x1 shape and do not overlap each other. Each pill has a different \"value\" (number of dots inside the pill), as indicated to the right of the grid. Each number to the left and top of the grid reveals the number of dots in that row or column that are inside pills.",
+    "tableRuleSource": "WPC2024IB",
+    "englishSource": "puzz.link/pzpr",
+    "sourceUrl": "https://puzz.link/rules.html?pills"
+  },
+  {
     "id": "gaps",
     "order": 79,
     "refName": "gaps",
@@ -2628,19 +2643,19 @@ export const ruleQuickReferenceItems: RuleQuickReferenceItem[] = [
     "sourceUrl": "https://puzz.link/rules.html?nanameguri"
   },
   {
-    "id": "walllogic",
+    "id": "four-winds-with-parks",
     "order": 175,
-    "refName": "walllogic",
-    "englishName": "Four Winds",
-    "chineseName": "四风",
-    "chineseAlias": "四风",
+    "refName": "four-winds-with-parks",
+    "englishName": "Four Winds with Parks",
+    "chineseName": "四风带公园",
+    "chineseAlias": "四风带公园",
     "category": "路径I",
     "ruleTags": "",
-    "chineseRules": "从一些数字格的边中点往外画一些横平竖直的箭头。箭头不能经过数字格或者穿出盘面。数字表示从此格延伸出的所有箭头占用的总格数（不包括数字格本身）。",
-    "englishRules": "Draw one or more straight arrows extending from each clue.\n1. Arrows may not cross or go through other clues.\n2. A number indicates the sum of the lengths of the arrows extending from it.",
-    "tableRuleSource": "WPC2024IB, 有修改",
-    "englishSource": "puzz.link/pzpr",
-    "sourceUrl": "https://puzz.link/rules.html?walllogic"
+    "chineseRules": "从数字格边缘画出指向四个方向的箭头；箭头不能重叠。每行每列恰好有一个公园（圈）。数字是从该格出发的箭头总长度。",
+    "englishRules": "Draw non-overlapping arrows from numbered cell edges. Every row and column has exactly one park (circle). A clue is the total length of arrows starting beside it.",
+    "tableRuleSource": "app-registry",
+    "englishSource": "app-registry",
+    "sourceUrl": null
   },
   {
     "id": "hashi",
