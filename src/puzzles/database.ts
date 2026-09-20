@@ -676,10 +676,50 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?magnets/10/10/2452233014223522424444222442233223322244ldlrrnrtrlqvvvvemqfrnn9rmsffvmo97mrf',
     difficulty: '困难',
   },
-
-
-
-
+  {
+    puzzLink: 'http://localhost:8080/p.html?magnets/12/12/346445226546542344641365652453452364466422465433tbvbrvpvtfdrrtdtddfmvtvndlg3u7ffk5uutpunmbvtuuv9r5n6uo',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?magnets/10/10/h22h4445422333h13344354h22j414435qltbrunvnvffbuvdqq7vpv7gvv0ovvcfjsff',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?nurikabe/10/10/s2w5s3w2j6rej7s',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?nurikabe/10/10/2n6r2j4n4m2p2m4n4j2r8n8',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?nurikabe/11/11/3o1kdm1k3m1w9g7i5g5w1m1k1m3k3o3',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/6/6/g1g3g3353g1h1g33g533g1gr3g1l1g3r',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/6/6/h242h222g442422h222g4o4i4n2i2o',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?skyscrapers/6/6/4g4g3h2g4g2h522h221h',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?slither/10/10/cgch52770c2522c0c057agcg27a52cgcg772c0c0272c25707ahagc',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?slither/9/9/g3b6b18d3611b161886bidi666361d3181b81d8b1b',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?slither/9/9/gdc826b77111dbg26b8dd6c72bgc31277b737ddc',
+    difficulty: '困难',
+  },
 
 
 
