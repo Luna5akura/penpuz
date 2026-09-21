@@ -3646,5 +3646,20 @@ export const ruleQuickReferenceItems: RuleQuickReferenceItem[] = [
     "tableRuleSource": "src/puzzles/registry.tsx",
     "englishSource": "app-registry",
     "sourceUrl": null
+  },
+  {
+    "id": "fourwinds",
+    "order": 240,
+    "refName": "fourwinds",
+    "englishName": "Four Winds",
+    "chineseName": "四风",
+    "chineseAlias": "四风",
+    "category": "路径I",
+    "ruleTags": "",
+    "chineseRules": "在空格中画箭头。箭头只能沿上下左右四个方向，并且必须从数字格的边缘出发；每个空格必须恰好被一个箭头覆盖。数字表示从该格边缘出发的所有箭头的总长度。",
+    "englishRules": "Draw arrows in the empty cells.\nArrows may only point in the four standard directions and must begin at the edge of a numbered cell.\nEvery empty cell must be covered by exactly one arrow.\nA number indicates the total length of all arrows that begin at an edge next to that number's cell.",
+    "tableRuleSource": "app-registry",
+    "englishSource": "app-registry",
+    "sourceUrl": null
   }
 ];

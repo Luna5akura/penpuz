@@ -131,9 +131,13 @@ export default function StarbattleBoard({
     edgeDotLevels: {},
     vertexDotLevels: {},
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeStarbattleSnapshot(initialSnapshot, width, height);
-  }, [height, initialSnapshot, width]);
+    return normalizeStarbattleSnapshot(initialSnapshotRef.current, width, height);
+  }, [height, width]);
 
   const history = usePuzzleHistory<StarbattleSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({

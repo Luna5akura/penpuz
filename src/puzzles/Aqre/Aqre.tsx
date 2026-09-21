@@ -126,9 +126,13 @@ export default function AqreBoard({
     grid: createEmptyAqreGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return sanitizeAqreSnapshot(initialSnapshot, width, height, createInitialSnapshot());
-  }, [createInitialSnapshot, height, initialSnapshot, width]);
+    return sanitizeAqreSnapshot(initialSnapshotRef.current, width, height, createInitialSnapshot());
+  }, [createInitialSnapshot, height, width]);
 
   const history = usePuzzleHistory<AqreSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({

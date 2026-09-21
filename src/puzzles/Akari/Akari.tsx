@@ -114,11 +114,15 @@ export default function AkariBoard({
     grid: createEmptyAkariGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return initialSnapshot
-      ? normalizeAkariSnapshot(initialSnapshot, width, height)
+    return initialSnapshotRef.current
+      ? normalizeAkariSnapshot(initialSnapshotRef.current, width, height)
       : createInitialSnapshot();
-  }, [createInitialSnapshot, height, initialSnapshot, width]);
+  }, [createInitialSnapshot, height, width]);
 
   const history = usePuzzleHistory<AkariSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({

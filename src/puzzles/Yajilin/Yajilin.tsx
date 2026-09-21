@@ -150,9 +150,13 @@ export default function YajilinBoard({
     loopEdgeLevels: {},
     crossedEdgeLevels: {},
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeYajilinSnapshot(initialSnapshot, width, height);
-  }, [height, initialSnapshot, width]);
+    return normalizeYajilinSnapshot(initialSnapshotRef.current, width, height);
+  }, [height, width]);
   const history = usePuzzleHistory<YajilinSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...normalizeYajilinSnapshot(trialSnapshot, width, height),

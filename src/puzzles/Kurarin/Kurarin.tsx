@@ -136,9 +136,13 @@ export default function KurarinBoard({
     loopEdgeLevels: {},
     crossedEdgeLevels: {},
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeKurarinSnapshot(initialSnapshot, width, height);
-  }, [height, initialSnapshot, width]);
+    return normalizeKurarinSnapshot(initialSnapshotRef.current, width, height);
+  }, [height, width]);
   const history = usePuzzleHistory<KurarinSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
       ...normalizeKurarinSnapshot(trialSnapshot, width, height),

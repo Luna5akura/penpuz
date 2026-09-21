@@ -173,7 +173,7 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个可见格线索`
         : `${matrixCount(puzzle.clues, (value) => value !== null)} visibility clues`];
     case 'japanese-sums-with-zeroes':
-      return [isZh ? '填入 0–6 的数字' : 'digits 0–6'];
+      return [isZh ? `填入 0–${puzzle.maxDigit} 的数字` : `digits 0–${puzzle.maxDigit}`];
     case 'abc-box':
       return [isZh ? 'A、B、C 三种字母' : 'letters A, B and C'];
     case 'magnets':
@@ -189,6 +189,10 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个箭头线索`
         : `${matrixCount(puzzle.clues, (value) => value !== null)} arrow clues`];
     case 'four-winds-with-parks':
+      return [isZh
+        ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个风向数字线索`
+        : `${matrixCount(puzzle.clues, (value) => value !== null)} wind clues`];
+    case 'fourwinds':
       return [isZh
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个风向数字线索`
         : `${matrixCount(puzzle.clues, (value) => value !== null)} wind clues`];

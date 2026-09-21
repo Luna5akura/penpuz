@@ -720,6 +720,16 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?slither/9/9/gdc826b77111dbg26b8dd6c72bgc31277b737ddc',
     difficulty: '困难',
   },
+  {
+    // WPF Puzzle GP 2016, Round 1 Competitive, puzzle 1 (10×10, 19 points).
+    puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/h3g5i3l5j3m42i5t5h8t6i2g8l8j9m2h2h2g',
+    difficulty: '困难',
+  },
+  {
+    // WPF Puzzle GP 2016, Round 1 Competitive, puzzle 2 (9×9, 14 points).
+    puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/2g8h2h2g2h4h2u4i4i4i4i4u2h2h2g4h2h6g2',
+    difficulty: '简单',
+  },
 
 
 

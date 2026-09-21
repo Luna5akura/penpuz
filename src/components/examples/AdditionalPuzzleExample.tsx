@@ -1,5 +1,4 @@
-import { useState, type ReactNode } from 'react';
-import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
+import type { ReactNode } from 'react';
 import type { PuzzleExample } from '@/puzzles/types';
 import {
   boardClassNames,
@@ -8,13 +7,13 @@ import {
   getBoardCellStyle,
   getBoardCellColors,
   getBoardClueCircleMetrics,
+  getBoardClueTextStyle,
   getBoardDotRadius,
   getBoardBoundaryStrokeMetrics,
   getBoardBoundaryStrokeWidth,
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
-  getBoardGridOutlineRect,
   getBoardPillCapsuleMetrics,
   getBoardPoleMarkMetrics,
   getBoardSvgTextProps,
@@ -29,7 +28,39 @@ import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
 import FourWindsWithParksMark from '@/puzzles/FourWindsWithParks/FourWindsWithParksVisuals';
+import FourWindsMark from '@/puzzles/FourWinds/FourWindsVisuals';
 import BoardEdgeCross from '@/puzzles/shared/BoardEdgeCross';
+import PlayableExample from './PlayableExample';
+import SlitherlinkBoard from '@/puzzles/Slitherlink/Slitherlink';
+import WolvesAndSheepBoard from '@/puzzles/WolvesAndSheep/WolvesAndSheep';
+import LitsBoard from '@/puzzles/Lits/Lits';
+import LakesBoard from '@/puzzles/Lakes/Lakes';
+import DominoSearchBoard from '@/puzzles/DominoSearch/DominoSearch';
+import MagicSnailBoard from '@/puzzles/MagicSnail/MagicSnail';
+import SlovakSumsBoard from '@/puzzles/SlovakSums/SlovakSums';
+import JapaneseArrowsGameBoard from '@/puzzles/JapaneseArrows/JapaneseArrows';
+import FourWindsWithParksBoard from '@/puzzles/FourWindsWithParks/FourWindsWithParks';
+import FourWindsBoard from '@/puzzles/FourWinds/FourWinds';
+import ConsecutiveKakuroBoard from '@/puzzles/ConsecutiveKakuro/ConsecutiveKakuro';
+import JapaneseSumsBoard from '@/puzzles/JapaneseSums/JapaneseSums';
+import MagnetsBoard from '@/puzzles/Magnets/Magnets';
+import PillsBoard from '@/puzzles/Pills/Pills';
+import type {
+  ConsecutiveKakuroPuzzleData,
+  DominoSearchPuzzleData,
+  FourWindsPuzzleData,
+  FourWindsWithParksPuzzleData,
+  JapaneseArrowsPuzzleData,
+  JapaneseSumsWithZeroesPuzzleData,
+  LakesPuzzleData,
+  LitsPuzzleData,
+  MagicSnailPuzzleData,
+  MagnetsPuzzleData,
+  PillsPuzzleData,
+  SlitherlinkPuzzleData,
+  SlovakSumsPuzzleData,
+  WolvesAndSheepPuzzleData,
+} from '@/puzzles/types';
 
 type AdditionalPuzzleExampleData = Extract<
   PuzzleExample,
@@ -42,6 +73,8 @@ type AdditionalPuzzleExampleData = Extract<
   | { puzzleType: 'slovak-sums' }
   | { puzzleType: 'japanese-arrows' }
   | { puzzleType: 'four-winds-with-parks' }
+  | { puzzleType: 'fourwinds' }
+  | { puzzleType: 'japanese-sums-with-zeroes' }
   | { puzzleType: 'consecutive-kakuro' }
   | { puzzleType: 'magnets' }
   | { puzzleType: 'pills' }
@@ -56,30 +89,6 @@ interface Props {
 const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
-
-function ExamplePair({ left, right, playableLabel, answerLabel }: Props & { left: ReactNode; right: ReactNode }) {
-  const [showAnswer, setShowAnswer] = useState(false);
-
-  return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div>
-        <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-        {left}
-      </div>
-      <div>
-        <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
-        <ExampleAnswerReveal
-          visible={showAnswer}
-          onVisibleChange={setShowAnswer}
-          ariaLabel={answerLabel}
-          className="flex justify-center overflow-x-auto"
-        >
-          {right}
-        </ExampleAnswerReveal>
-      </div>
-    </div>
-  );
-}
 
 function BoardFrame({ width, height, children }: { width: number; height: number; children: ReactNode }) {
   const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
@@ -359,17 +368,34 @@ function DominoBoard({ example, answer }: { example: Extract<AdditionalPuzzleExa
           const horizontal = edge.r1 === edge.r2;
           const row = Math.min(edge.r1, edge.r2);
           const col = Math.min(edge.c1, edge.c2);
+          const x = BOARD_PADDING + col * CELL_SIZE;
+          const y = BOARD_PADDING + row * CELL_SIZE;
+          const w = (horizontal ? 2 : 1) * CELL_SIZE;
+          const h = (horizontal ? 1 : 2) * CELL_SIZE;
+          // Domino boundaries share the bold loop-line style used by
+          // Slitherlink's player-drawn lines.
+          const perimeter = [
+            { x1: x, y1: y, x2: x + w, y2: y },
+            { x1: x, y1: y + h, x2: x + w, y2: y + h },
+            { x1: x, y1: y, x2: x, y2: y + h },
+            { x1: x + w, y1: y, x2: x + w, y2: y + h },
+          ];
 
           return (
-            <rect
-              key={key}
-              {...getBoardGridOutlineRect(
-                BOARD_PADDING + col * CELL_SIZE,
-                BOARD_PADDING + row * CELL_SIZE,
-                (horizontal ? 2 : 1) * CELL_SIZE,
-                (horizontal ? 1 : 2) * CELL_SIZE
-              )}
-            />
+            <g key={key}>
+              {perimeter.map((segment, index) => (
+                <line
+                  key={index}
+                  x1={segment.x1}
+                  y1={segment.y1}
+                  x2={segment.x2}
+                  y2={segment.y2}
+                  stroke={woodBoardTheme.ink}
+                  strokeWidth={getLoopLineStrokeWidth(CELL_SIZE)}
+                  strokeLinecap="round"
+                />
+              ))}
+            </g>
           );
         })}
       </svg>
@@ -436,6 +462,71 @@ function FourWindsWithParksExampleBoard({ example, answer }: { example: Extract<
   }}</CellGrid></BoardFrame>;
 }
 
+function FourWindsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'fourwinds' }>; answer: boolean }) {
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+    const clue = example.clues[row][col];
+    return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <FourWindsMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} /> : null;
+  }}</CellGrid></BoardFrame>;
+}
+
+function JapaneseSumsWithZeroesExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'japanese-sums-with-zeroes' }>; answer: boolean }) {
+  const { width, height } = example;
+  const topRows = Math.max(1, ...example.clues.top.map((values) => values.length));
+  const leftCols = Math.max(1, ...example.clues.left.map((values) => values.length));
+  const boardWidth = (leftCols + width) * CELL_SIZE;
+  const boardHeight = (topRows + height) * CELL_SIZE;
+  const frameWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const frameHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+
+  // Clue stacks sit in full cell slots and are anchored to the grid edge,
+  // matching the playable board: the last value of a stack is nearest the grid.
+  const clues = [] as ReactNode[];
+  example.clues.top.forEach((values, col) => {
+    values.forEach((value, stack) => {
+      clues.push(
+        <span key={`top-${col}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...getBoardClueTextStyle(CELL_SIZE), left: BOARD_PADDING + (leftCols + col) * CELL_SIZE, top: BOARD_PADDING + (topRows - values.length + stack) * CELL_SIZE, width: CELL_SIZE, height: CELL_SIZE, display: 'flex', overflow: 'visible' }}>{value}</span>
+      );
+    });
+  });
+  example.clues.left.forEach((values, row) => {
+    values.forEach((value, stack) => {
+      clues.push(
+        <span key={`left-${row}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...getBoardClueTextStyle(CELL_SIZE), left: BOARD_PADDING + (leftCols - values.length + stack) * CELL_SIZE, top: BOARD_PADDING + (topRows + row) * CELL_SIZE, width: CELL_SIZE, height: CELL_SIZE, display: 'flex', overflow: 'visible' }}>{value}</span>
+      );
+    });
+  });
+
+  return (
+    <div className="flex justify-center overflow-x-auto">
+      <div
+        className="relative select-none"
+        style={{ width: `${frameWidth}px`, height: `${frameHeight}px`, ...getBoardFrameStyle(BOARD_BORDER) }}
+      >
+        <div
+          className="absolute grid"
+          style={getBoardGridStyle(BOARD_PADDING + leftCols * CELL_SIZE, BOARD_PADDING + topRows * CELL_SIZE, width, CELL_SIZE)}
+        >
+          {Array.from({ length: height }, (_, row) =>
+            Array.from({ length: width }, (_, col) => {
+              const value = answer ? example.correctGrid[row][col] : null;
+              return (
+                <div
+                  key={`${row}-${col}`}
+                  className={boardClassNames.cellContent}
+                  style={{ ...getBoardCellStyle(CELL_SIZE, 'cell'), ...getBoardTextStyle(CELL_SIZE) }}
+                >
+                  {value !== null && value !== undefined ? <span className={boardClassNames.cellText}>{value}</span> : null}
+                </div>
+              );
+            })
+          )}
+        </div>
+        {clues}
+      </div>
+    </div>
+  );
+}
+
 function ConsecutiveKakuroExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'consecutive-kakuro' }>; answer: boolean }) {
   const { radius, strokeWidth, outerRadiusOffset } = getBoardClueCircleMetrics(CELL_SIZE);
   const dotColors = getKurarinClueColors('white');
@@ -466,27 +557,39 @@ function ConsecutiveKakuroExampleBoard({ example, answer }: { example: Extract<A
 }
 
 function MagnetsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'magnets' }>; answer: boolean }) {
-  const regionOf = Array.from({ length: example.height }, () => Array<number>(example.width).fill(-1));
+  const { width, height } = example;
+  // Two clue rows above (farther '+' then nearer '−') and two clue columns
+  // left (farther '+' then nearer '−'), matching the playable board.
+  const TOP_ROWS = 2;
+  const LEFT_COLS = 2;
+  const gridLeft = BOARD_PADDING + LEFT_COLS * CELL_SIZE;
+  const gridTop = BOARD_PADDING + TOP_ROWS * CELL_SIZE;
+  const boardWidth = (LEFT_COLS + width) * CELL_SIZE;
+  const boardHeight = (TOP_ROWS + height) * CELL_SIZE;
+  const frameWidth = boardWidth + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+  const frameHeight = boardHeight + BOARD_PADDING * 2 + BOARD_BORDER * 2;
+
+  const regionOf = Array.from({ length: height }, () => Array<number>(width).fill(-1));
   example.regions.forEach((region, index) => {
     region.forEach(({ row, col }) => { regionOf[row][col] = index; });
   });
   const { length, thickness } = getBoardPoleMarkMetrics(CELL_SIZE);
   const strokeWidth = getBoardBoundaryStrokeWidth(CELL_SIZE);
   const borders = [] as Array<{ key: string; x1: number; y1: number; x2: number; y2: number }>;
-  for (let row = 0; row < example.height; row++) {
-    for (let col = 0; col < example.width; col++) {
-      if (col + 1 < example.width && regionOf[row][col] !== regionOf[row][col + 1]) {
-        borders.push({ key: `v-${row}-${col}`, x1: BOARD_PADDING + (col + 1) * CELL_SIZE, y1: BOARD_PADDING + row * CELL_SIZE, x2: BOARD_PADDING + (col + 1) * CELL_SIZE, y2: BOARD_PADDING + (row + 1) * CELL_SIZE });
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      if (col + 1 < width && regionOf[row][col] !== regionOf[row][col + 1]) {
+        borders.push({ key: `v-${row}-${col}`, x1: gridLeft + (col + 1) * CELL_SIZE, y1: gridTop + row * CELL_SIZE, x2: gridLeft + (col + 1) * CELL_SIZE, y2: gridTop + (row + 1) * CELL_SIZE });
       }
-      if (row + 1 < example.height && regionOf[row][col] !== regionOf[row + 1][col]) {
-        borders.push({ key: `h-${row}-${col}`, x1: BOARD_PADDING + col * CELL_SIZE, y1: BOARD_PADDING + (row + 1) * CELL_SIZE, x2: BOARD_PADDING + (col + 1) * CELL_SIZE, y2: BOARD_PADDING + (row + 1) * CELL_SIZE });
+      if (row + 1 < height && regionOf[row][col] !== regionOf[row + 1][col]) {
+        borders.push({ key: `h-${row}-${col}`, x1: gridLeft + col * CELL_SIZE, y1: gridTop + (row + 1) * CELL_SIZE, x2: gridLeft + (col + 1) * CELL_SIZE, y2: gridTop + (row + 1) * CELL_SIZE });
       }
     }
   }
   const renderPole = (key: string, cx: number, cy: number, value: number | null) => {
     if (value === null) return null;
-    const x = BOARD_PADDING + cx * CELL_SIZE;
-    const y = BOARD_PADDING + cy * CELL_SIZE;
+    const x = gridLeft + cx * CELL_SIZE;
+    const y = gridTop + cy * CELL_SIZE;
     return (
       <g key={key}>
         <rect x={x + (CELL_SIZE - length) / 2} y={y + (CELL_SIZE - thickness) / 2} width={length} height={thickness} fill={woodBoardTheme.ink} />
@@ -494,36 +597,53 @@ function MagnetsExampleBoard({ example, answer }: { example: Extract<AdditionalP
       </g>
     );
   };
-  const clues = [] as Array<{ key: string; x: number; y: number; value: number }>;
+  const clueSpans = [] as ReactNode[];
+  const renderClueSpan = (key: string, x: number, y: number, value: number | string) => (
+    <span key={key} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...getBoardClueTextStyle(CELL_SIZE), left: x, top: y, width: CELL_SIZE, height: CELL_SIZE, display: 'flex', overflow: 'visible' }}>{value}</span>
+  );
   example.topClues.forEach((value, col) => {
-    if (value !== null) clues.push({ key: `top-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.22, value });
+    if (value !== null) clueSpans.push(renderClueSpan(`top-${col}`, gridLeft + col * CELL_SIZE, BOARD_PADDING, value));
   });
   example.topMinusClues.forEach((value, col) => {
-    if (value !== null) clues.push({ key: `topm-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.68, value });
+    if (value !== null) clueSpans.push(renderClueSpan(`topm-${col}`, gridLeft + col * CELL_SIZE, BOARD_PADDING + CELL_SIZE, value));
   });
   example.leftPlusClues.forEach((value, row) => {
-    if (value !== null) clues.push({ key: `leftp-${row}`, x: BOARD_PADDING * 0.22, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
+    if (value !== null) clueSpans.push(renderClueSpan(`leftp-${row}`, BOARD_PADDING, gridTop + row * CELL_SIZE, value));
   });
   example.leftClues.forEach((value, row) => {
-    if (value !== null) clues.push({ key: `left-${row}`, x: BOARD_PADDING * 0.68, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
+    if (value !== null) clueSpans.push(renderClueSpan(`left-${row}`, BOARD_PADDING + CELL_SIZE, gridTop + row * CELL_SIZE, value));
   });
-  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{() => null}</CellGrid><svg className="pointer-events-none absolute left-0 top-0" width={example.width * CELL_SIZE + BOARD_PADDING * 2} height={example.height * CELL_SIZE + BOARD_PADDING * 2} aria-hidden="true">
-    {borders.map((border) => <line key={border.key} x1={border.x1} y1={border.y1} x2={border.x2} y2={border.y2} stroke={woodBoardTheme.ink} strokeWidth={strokeWidth} strokeLinecap="round" />)}
-    {answer ? example.correctGrid.flatMap((row, r) => row.map((value, c) => renderPole(`p-${r}-${c}`, c, r, value))) : example.givens.flatMap((row, r) => row.map((value, c) => value ? renderPole(`p-${r}-${c}`, c, r, value === '+' ? 1 : 2) : null))}
-    {clues.map((clue) => <text key={clue.key} x={clue.x} y={clue.y} textAnchor="middle" dominantBaseline="middle" {...getBoardSvgTextProps(CELL_SIZE)}>{clue.value}</text>)}
-  </svg></BoardFrame>;
+  // Pole legend in the gutter corner: '+' labels the farther strip, '−' the nearer one.
+  clueSpans.push(renderClueSpan('corner-0-0', BOARD_PADDING, BOARD_PADDING, '+'));
+  clueSpans.push(renderClueSpan('corner-1-1', BOARD_PADDING + CELL_SIZE, BOARD_PADDING + CELL_SIZE, '−'));
+
+  return (
+    <div className="flex justify-center overflow-x-auto">
+      <div
+        className="relative select-none"
+        style={{ width: `${frameWidth}px`, height: `${frameHeight}px`, ...getBoardFrameStyle(BOARD_BORDER) }}
+      >
+        <div className="absolute grid" style={getBoardGridStyle(gridLeft, gridTop, width, CELL_SIZE)}>
+          {Array.from({ length: height }, (_, row) =>
+            Array.from({ length: width }, (_, col) => (
+              <div key={`${row}-${col}`} className={boardClassNames.cellContent} style={{ ...getBoardCellStyle(CELL_SIZE, 'cell'), ...getBoardTextStyle(CELL_SIZE) }} />
+            ))
+          )}
+        </div>
+        <svg className="pointer-events-none absolute left-0 top-0" width={boardWidth + BOARD_PADDING * 2} height={boardHeight + BOARD_PADDING * 2} aria-hidden="true">
+          {borders.map((border) => <line key={border.key} x1={border.x1} y1={border.y1} x2={border.x2} y2={border.y2} stroke={woodBoardTheme.ink} strokeWidth={strokeWidth} strokeLinecap="round" />)}
+          {answer ? example.correctGrid.flatMap((row, r) => row.map((value, c) => renderPole(`p-${r}-${c}`, c, r, value))) : example.givens.flatMap((row, r) => row.map((value, c) => value ? renderPole(`p-${r}-${c}`, c, r, value === '+' ? 1 : 2) : null))}
+        </svg>
+        {clueSpans}
+      </div>
+    </div>
+  );
 }
 
 function PillsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'pills' }>; answer: boolean }) {
   const clues = [] as Array<{ key: string; x: number; y: number; value: number }>;
   example.topClues.forEach((value, col) => {
     if (value !== null) clues.push({ key: `top-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.22, value });
-  });
-  example.topMinusClues.forEach((value, col) => {
-    if (value !== null) clues.push({ key: `topm-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.68, value });
-  });
-  example.leftPlusClues.forEach((value, row) => {
-    if (value !== null) clues.push({ key: `leftp-${row}`, x: BOARD_PADDING * 0.22, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
   });
   example.leftClues.forEach((value, row) => {
     if (value !== null) clues.push({ key: `left-${row}`, x: BOARD_PADDING * 0.68, y: BOARD_PADDING + (row + 0.5) * CELL_SIZE, value });
@@ -597,94 +717,202 @@ function PillsExampleBoard({ example, answer }: { example: Extract<AdditionalPuz
 export default function AdditionalPuzzleExample({ example, playableLabel, answerLabel }: Props) {
   if (example.puzzleType === 'slither' || example.puzzleType === 'wolvesandsheepfences') {
     return (
-      <ExamplePair
+      <PlayableExample
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        left={<SlitherBoard example={example} answer={false} />}
-        right={<SlitherBoard example={example} answer />}
+        fixedCellSize={CELL_SIZE}
+        answer={<SlitherBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          example.puzzleType === 'slither'
+            ? <SlitherlinkBoard puzzle={puzzle as SlitherlinkPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+            : <WolvesAndSheepBoard puzzle={puzzle as WolvesAndSheepPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
       />
     );
   }
 
   if (example.puzzleType === 'lits') {
     return (
-      <ExamplePair
+      <PlayableExample
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        left={<ShadedBoard width={example.width} height={example.height} regionIds={example.regionIds} />}
-        right={<ShadedBoard width={example.width} height={example.height} shaded={example.correctSolution} regionIds={example.regionIds} />}
+        fixedCellSize={CELL_SIZE}
+        answer={<ShadedBoard width={example.width} height={example.height} shaded={example.correctSolution} regionIds={example.regionIds} />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <LitsBoard puzzle={puzzle as LitsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
       />
     );
   }
 
   if (example.puzzleType === 'lakes') {
     return (
-      <ExamplePair
+      <PlayableExample
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        left={<ShadedBoard width={example.width} height={example.height} clues={example.clues} />}
-        right={<ShadedBoard width={example.width} height={example.height} clues={example.clues} shaded={example.correctSolution} />}
+        fixedCellSize={CELL_SIZE}
+        answer={<ShadedBoard width={example.width} height={example.height} clues={example.clues} shaded={example.correctSolution} />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <LakesBoard puzzle={puzzle as LakesPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
       />
     );
   }
 
   if (example.puzzleType === 'domino-search') {
     return (
-      <ExamplePair
+      <PlayableExample
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        left={<DominoBoard example={example} answer={false} />}
-        right={<DominoBoard example={example} answer />}
+        fixedCellSize={CELL_SIZE}
+        answer={<DominoBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <DominoSearchBoard puzzle={puzzle as DominoSearchPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
       />
     );
   }
 
   if (example.puzzleType === 'snail') {
     return (
-      <ExamplePair
+      <PlayableExample
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        left={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} clueTone />}
-        right={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
+        fixedCellSize={CELL_SIZE}
+        answer={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <MagicSnailBoard puzzle={puzzle as MagicSnailPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
+  }
+
+  if (example.puzzleType === 'slovak-sums') {
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <SlovakSumsBoard puzzle={puzzle as SlovakSumsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
       />
     );
   }
 
   if (example.puzzleType === 'japanese-arrows') {
-    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
-      left={<JapaneseArrowsBoard example={example} answer={false} />} right={<JapaneseArrowsBoard example={example} answer />} />;
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<JapaneseArrowsBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <JapaneseArrowsGameBoard puzzle={puzzle as JapaneseArrowsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
   }
 
   if (example.puzzleType === 'four-winds-with-parks') {
-    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
-      left={<FourWindsWithParksExampleBoard example={example} answer={false} />} right={<FourWindsWithParksExampleBoard example={example} answer />} />;
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<FourWindsWithParksExampleBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <FourWindsWithParksBoard puzzle={puzzle as FourWindsWithParksPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
+  }
+
+  if (example.puzzleType === 'fourwinds') {
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<FourWindsExampleBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <FourWindsBoard puzzle={puzzle as FourWindsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
+  }
+
+  if (example.puzzleType === 'japanese-sums-with-zeroes') {
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<JapaneseSumsWithZeroesExampleBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <JapaneseSumsBoard puzzle={puzzle as JapaneseSumsWithZeroesPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
   }
 
   if (example.puzzleType === 'consecutive-kakuro') {
-    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
-      left={<ConsecutiveKakuroExampleBoard example={example} answer={false} />} right={<ConsecutiveKakuroExampleBoard example={example} answer />} />;
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<ConsecutiveKakuroExampleBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <ConsecutiveKakuroBoard puzzle={puzzle as ConsecutiveKakuroPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
   }
 
   if (example.puzzleType === 'magnets') {
-    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
-      left={<MagnetsExampleBoard example={example} answer={false} />} right={<MagnetsExampleBoard example={example} answer />} />;
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<MagnetsExampleBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <MagnetsBoard puzzle={puzzle as MagnetsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
   }
+
   if (example.puzzleType === 'pills') {
-    return <ExamplePair example={example} playableLabel={playableLabel} answerLabel={answerLabel}
-      left={<PillsExampleBoard example={example} answer={false} />} right={<PillsExampleBoard example={example} answer />} />;
+    return (
+      <PlayableExample
+        example={example}
+        playableLabel={playableLabel}
+        answerLabel={answerLabel}
+        fixedCellSize={CELL_SIZE}
+        answer={<PillsExampleBoard example={example} answer />}
+        renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+          <PillsBoard puzzle={puzzle as PillsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+        )}
+      />
+    );
   }
-  return (
-    <ExamplePair
-      example={example}
-      playableLabel={playableLabel}
-      answerLabel={answerLabel}
-      left={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} />}
-      right={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} />}
-    />
-  );
+
+  // Every AdditionalPuzzleExampleData variant is handled above.
+  const unreachable: never = example;
+  throw new Error(`Unhandled additional example type: ${String(unreachable)}`);
 }

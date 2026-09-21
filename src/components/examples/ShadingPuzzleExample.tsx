@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
   boardLayoutMetrics,
@@ -16,8 +14,6 @@ import type { CavePuzzleData, ShapeMinesweeperPuzzleData } from '@/puzzles/types
 interface Props {
   puzzle: CavePuzzleData | ShapeMinesweeperPuzzleData;
   correctSolution: (0 | 1)[][];
-  playableLabel: string;
-  answerLabel: string;
 }
 
 const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
@@ -96,28 +92,6 @@ function ExamplePanel({
 export default function ShadingPuzzleExample({
   puzzle,
   correctSolution,
-  playableLabel,
-  answerLabel,
 }: Props) {
-  const [showAnswer, setShowAnswer] = useState(false);
-
-  return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="min-w-0">
-        <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-        <ExamplePanel puzzle={puzzle} />
-      </div>
-      <div className="min-w-0">
-        <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
-        <ExampleAnswerReveal
-          visible={showAnswer}
-          onVisibleChange={setShowAnswer}
-          ariaLabel={answerLabel}
-          className="block w-full min-w-0 max-w-full"
-        >
-          <ExamplePanel puzzle={puzzle} solution={correctSolution} />
-        </ExampleAnswerReveal>
-      </div>
-    </div>
-  );
+  return <ExamplePanel puzzle={puzzle} solution={correctSolution} />;
 }

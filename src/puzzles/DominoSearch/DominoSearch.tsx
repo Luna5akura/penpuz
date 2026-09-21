@@ -15,8 +15,8 @@ import {
   getBoardFrameStyle,
   getBoardFrameDimensions,
   getBoardGridStyle,
-  getBoardGridOutlineRect,
   getBoardTextStyle,
+  getLoopLineStrokeWidth,
   getResponsiveCellSize,
   woodBoardTheme,
 } from '../boardTheme';
@@ -116,9 +116,13 @@ export default function DominoSearchBoard({
     crossedEdges: [],
     levels: {},
   }), []);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(
-    () => normalizeDominoSearchSnapshot(initialSnapshot, width, height),
-    [height, initialSnapshot, width]
+    () => normalizeDominoSearchSnapshot(initialSnapshotRef.current, width, height),
+    [height, width]
   );
 
   const history = usePuzzleHistory<DominoSearchSnapshot>(createInitialSnapshot(), {
@@ -333,6 +337,7 @@ export default function DominoSearchBoard({
     cellSize,
     { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
   );
+  const lineStroke = getLoopLineStrokeWidth(cellSize);
 
   return (
     <div ref={containerRef} className="flex w-full min-w-0 flex-col items-center gap-3">
@@ -384,18 +389,31 @@ export default function DominoSearchBoard({
             const rect = getDominoOutlineRect(edgeKey, cellSize);
             if (!rect) return null;
             const trialColors = getTrialLevelColors(normalizedSnapshot.levels[edgeKey] ?? 0);
+            const stroke = trialColors?.line ?? woodBoardTheme.ink;
+            // Player-drawn domino boundaries use the same bold loop-line
+            // stroke style as Slitherlink: round caps and the loop width.
+            const perimeter = [
+              { x1: rect.x, y1: rect.y, x2: rect.x + rect.width, y2: rect.y },
+              { x1: rect.x, y1: rect.y + rect.height, x2: rect.x + rect.width, y2: rect.y + rect.height },
+              { x1: rect.x, y1: rect.y, x2: rect.x, y2: rect.y + rect.height },
+              { x1: rect.x + rect.width, y1: rect.y, x2: rect.x + rect.width, y2: rect.y + rect.height },
+            ];
 
             return (
-              <rect
-                key={`edge-${edgeKey}`}
-                {...getBoardGridOutlineRect(
-                  rect.x,
-                  rect.y,
-                  rect.width,
-                  rect.height,
-                  trialColors?.line ?? woodBoardTheme.border
-                )}
-              />
+              <g key={`edge-${edgeKey}`}>
+                {perimeter.map((segment, index) => (
+                  <line
+                    key={`segment-${index}`}
+                    x1={segment.x1}
+                    y1={segment.y1}
+                    x2={segment.x2}
+                    y2={segment.y2}
+                    stroke={stroke}
+                    strokeWidth={lineStroke}
+                    strokeLinecap="round"
+                  />
+                ))}
+              </g>
             );
           })}
           {Array.from(crossedEdgeSet).map((edgeKey) => {
@@ -416,7 +434,7 @@ export default function DominoSearchBoard({
         </svg>
       </div>
 
-      <div className="flex w-full min-w-0 max-w-full self-stretch flex-wrap justify-center gap-1.5 overflow-hidden text-sm">
+      <div className="flex flex-wrap justify-center gap-1.5 overflow-hidden text-sm" style={{ maxWidth: `${outerWidth}px` }}>
         {dominoListItems.map(({ left, right, index, used }) => (
           <span
             key={`${left}-${right}-${index}`}

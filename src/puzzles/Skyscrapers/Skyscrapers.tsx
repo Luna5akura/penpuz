@@ -78,6 +78,7 @@ export default function SkyscrapersBoard({
         renderCandidates={renderCandidates}
         renderCellValue={(value) => (typeof value === 'number' ? value : null)}
         outsideClues={puzzle.clues}
+        outsideClueCellTextSize
         cellInputMode="cycle"
         cycleValues={cycleValues}
         inputModeOptions={inputModeOptions}

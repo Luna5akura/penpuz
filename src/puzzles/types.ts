@@ -431,6 +431,15 @@ export interface FourWindsWithParksPuzzleData {
   clues: (number | null)[][];
 }
 
+export type FourWindsDirection = 1 | 2 | 3 | 4; // N, E, S, W
+export type FourWindsCellValue = FourWindsDirection | 'cross' | null;
+export interface FourWindsPuzzleData {
+  type: 'fourwinds';
+  width: number;
+  height: number;
+  clues: (number | null)[][];
+}
+
 export interface ConsecutiveKakuroPuzzleData extends Omit<KakuroPuzzleData, 'type'> {
   type: 'consecutive-kakuro';
   horizontalBars: boolean[][];
@@ -519,6 +528,7 @@ export type PuzzleData =
   | CavePuzzleData
   | JapaneseArrowsPuzzleData
   | FourWindsWithParksPuzzleData
+  | FourWindsPuzzleData
   | ConsecutiveKakuroPuzzleData
   | JapaneseSumsWithZeroesPuzzleData
   | ABCBoxPuzzleData
@@ -796,6 +806,13 @@ export type PuzzleExample =
       correctGrid: FourWindsWithParksDirection[][];
     }
   | {
+      puzzleType: 'fourwinds';
+      width: number;
+      height: number;
+      clues: (number | null)[][];
+      correctGrid: FourWindsDirection[][];
+    }
+  | {
       puzzleType: 'consecutive-kakuro';
       width: number;
       height: number;
@@ -806,7 +823,7 @@ export type PuzzleExample =
       verticalBars: boolean[][];
       correctGrid: (number | null)[][];
     }
-  | { puzzleType: 'japanese-sums-with-zeroes'; width: number; height: number; clues: JapaneseSumsWithZeroesPuzzleData['clues']; correctGrid: (number | null)[][]; }
+  | { puzzleType: 'japanese-sums-with-zeroes'; width: number; height: number; maxDigit: number; clues: JapaneseSumsWithZeroesPuzzleData['clues']; correctGrid: (number | null)[][]; }
   | { puzzleType: 'abc-box'; width: number; height: number; givens: ABCBoxPuzzleData['givens']; clues: ABCBoxPuzzleData['clues']; correctGrid: string[][]; }
   | { puzzleType: 'magnets'; width: number; height: number; regions: MagnetsPuzzleData['regions']; topClues: MagnetsPuzzleData['topClues']; topMinusClues: MagnetsPuzzleData['topMinusClues']; leftClues: MagnetsPuzzleData['leftClues']; leftPlusClues: MagnetsPuzzleData['leftPlusClues']; givens: MagnetsPuzzleData['givens']; correctGrid: (number | null)[][]; }
   | { puzzleType: 'pills'; width: number; height: number; dots: PillsPuzzleData['dots']; topClues: PillsPuzzleData['topClues']; leftClues: PillsPuzzleData['leftClues']; pillValues: PillsPuzzleData['pillValues']; correctGrid: (0 | 1)[][]; };

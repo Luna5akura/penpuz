@@ -155,13 +155,17 @@ export default function MintonetteBoard({
   const clueCircleDiameter = useMemo(() => getBoardCircleClueDiameter(cellSize), [cellSize]);
   const clueCircleStrokeWidth = useMemo(() => getBoardCircleClueStrokeWidth(cellSize), [cellSize]);
 
+  const initialSnapshotRef = useRef(initialSnapshot);
   useEffect(() => {
-    reset(initialSnapshot ? normalizeMintonetteSnapshot(initialSnapshot, width, height) : createInitialSnapshot());
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
+  useEffect(() => {
+    reset(initialSnapshotRef.current ? normalizeMintonetteSnapshot(initialSnapshotRef.current, width, height) : createInitialSnapshot());
     hasCompleted.current = false;
     pointerIdRef.current = null;
     lastCellRef.current = null;
     operationRef.current = null;
-  }, [createInitialSnapshot, height, initialSnapshot, puzzle, reset, resetToken, width]);
+  }, [createInitialSnapshot, height, puzzle, reset, resetToken, width]);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;

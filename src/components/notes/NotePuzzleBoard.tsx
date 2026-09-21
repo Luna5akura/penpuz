@@ -16,7 +16,6 @@ import {
   getBoardDotRadius,
   getBoardFrameStyle,
   getBoardGridStyle,
-  getBoardGridOutlineRect,
   getBoardDominoBadgeStyle,
   getBoardGridStrokeWidth,
   getBoardPanelColors,
@@ -56,6 +55,7 @@ import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import TapaClue from '@/puzzles/Tapa/TapaClue';
 import FourWindsWithParksMark, { type FourWindsWithParksMarkValue } from '@/puzzles/FourWindsWithParks/FourWindsWithParksVisuals';
+import FourWindsMark, { type FourWindsMarkValue } from '@/puzzles/FourWinds/FourWindsVisuals';
 import {
   BattleshipFleet,
   BattleshipSegmentSymbol,
@@ -514,6 +514,12 @@ function getCellView(
         ? { tone: 'cell' }
         : { tone: 'clue', content: clue, locked: true };
     }
+    case 'fourwinds': {
+      const clue = puzzle.clues[row]?.[col] ?? null;
+      return clue === null
+        ? { tone: 'cell' }
+        : { tone: 'clue', content: clue, locked: true };
+    }
     case 'consecutive-kakuro': {
       const clue = puzzle.cells[row]?.[col] ?? null;
       return clue
@@ -689,6 +695,15 @@ function getSnapshotCellView(
     return {
       tone: value === 'cross' ? 'marked' : 'cell',
       content: <FourWindsWithParksMark value={mark} cellSize={cellSize} />,
+    };
+  }
+
+  if (puzzleType === 'fourwinds') {
+    const isDirection = typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 4;
+    if (!isDirection && value !== 'cross') return null;
+    return {
+      tone: value === 'cross' ? 'marked' : 'cell',
+      content: <FourWindsMark value={value as FourWindsMarkValue} cellSize={cellSize} />,
     };
   }
 
@@ -1229,18 +1244,31 @@ function DominoOutlineOverlay({
       {keys.map((key) => {
         const rect = getDominoOutlineRect(key, cellSize);
         if (!rect) return null;
+        const stroke = getSnapshotTrialColor(snapshot, key, ['levels'], 'line', woodBoardTheme.ink, visibleTrialLevel);
+        // Domino boundaries share the bold loop-line style used by
+        // Slitherlink's player-drawn lines.
+        const perimeter = [
+          { x1: rect.x, y1: rect.y, x2: rect.x + rect.width, y2: rect.y },
+          { x1: rect.x, y1: rect.y + rect.height, x2: rect.x + rect.width, y2: rect.y + rect.height },
+          { x1: rect.x, y1: rect.y, x2: rect.x, y2: rect.y + rect.height },
+          { x1: rect.x + rect.width, y1: rect.y, x2: rect.x + rect.width, y2: rect.y + rect.height },
+        ];
 
         return (
-          <rect
-            key={`domino-outline-${key}`}
-            {...getBoardGridOutlineRect(
-              rect.x,
-              rect.y,
-              rect.width,
-              rect.height,
-              getSnapshotTrialColor(snapshot, key, ['levels'], 'line', woodBoardTheme.border, visibleTrialLevel)
-            )}
-          />
+          <g key={`domino-outline-${key}`}>
+            {perimeter.map((segment, index) => (
+              <line
+                key={index}
+                x1={segment.x1}
+                y1={segment.y1}
+                x2={segment.x2}
+                y2={segment.y2}
+                stroke={stroke}
+                strokeWidth={getLoopLineStrokeWidth(cellSize)}
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
         );
       })}
     </svg>

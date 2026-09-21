@@ -16,6 +16,7 @@ import {
   boardClassNames,
   commonBoardChrome,
   getBoardCellStyle,
+  getBoardClueTextStyle,
   getBoardFrameStyle,
   getBoardFrameDimensions,
   getBoardGridStyle,
@@ -124,6 +125,12 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   outsideClues?: NumberPlacementOutsideClues | NumberPlacementOutsideClueResolver;
   /** Optional multiple clue rows/columns for Japanese Sums-style clues. */
   outsideClueStacks?: Partial<Record<NumberPlacementOutsideSide, readonly (readonly (number | string | null)[])[]>>;
+  /** Render stack clues at the same size as in-cell clues instead of the compact gutter size (e.g. Magnets). */
+  outsideClueStackCellTextSize?: boolean;
+  /** Render single-value outside clues at the same size as in-cell clues (e.g. Skyscrapers). */
+  outsideClueCellTextSize?: boolean;
+  /** Legend marks drawn in the top-left corner cells of the clue gutter (e.g. Magnets pole labels). */
+  outsideClueCornerMarks?: Array<{ row: number; col: number; label: string }>;
   /** Enable editable answer cells in one or more outside sides. */
   outsideInput?: NumberPlacementOutsideInput;
   initialSnapshot?: unknown;
@@ -334,6 +341,9 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   showValueButtons = true,
   outsideClues,
   outsideClueStacks,
+  outsideClueStackCellTextSize = false,
+  outsideClueCellTextSize = false,
+  outsideClueCornerMarks,
   outsideInput,
   initialSnapshot,
   onSnapshotChange,
@@ -1069,7 +1079,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         style={{
           left: `${left}px`,
           top: `${top}px`,
-          ...getBoardOutsideClueTextStyle(cellSize, availableWidth, value),
+          ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, availableWidth, value)),
         }}
       >
         {value}
@@ -1205,6 +1215,13 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
             )}
           </div>
         ) : null}
+        {outsideClueCornerMarks && !hasOutsideInput ? (
+          <div className="pointer-events-none absolute inset-0">
+            {outsideClueCornerMarks.map(({ row, col, label }) => (
+              <span key={`corner-${row}-${col}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...(outsideClueStackCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, label)), left: BOARD_PADDING + col * outsideClueLayout.clueSize, top: BOARD_PADDING + row * outsideClueLayout.clueSize, width: outsideClueLayout.clueSize, height: outsideClueLayout.clueSize, display: 'flex', overflow: 'visible' }}>{label}</span>
+            ))}
+          </div>
+        ) : null}
         {outsideClueStacks && !hasOutsideInput ? (
           <div className="pointer-events-none absolute inset-0">
             {(['top', 'bottom', 'left', 'right'] as NumberPlacementOutsideSide[]).flatMap((side) =>
@@ -1216,7 +1233,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 const y = side === 'top' ? BOARD_PADDING + topSlot * outsideClueLayout.clueSize : side === 'bottom' ? gridTop + boardHeightPx + stack * outsideClueLayout.clueSize : gridTop + index * cellSize;
                 const clueWidth = side === 'top' || side === 'bottom' ? cellSize : outsideClueLayout.clueSize;
                 const clueHeight = side === 'left' || side === 'right' ? cellSize : outsideClueLayout.clueSize;
-                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...getBoardOutsideClueTextStyle(cellSize, clueWidth, value), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
+                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...(outsideClueStackCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, clueWidth, value)), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
               }))
             )}
           </div>

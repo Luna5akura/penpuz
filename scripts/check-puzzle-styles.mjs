@@ -109,11 +109,12 @@ for (const file of files) {
   }
 
   // Every example that exposes an answer must go through the shared reveal
-  // component. This keeps the spoiler mask, confirmation dialog, keyboard
+  // component (directly, or through the PlayableExample wrapper that owns
+  // it). This keeps the spoiler mask, confirmation dialog, keyboard
   // handling, and stacking context identical for current and future puzzles.
-  if (rel.startsWith('src/components/examples/') && /answerLabel/u.test(source) && !/ExampleAnswerReveal/u.test(source)) {
+  if (rel.startsWith('src/components/examples/') && /answerLabel/u.test(source) && !/ExampleAnswerReveal|PlayableExample/u.test(source)) {
     violations.push(
-      `${rel} answer masking: Example components with answerLabel must use ExampleAnswerReveal.`
+      `${rel} answer masking: Example components with answerLabel must use ExampleAnswerReveal or PlayableExample.`
     );
   }
 }

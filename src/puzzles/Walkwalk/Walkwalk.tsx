@@ -157,13 +157,17 @@ export default function WalkwalkBoard({
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
   const loopLineStrokeWidth = useMemo(() => getLoopLineStrokeWidth(cellSize), [cellSize]);
 
+  const initialSnapshotRef = useRef(initialSnapshot);
   useEffect(() => {
-    reset(initialSnapshot ? normalizeWalkwalkSnapshot(initialSnapshot, width, height) : createInitialSnapshot());
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
+  useEffect(() => {
+    reset(initialSnapshotRef.current ? normalizeWalkwalkSnapshot(initialSnapshotRef.current, width, height) : createInitialSnapshot());
     hasCompleted.current = false;
     pointerIdRef.current = null;
     lastCellRef.current = null;
     operationRef.current = null;
-  }, [createInitialSnapshot, height, initialSnapshot, puzzle, reset, resetToken, width]);
+  }, [createInitialSnapshot, height, puzzle, reset, resetToken, width]);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;

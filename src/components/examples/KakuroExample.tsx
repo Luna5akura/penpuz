@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
   boardLayoutMetrics,
@@ -17,25 +15,15 @@ interface Props {
   width: number;
   height: number;
   cells: KakuroCell[][];
-  topClues: (number | null)[];
-  leftClues: (number | null)[];
   correctGrid: (number | null)[][];
-  playableLabel: string;
-  answerLabel: string;
 }
 
 const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
-function KakuroDiagram({
-  width,
-  height,
-  cells,
-  values,
-}: Omit<Props, 'playableLabel' | 'answerLabel' | 'correctGrid'> & { values?: (number | null)[][] }) {
-  const gridLeft = BOARD_PADDING;
-  const gridTop = BOARD_PADDING;
+/** Official answer diagram shown after the playable example is solved. */
+export default function KakuroExample({ width, height, cells, correctGrid }: Props) {
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     width,
     height,
@@ -54,12 +42,12 @@ function KakuroDiagram({
     >
       <div
         className="absolute grid"
-        style={getBoardGridStyle(gridLeft, gridTop, width, CELL_SIZE)}
+        style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => {
             const clue = cells[row][col];
-            const value = values?.[row]?.[col] ?? null;
+            const value = correctGrid[row][col];
             return (
               <div
                 key={`${row}-${col}`}
@@ -75,45 +63,6 @@ function KakuroDiagram({
           })
         )}
       </div>
-
     </div>
-  );
-}
-
-export default function KakuroExample({
-  width,
-  height,
-  cells,
-  topClues,
-  leftClues,
-  correctGrid,
-  playableLabel,
-  answerLabel,
-}: Props) {
-  const [showAnswer, setShowAnswer] = useState(false);
-  const diagramProps = { width, height, cells, topClues, leftClues };
-
-  return (
-    <>
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-          <div className="flex justify-center overflow-x-auto">
-            <KakuroDiagram {...diagramProps} />
-          </div>
-        </div>
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
-          <ExampleAnswerReveal
-            visible={showAnswer}
-            onVisibleChange={setShowAnswer}
-            ariaLabel={answerLabel}
-            className="flex justify-center overflow-x-auto"
-          >
-            <KakuroDiagram {...diagramProps} values={correctGrid} />
-          </ExampleAnswerReveal>
-        </div>
-      </div>
-    </>
   );
 }

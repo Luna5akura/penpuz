@@ -1,16 +1,14 @@
-import { useMemo, useState } from 'react';
-import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
+import { useMemo } from 'react';
 import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
+  getBoardClueTextStyle,
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
   getBoardOutsideClueLayout,
-  getBoardTextStyle,
-  woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import {
   BattleshipFleet,
@@ -33,8 +31,6 @@ interface Props {
   cellClues: BattleshipCellClue[];
   fleet: BattleshipShipShape[];
   correctSolution: (0 | 1)[][];
-  playableLabel: string;
-  answerLabel: string;
 }
 
 const CELL_SIZE = boardLayoutMetrics.compactExampleCellSize;
@@ -132,8 +128,7 @@ function BattleshipDiagram({
             style={{
               left: `${gridLeft + (col + 0.5) * CELL_SIZE}px`,
               top: `${commonBoardChrome.padding + outsideClueLayout.top / 2}px`,
-              color: woodBoardTheme.border,
-              ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+              ...getBoardClueTextStyle(CELL_SIZE),
             }}
           >
             {value}
@@ -146,8 +141,7 @@ function BattleshipDiagram({
             style={{
               left: `${commonBoardChrome.padding + outsideClueLayout.left / 2}px`,
               top: `${gridTop + (row + 0.5) * CELL_SIZE}px`,
-              color: woodBoardTheme.border,
-              ...getBoardTextStyle(CELL_SIZE, 0.48, 14),
+              ...getBoardClueTextStyle(CELL_SIZE),
             }}
           >
             {value}
@@ -167,10 +161,7 @@ export default function BattleshipExample({
   cellClues,
   fleet,
   correctSolution,
-  playableLabel,
-  answerLabel,
 }: Props) {
-  const [showAnswer, setShowAnswer] = useState(false);
   const puzzle: BattleshipPuzzleData = {
     type: 'battleship',
     width,
@@ -181,27 +172,5 @@ export default function BattleshipExample({
     fleet,
   };
 
-  return (
-    <>
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-          <div className="flex justify-center overflow-x-auto">
-            <BattleshipDiagram puzzle={puzzle} />
-          </div>
-        </div>
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
-          <ExampleAnswerReveal
-            visible={showAnswer}
-            onVisibleChange={setShowAnswer}
-            ariaLabel={answerLabel}
-            className="flex justify-center overflow-x-auto"
-          >
-            <BattleshipDiagram puzzle={puzzle} solution={correctSolution} />
-          </ExampleAnswerReveal>
-        </div>
-      </div>
-    </>
-  );
+  return <BattleshipDiagram puzzle={puzzle} solution={correctSolution} />;
 }

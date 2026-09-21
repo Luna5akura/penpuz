@@ -143,10 +143,14 @@ export default function NikojiBoard({
     containerWidth: true,
   }), [fixedCellSize, viewportWidth, width]);
 
+  const initialSnapshotRef = useRef(initialSnapshot);
   useEffect(() => {
-    reset(initialSnapshot ? normalizeNikojiSnapshot(initialSnapshot, width, height) : createInitialSnapshot());
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
+  useEffect(() => {
+    reset(initialSnapshotRef.current ? normalizeNikojiSnapshot(initialSnapshotRef.current, width, height) : createInitialSnapshot());
     hasCompleted.current = false;
-  }, [createInitialSnapshot, height, initialSnapshot, puzzle, reset, resetToken, width]);
+  }, [createInitialSnapshot, height, puzzle, reset, resetToken, width]);
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;

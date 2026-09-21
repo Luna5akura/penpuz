@@ -29,9 +29,11 @@ import ShapeMinesweeperBoard from './ShapeMinesweeper/ShapeMinesweeper';
 import CaveBoard from './Cave/Cave';
 import JapaneseArrowsBoard from './JapaneseArrows/JapaneseArrows';
 import FourWindsWithParksBoard from './FourWindsWithParks/FourWindsWithParks';
+import FourWindsBoard from './FourWinds/FourWinds';
 import ConsecutiveKakuroBoard from './ConsecutiveKakuro/ConsecutiveKakuro';
 import JapaneseSumsBoard from './JapaneseSums/JapaneseSums';
 import ABCBoxBoard from './ABCBox/ABCBox';
+import ABCBoxExample from '../components/examples/ABCBoxExample';
 import MagnetsBoard from './Magnets/Magnets';
 import PillsBoard from './Pills/Pills';
 import NurikabeExample from '../components/examples/NurikabeExample';
@@ -49,6 +51,7 @@ import AkariExample from '../components/examples/AkariExample';
 import KurarinExample from '../components/examples/KurarinExample';
 import WalkwalkExample from '../components/examples/WalkwalkExample';
 import AdditionalPuzzleExample from '../components/examples/AdditionalPuzzleExample';
+import PlayableExample from '../components/examples/PlayableExample';
 import SkyscrapersExample from '../components/examples/SkyscrapersExample';
 import BattleshipExample from '../components/examples/BattleshipExample';
 import { parsePuzzLink } from './Nurikabe/utils';
@@ -73,6 +76,7 @@ import { parseDominoSearchLink } from './DominoSearch/utils';
 import { parseMagicSnailLink } from './MagicSnail/utils';
 import { parseSlovakSumsLink } from './SlovakSums/utils';
 import { normalizePuzzLinkDataPart } from './gridUtils';
+import { boardLayoutMetrics } from './boardTheme';
 import type {
   AqrePuzzleData,
   AkariPuzzleData,
@@ -109,6 +113,7 @@ import type {
   CavePuzzleData,
   JapaneseArrowsPuzzleData,
   FourWindsWithParksPuzzleData,
+  FourWindsPuzzleData,
   ConsecutiveKakuroPuzzleData,
   JapaneseSumsWithZeroesPuzzleData,
   ABCBoxPuzzleData,
@@ -134,6 +139,7 @@ import { parseShapeMinesweeperLink, validateShapeMinesweeper } from './ShapeMine
 import { parseCaveLink, validateCave } from './Cave/utils';
 import { parseJapaneseArrowsLink } from './JapaneseArrows/utils';
 import { parseFourWindsWithParksLink } from './FourWindsWithParks/utils';
+import { parseFourWindsLink } from './FourWinds/utils';
 import { parseConsecutiveKakuroLink } from './ConsecutiveKakuro/utils';
 import { parseJapaneseSumsLink } from './JapaneseSums/utils';
 import { parseABCBoxLink } from './ABCBox/utils';
@@ -178,7 +184,7 @@ const tapaExampleCorrectSolution: (0 | 1)[][] = [
 ];
 
 const MAGIC_SUMMER_EXAMPLE_LINK =
-  'https://luna5akura.github.io/Atol-Solver/p.html?magic-summer/5/5/3/15,6,15,15,15/15,6,15,15,15/1h3./2h.1/h.12/3.g2g/.g2g3';
+  'http://localhost:8080/p.html?magic-summer/5/5/3/f-186f-7bk-18-21-21f-84k';
 const magicSummerExamplePuzzle = parseMagicSummerLink(MAGIC_SUMMER_EXAMPLE_LINK);
 
 if (!magicSummerExamplePuzzle) {
@@ -186,11 +192,11 @@ if (!magicSummerExamplePuzzle) {
 }
 
 const magicSummerExampleCorrectGrid: (number | null)[][] = [
-  [1, 2, null, 3, null],
-  [2, null, 3, null, 1],
-  [null, 3, null, 1, 2],
-  [3, null, 1, 2, null],
-  [null, 1, 2, null, 3],
+  [1, null, 2, 3, null],
+  [3, 2, null, null, 1],
+  [null, 3, 1, null, 2],
+  [2, null, null, 1, 3],
+  [null, 1, 3, 2, null],
 ];
 
 const SKYSCRAPERS_EXAMPLE_LINK = 'https://puzz.link/p?skyscrapers/4/4/k13h4j3g';
@@ -253,10 +259,10 @@ const wolvesAndSheepExamplePuzzle: WolvesAndSheepPuzzleData = {
   width: 4,
   height: 4,
   clues: [
-    ['sheep', null, null, 3],
-    [null, 3, 'sheep', null],
-    [2, 'wolf', 3, null],
-    [null, null, null, 'wolf'],
+    [null, 1, null, 3],
+    [null, 'sheep', 'wolf', null],
+    [null, null, 0, null],
+    [2, null, null, null],
   ],
 };
 
@@ -338,13 +344,14 @@ if (!skyNeighbor22Visibility || !validateSkyNeighbor(
 
 const wolvesAndSheepExampleLoopEdges = [
   'h-0-0', 'h-0-1', 'h-0-2', 'h-0-3',
+  'h-1-2', 'h-1-3',
+  'h-2-1',
+  'h-3-1',
+  'h-4-0', 'h-4-1',
   'v-0-0', 'v-0-4',
-  'h-1-1', 'h-1-3',
-  'v-1-1', 'v-1-2', 'v-1-3',
-  'v-2-0', 'v-2-1', 'v-2-2', 'v-2-3',
-  'h-3-2',
-  'v-3-0', 'v-3-1',
-  'h-4-0',
+  'v-1-0', 'v-1-2',
+  'v-2-0', 'v-2-1',
+  'v-3-0', 'v-3-2',
 ];
 
 // WPF Puzzle GP 2015 Round 5 (PDF p. 9), Shape Minesweeper example bank.
@@ -396,20 +403,20 @@ const caveExamplePuzzle: CavePuzzleData = {
   width: 5,
   height: 5,
   clues: [
-    [null, null, null, 8, null],
-    [2, 3, null, 6, null],
-    [null, null, null, null, null],
-    [null, 2, null, 6, 3],
     [null, 5, null, null, null],
+    [null, null, null, null, 3],
+    [null, null, 3, null, null],
+    [7, null, null, null, null],
+    [null, null, null, 3, null],
   ],
 };
 
 const caveExampleSolution: (0 | 1)[][] = [
-  [1, 0, 0, 0, 0],
-  [0, 0, 1, 0, 0],
-  [1, 1, 1, 0, 1],
-  [1, 0, 1, 0, 0],
-  [1, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0],
+  [0, 1, 1, 1, 0],
+  [0, 1, 0, 1, 0],
+  [0, 0, 0, 1, 1],
+  [0, 1, 0, 0, 0],
 ];
 
 if (!validateCave(
@@ -466,6 +473,7 @@ type PuzzleRegistry = {
   cave: PuzzleRegistryEntry<CavePuzzleData>;
   'japanese-arrows': PuzzleRegistryEntry<JapaneseArrowsPuzzleData>;
   'four-winds-with-parks': PuzzleRegistryEntry<FourWindsWithParksPuzzleData>;
+  fourwinds: PuzzleRegistryEntry<FourWindsPuzzleData>;
   'consecutive-kakuro': PuzzleRegistryEntry<ConsecutiveKakuroPuzzleData>;
   'japanese-sums-with-zeroes': PuzzleRegistryEntry<JapaneseSumsWithZeroesPuzzleData>;
   'abc-box': PuzzleRegistryEntry<ABCBoxPuzzleData>;
@@ -546,13 +554,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <NurikabeExample
-          width={example.width}
-          height={example.height}
-          clues={example.clues}
-          correctSolution={example.correctSolution}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<NurikabeExample width={example.width} height={example.height} clues={example.clues} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete }) => (
+            <NurikabeBoard puzzle={puzzle as NurikabePuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} />
+          )}
         />
       );
     },
@@ -630,13 +640,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <FillominoExample
-          width={example.width}
-          height={example.height}
-          cluesGrid={example.cluesGrid}
-          correctGrid={example.correctGrid}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<FillominoExample width={example.width} height={example.height} cluesGrid={example.cluesGrid} correctGrid={example.correctGrid} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <FillominoBoard puzzle={puzzle as FillominoPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} />
+          )}
         />
       );
     },
@@ -655,9 +667,10 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '画一条横平竖直地经过一些空格中心且不和自身交叉的回路，并把未经过的空格涂黑。',
-          '涂黑的格子不能相邻。',
-          '带箭头的数字表示从此格开始在这个方向中的黑格数。',
+          '涂黑一些空格，并在其余所有非线索格中画一条回路。',
+          '回路不能分叉或交叉，涂黑的格子不能相邻。',
+          '带数字或问号的箭头格不能被涂黑，也不属于回路。',
+          '数字表示箭头方向上涂黑格的个数；问号只表示方向。',
         ],
         en: [
           'Shade some cells and draw a single loop through all remaining non-clue cells.',
@@ -1104,9 +1117,10 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '涂黑一些格子，使得涂黑的格子之间不相邻，且留白的格子连通成一个整体。',
-          '任意一横段或纵段留白格不能穿过两个以上区域边界。',
+          '盘面被划分为若干区域。涂黑一些格子，涂黑的格子之间不能横竖相邻。',
           '数字表示此区域内涂黑格的个数。',
+          '任意一段横或纵的连续留白格不能穿过两个或更多区域边界。',
+          '所有留白的格子必须连通成一个整体。',
         ],
         en: [
           'The board is divided into rooms. Shade some cells, and shaded cells cannot touch horizontally or vertically.',
@@ -1195,8 +1209,10 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '涂黑一些空格，使得所有涂黑的格子连通成一个整体，且没有全部涂黑或者全部留白的1×4或4×1的结构。',
+          '盘面被划分为若干区域。涂黑一些格子。',
           '数字表示此区域内涂黑格的个数。',
+          '任意横或纵的连续段中，涂黑格或留白格都不能达到 4 个或更多。',
+          '所有涂黑的格子必须连通成一个整体。',
         ],
         en: [
           'The board is divided into rooms. Shade some cells on the board.',
@@ -1479,8 +1495,7 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在一些空格内放置一个灯泡，以照亮所有空格。',
-          '格子里的灯泡可以照亮所有从此格横竖能够直接连接到且不被黑格阻挡的空格，包括此格本身。',
+          '在一些空格内放置灯泡，以照亮所有空格。灯泡可以照亮自身以及横竖方向上直到被黑格阻挡为止的所有空格。',
           '任意两个灯泡不能互相照亮。',
           '黑格里的数字表示与之相邻的（至多）四格中的灯泡个数。',
         ],
@@ -1566,8 +1581,11 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在盘面内涂黑一些格子，使得留白的格子形成一条横平竖直不交叉的回路。',
-          '盘面内的点提示了其所接触的（至多）四格中涂黑格和留白格哪种更多：白色表示留白格更多，黑色表示涂黑格更多，灰色表示涂黑格和留白格一样多。',
+          '涂黑一些格子，并在其余所有留白格中画一条回路。',
+          '回路不能分叉或与自身交叉。',
+          '黑色圆圈接触的格子中涂黑格多于留白格。',
+          '白色圆圈接触的格子中留白格多于涂黑格。',
+          '灰色圆圈接触的格子中涂黑格与留白格一样多。',
         ],
         en: [
           'Shade some cells and draw a single loop through all remaining unshaded cells.',
@@ -1777,8 +1795,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '连接相邻圆点画一条不和自身交叉的回路。',
-          '数字表示此格中回路经过的边数。',
+          '沿格子边画线，形成一条回路。',
+          '回路不能分叉或与自身交叉。',
+          '数字表示此格四条边中被回路经过的边数。',
         ],
         en: [
           'Draw lines along cell edges to form one single loop.',
@@ -1787,8 +1806,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（2×2）',
-        en: 'Example (2×2)',
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
       },
       playableLabel: {
         'zh-CN': '题面',
@@ -1800,13 +1819,18 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       example: {
         puzzleType: 'slither',
-        width: 2,
-        height: 2,
+        width: 4,
+        height: 4,
         clues: [
-          [2, 2],
-          [2, 2],
+          [null, 2, 2, null],
+          [1, null, null, 3],
+          [0, null, null, 3],
+          [null, 0, 1, null],
         ],
-        loopEdges: ['h-0-0', 'h-0-1', 'h-2-0', 'h-2-1', 'v-0-0', 'v-1-0', 'v-0-2', 'v-1-2'],
+        loopEdges: [
+          'h-0-2', 'h-0-3', 'h-1-1', 'h-1-3', 'h-2-1', 'h-2-3', 'h-3-2', 'h-3-3',
+          'v-0-2', 'v-0-4', 'v-1-1', 'v-1-3', 'v-2-2', 'v-2-4',
+        ],
       },
     },
     renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
@@ -1848,8 +1872,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '在每个区域内涂黑一个四格骨牌，使得所有涂黑的格子连通成一个整体，且没有全部涂黑的2×2结构。',
-          '不同区域中全等的四格骨牌不能相邻。',
+          '在每个区域中涂黑一个四格骨牌（由四个涂黑格组成的连通块）。',
+          '所有涂黑的格子必须连通成一个整体，且没有全部涂黑的 2×2 结构。',
+          '两个相邻的四格骨牌不能形状全等（旋转和翻转视为相同）。',
         ],
         en: [
           'Place one tetromino, a connected block of four shaded cells, in every outlined region.',
@@ -1953,17 +1978,18 @@ export const puzzleRegistry: PuzzleRegistry = {
         width: 5,
         height: 5,
         clues: [
-          { row: 0, col: 0, value: 3 },
-          { row: 2, col: 4, value: 6 },
-          { row: 4, col: 0, value: 4 },
-          { row: 4, col: 4, value: 1 },
+          { row: 0, col: 1, value: 1 },
+          { row: 0, col: 4, value: 3 },
+          { row: 1, col: 2, value: 4 },
+          { row: 2, col: 0, value: 5 },
+          { row: 4, col: 3, value: 2 },
         ],
         correctSolution: [
+          [1, 0, 1, 0, 0],
+          [0, 1, 0, 1, 0],
+          [0, 1, 0, 0, 1],
+          [0, 1, 0, 1, 1],
           [0, 0, 1, 0, 0],
-          [0, 1, 1, 1, 0],
-          [1, 1, 0, 0, 0],
-          [0, 1, 1, 1, 1],
-          [0, 0, 0, 1, 0],
         ],
       },
     },
@@ -2053,13 +2079,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <TapaExample
-          width={example.width}
-          height={example.height}
-          clues={example.clues}
-          correctSolution={example.correctSolution}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.loopExampleCellSize}
+          answer={<TapaExample width={example.width} height={example.height} clues={example.clues} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <TapaBoard puzzle={puzzle as TapaPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2129,20 +2157,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <MagicSummerExample
-          puzzle={{
-            type: 'magic-summer',
-            width: example.width,
-            height: example.height,
-            numbers: example.numbers,
-            rowSums: example.rowSums,
-            columnSums: example.columnSums,
-            clues: example.clues,
-            cells: example.cells,
-          }}
-          correctGrid={example.correctGrid}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<MagicSummerExample width={example.width} height={example.height} cells={example.cells} rowSums={example.rowSums} columnSums={example.columnSums} correctGrid={example.correctGrid} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <MagicSummerBoard puzzle={puzzle as MagicSummerPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2209,13 +2232,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <SkyscrapersExample
-          width={example.width}
-          height={example.height}
-          clues={example.clues}
-          correctGrid={example.correctGrid}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<SkyscrapersExample width={example.width} height={example.height} clues={example.clues} correctGrid={example.correctGrid} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <SkyscrapersBoard puzzle={puzzle as SkyscrapersPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2286,16 +2311,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <BattleshipExample
-          width={example.width}
-          height={example.height}
-          columnClues={example.columnClues}
-          rowClues={example.rowClues}
-          cellClues={example.cellClues}
-          fleet={example.fleet}
-          correctSolution={example.correctSolution}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.compactExampleCellSize}
+          answer={<BattleshipExample width={example.width} height={example.height} columnClues={example.columnClues} rowClues={example.rowClues} cellClues={example.cellClues} fleet={example.fleet} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <BattleshipBoard puzzle={puzzle as BattleshipPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2314,7 +2338,9 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       rules: {
         'zh-CN': [
-          '把盘面分成若干个两格区域，使得所有由给出的列表里的数字组成的（无序）数对都在恰好一个区域内同时出现。',
+          '把盘面分成若干个 1×2 或 2×1 的多米诺。',
+          '每个格子必须恰好属于一个多米诺。',
+          '每个多米诺覆盖的两个数字必须对应目标列表中的一个数对，并且每个目标数对必须恰好使用一次。',
         ],
         en: [
           'Divide the grid into 1×2 or 2×1 dominoes.',
@@ -2323,8 +2349,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（4×4）',
-        en: 'Example (4×4)',
+        'zh-CN': '例题（5×4）',
+        en: 'Example (5×4)',
       },
       playableLabel: {
         'zh-CN': '题面',
@@ -2336,23 +2362,25 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       example: {
         puzzleType: 'domino-search',
-        width: 4,
+        width: 5,
         height: 4,
         numbers: [
-          [0, 1, 2, 3],
-          [0, 0, 1, 2],
-          [3, 3, 0, 2],
-          [1, 1, 0, 3],
+          [0, 1, 2, 1, 0],
+          [0, 2, 2, 1, 0],
+          [1, 3, 2, 3, 1],
+          [3, 3, 0, 3, 2],
         ],
-        dominoes: [[0, 1], [2, 3], [0, 0], [1, 2], [3, 3], [0, 2], [1, 1], [0, 3]],
+        dominoes: [[0, 0], [0, 1], [0, 2], [0, 3], [1, 1], [1, 2], [1, 3], [2, 2], [2, 3], [3, 3]],
         solutionEdges: [
           { r1: 0, c1: 0, r2: 0, c2: 1 },
-          { r1: 0, c1: 2, r2: 0, c2: 3 },
+          { r1: 0, c1: 2, r2: 1, c2: 2 },
+          { r1: 0, c1: 3, r2: 1, c2: 3 },
+          { r1: 0, c1: 4, r2: 1, c2: 4 },
           { r1: 1, c1: 0, r2: 1, c2: 1 },
-          { r1: 1, c1: 2, r2: 1, c2: 3 },
-          { r1: 2, c1: 0, r2: 2, c2: 1 },
+          { r1: 2, c1: 0, r2: 3, c2: 0 },
+          { r1: 2, c1: 1, r2: 3, c2: 1 },
           { r1: 2, c1: 2, r2: 2, c2: 3 },
-          { r1: 3, c1: 0, r2: 3, c2: 1 },
+          { r1: 2, c1: 4, r2: 3, c2: 4 },
           { r1: 3, c1: 2, r2: 3, c2: 3 },
         ],
       },
@@ -2478,8 +2506,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（3×3）',
-        en: 'Example (3×3)',
+        'zh-CN': '例题（6×6）',
+        en: 'Example (6×6)',
       },
       playableLabel: {
         'zh-CN': '题面',
@@ -2491,18 +2519,24 @@ export const puzzleRegistry: PuzzleRegistry = {
       },
       example: {
         puzzleType: 'slovak-sums',
-        width: 3,
-        height: 3,
-        numbers: [1, 2],
+        width: 6,
+        height: 6,
+        numbers: [1, 2, 3],
         cells: [
-          [null, null, { sum: 3, count: 2 }],
-          [null, { sum: 6, count: 4 }, null],
-          [{ sum: 3, count: 2 }, null, null],
+          [null, null, null, { sum: 4, count: 2 }, null, null],
+          [null, { sum: 6, count: 3 }, null, null, null, null],
+          [null, null, null, null, null, { sum: 3, count: 1 }],
+          [{ sum: 1, count: 1 }, null, null, null, null, null],
+          [null, null, null, null, { sum: 5, count: 2 }, null],
+          [null, null, { sum: 2, count: 1 }, null, null, null],
         ],
         correctGrid: [
-          [1, 2, null],
-          [2, null, 1],
-          [null, 1, 2],
+          [null, 3, 1, null, null, 2],
+          [2, null, null, 3, 1, null],
+          [null, 1, 2, null, 3, null],
+          [null, null, 3, 1, 2, null],
+          [1, 2, null, null, null, 3],
+          [3, null, null, 2, null, 1],
         ],
       },
     },
@@ -2594,15 +2628,15 @@ export const puzzleRegistry: PuzzleRegistry = {
       }
 
       return (
-        <KakuroExample
-          width={example.width}
-          height={example.height}
-          cells={example.cells}
-          topClues={example.topClues}
-          leftClues={example.leftClues}
-          correctGrid={example.correctGrid}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<KakuroExample width={example.width} height={example.height} cells={example.cells} correctGrid={example.correctGrid} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <KakuroBoard puzzle={puzzle as KakuroPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2736,18 +2770,23 @@ export const puzzleRegistry: PuzzleRegistry = {
       if (example.puzzleType !== 'shape-minesweeper') {
         throw new Error('Shape Minesweeper template example type mismatch.');
       }
+      const examplePuzzle: ShapeMinesweeperPuzzleData = {
+        type: 'shape-minesweeper',
+        width: example.width,
+        height: example.height,
+        clues: example.clues,
+        shapes: example.shapes,
+      };
       return (
-        <ShadingPuzzleExample
-          puzzle={{
-            type: 'shape-minesweeper',
-            width: example.width,
-            height: example.height,
-            clues: example.clues,
-            shapes: example.shapes,
-          }}
-          correctSolution={example.correctSolution}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<ShadingPuzzleExample puzzle={examplePuzzle} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <ShapeMinesweeperBoard puzzle={puzzle as ShapeMinesweeperPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2811,12 +2850,17 @@ export const puzzleRegistry: PuzzleRegistry = {
       if (example.puzzleType !== 'cave') {
         throw new Error('Cave template example type mismatch.');
       }
+      const examplePuzzle: CavePuzzleData = { type: 'cave', width: example.width, height: example.height, clues: example.clues };
       return (
-        <ShadingPuzzleExample
-          puzzle={{ type: 'cave', width: example.width, height: example.height, clues: example.clues }}
-          correctSolution={example.correctSolution}
+        <PlayableExample
+          example={example}
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<ShadingPuzzleExample puzzle={examplePuzzle} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <CaveBoard puzzle={puzzle as CavePuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
         />
       );
     },
@@ -2842,12 +2886,73 @@ export const puzzleRegistry: PuzzleRegistry = {
       type: 'four-winds-with-parks', name: { 'zh-CN': '四风带公园', en: 'Four Winds with Parks' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
       rules: { 'zh-CN': ['从数字格边缘画出指向四个方向的箭头；箭头不能重叠。每行每列恰好有一个公园（圈）。数字是从该格出发的箭头总长度。'], en: ['Draw non-overlapping arrows from numbered cell edges. Every row and column has exactly one park (circle). A clue is the total length of arrows starting beside it.'] },
       exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
-      example: { puzzleType: 'four-winds-with-parks', width: 2, height: 2, clues: [[1, null], [null, 1]], correctGrid: [[0, 4], [1, 0]] },
+      example: {
+        puzzleType: 'four-winds-with-parks',
+        width: 5,
+        height: 5,
+        clues: [
+          [3, null, null, 4, null],
+          [null, null, 2, null, null],
+          [null, null, null, null, null],
+          [null, null, 2, null, null],
+          [null, 1, null, null, 2],
+        ],
+        correctGrid: [
+          [0, 2, 0, 0, 2],
+          [3, 4, 0, 3, 0],
+          [3, 0, 3, 3, 1],
+          [0, 4, 0, 3, 1],
+          [4, 0, 3, 0, 0],
+        ],
+      },
     },
     renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <FourWindsWithParksBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
     renderExample: (template, locale) => {
       const example = template.example;
       if (example.puzzleType !== 'four-winds-with-parks') throw new Error('Four Winds with Parks template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
+  },
+  'fourwinds': {
+    parsePuzzLink: parseFourWindsLink,
+    template: {
+      type: 'fourwinds', name: { 'zh-CN': '四风', en: 'Four Winds' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '在空格中画箭头。箭头只能沿上下左右四个方向，并且必须从数字格的边缘出发。',
+          '每个空格必须恰好被一个箭头覆盖。',
+          '数字表示从该格边缘出发的所有箭头的总长度。',
+        ],
+        en: [
+          'Draw arrows in the empty cells. Arrows may only point in the four standard directions and must begin at the edge of a numbered cell.',
+          'Every empty cell must be covered by exactly one arrow.',
+          "A number indicates the total length of all arrows that begin at an edge next to that number's cell.",
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      // WPF Puzzle GP 2016, Round 1 Competitive instructions example (5×5).
+      example: {
+        puzzleType: 'fourwinds', width: 5, height: 5,
+        clues: [
+          [null, null, 2, null, null],
+          [null, null, null, null, 4],
+          [null, 3, null, 2, null],
+          [6, null, null, null, null],
+          [null, null, 2, null, null],
+        ],
+        correctGrid: [
+          [1, 1, 1, 2, 1],
+          [1, 1, 3, 1, 1],
+          [1, 1, 2, 1, 3],
+          [1, 2, 2, 3, 3],
+          [3, 4, 1, 2, 3],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <FourWindsBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'fourwinds') throw new Error('Four Winds template example type mismatch.');
       return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
     },
   },
@@ -2857,7 +2962,40 @@ export const puzzleRegistry: PuzzleRegistry = {
       type: 'consecutive-kakuro', name: { 'zh-CN': '连续数和', en: 'Consecutive Kakuro' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
       rules: { 'zh-CN': ['按数和规则填入 1~9；白线相邻格必须填连续数字，无白线相邻格不能填连续数字。'], en: ['Solve as Kakuro with digits 1–9. White bars require consecutive digits; adjacent cells without a bar may not be consecutive.'] },
       exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
-      example: { puzzleType: 'consecutive-kakuro', width: 2, height: 2, cells: [[{ right: 1, down: 1 }, null], [null, null]], topClues: [null, null], leftClues: [null, null], horizontalBars: [[true], [false]], verticalBars: [[true, false]], correctGrid: [[null, 1], [1, null]] },
+      example: {
+        puzzleType: 'consecutive-kakuro',
+        width: 5,
+        height: 5,
+        cells: [
+          [{ right: null, down: null }, { right: null, down: 7 }, { right: null, down: null }, { right: null, down: 11 }, { right: null, down: null }],
+          [{ right: null, down: null }, null, { right: 12, down: 9 }, null, null],
+          [{ right: 10, down: null }, null, null, null, { right: null, down: 8 }],
+          [{ right: null, down: null }, { right: 6, down: null }, null, null, null],
+          [{ right: 5, down: null }, null, null, { right: null, down: null }, null],
+        ],
+        topClues: [null, null, null, null, null],
+        leftClues: [null, null, null, null, null],
+        horizontalBars: [
+          [false, false, false, false],
+          [false, false, false, false],
+          [false, false, true, false],
+          [false, false, true, false],
+          [false, false, false, false],
+        ],
+        verticalBars: [
+          [false, false, false, false, false],
+          [false, false, false, false, false],
+          [false, false, true, true, false],
+          [false, false, false, false, false],
+        ],
+        correctGrid: [
+          [null, null, null, null, null],
+          [null, 2, null, 8, 4],
+          [null, 5, 3, 2, null],
+          [null, null, 2, 1, 3],
+          [null, 1, 4, null, 5],
+        ],
+      },
     },
     renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => <ConsecutiveKakuroBoard puzzle={puzzle} startTime={startTime} resetToken={resetToken} onComplete={onComplete} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} />,
     renderExample: (template, locale) => {
@@ -2868,15 +3006,72 @@ export const puzzleRegistry: PuzzleRegistry = {
   },
   'japanese-sums-with-zeroes': {
     parsePuzzLink: parseJapaneseSumsLink,
-    template: { type: 'japanese-sums-with-zeroes', name: { 'zh-CN': '带零日式和', en: 'Japanese Sums with Zeroes' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' }, rules: { 'zh-CN': ['在格子中填入 0 到 6；空格分隔连续数字组，外侧数字给出各组之和。0 不会分隔数字组。'], en: ['Fill digits 0–6. Empty cells separate runs; outside clues give the sums of runs. Zero is a digit and does not separate runs.'] }, exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' }, example: { puzzleType: 'japanese-sums-with-zeroes', width: 2, height: 2, maxDigit: 6, clues: { top: [[1],[2]], right: [[],[]], bottom: [[],[]], left: [[1],[2]] }, correctGrid: [[1, null], [2, null]] } },
+    template: {
+      type: 'japanese-sums-with-zeroes', name: { 'zh-CN': '带零日式和', en: 'Japanese Sums with Zeroes' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '在部分格子中填入 0 到题目给定的最大数字，同一行或同一列中每个数字最多出现一次；格子可以留空。',
+          '盘面外的数字表示该行或该列中所有连续数字组的和（包括只有一个数字的“组”）。',
+          '这些数字组之间由空格分隔（数字 0 不算空格）。',
+          '外侧的和按对应数字组的顺序给出。',
+        ],
+        en: [
+          "Place a digit from 0 up to the puzzle's maximum digit into some cells so that no digit appears more than once in each row or column. Cells may remain empty.",
+          'Numbers outside the grid indicate all sums of continuous groups of digits (including "sums" of a single digit) along that row or column.',
+          'These groups are separated by empty cells (a cell with 0 is not considered empty).',
+          'These sums are given in the same order as their corresponding groups of digits.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      // 例题与答案取自
+      // http://localhost:8080/p.html?japanesesumswithzeroes/5/5/4/5h34gah33g45gah4h61g43g9h
+      example: {
+        puzzleType: 'japanese-sums-with-zeroes',
+        width: 5,
+        height: 5,
+        maxDigit: 4,
+        clues: {
+          top: [[5], [4, 3], [10], [3, 3], [5, 4]],
+          right: [[], [], [], [], []],
+          bottom: [[], [], [], [], []],
+          left: [[10], [4], [1, 6], [3, 4], [9]],
+        },
+        correctGrid: [
+          [null, 4, 3, 1, 2],
+          [null, null, 1, 0, 3],
+          [1, null, 4, 2, null],
+          [0, 1, 2, null, 4],
+          [4, 2, 0, 3, null],
+        ],
+      },
+    },
     renderBoard: (props) => <JapaneseSumsBoard {...props} />,
-    renderExample: () => <div className="rounded-md border p-4 text-center">Japanese Sums with Zeroes</div>,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'japanese-sums-with-zeroes') throw new Error('Japanese Sums with Zeroes template example type mismatch.');
+      return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
+    },
   },
   'abc-box': {
     parsePuzzLink: parseABCBoxLink,
     template: { type: 'abc-box', name: { 'zh-CN': 'ABC 盒', en: 'ABC-Box' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' }, rules: { 'zh-CN': ['每格填入 A、B、C 之一；外侧符号描述同字母连续区段的长度或字母。'], en: ['Fill each cell with A, B, or C. Outside symbols describe the lengths or letters of consecutive runs.'] }, exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' }, example: { puzzleType: 'abc-box', width: 2, height: 2, givens: [['A', null], [null, 'B']], clues: { top: [[],[]], right: [[],[]], bottom: [[],[]], left: [[],[]] }, correctGrid: [['A','B'],['C','A']] } },
     renderBoard: (props) => <ABCBoxBoard {...props} />,
-    renderExample: () => <div className="rounded-md border p-4 text-center">ABC-Box</div>,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'abc-box') throw new Error('ABC-Box template example type mismatch.');
+      return (
+        <PlayableExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<ABCBoxExample example={example} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <ABCBoxBoard puzzle={puzzle as ABCBoxPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
+        />
+      );
+    },
   },
   magnets: {
     parsePuzzLink: parseMagnetsLink,
@@ -2897,26 +3092,45 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      // 例题与答案取自
+      // http://localhost:8080/p.html?magnets/6/6/121232233111212232121222dfnrrlrebqqu
       example: {
         puzzleType: 'magnets',
-        width: 4,
-        height: 4,
+        width: 6,
+        height: 6,
         regions: [
           [{ row: 0, col: 0 }, { row: 0, col: 1 }],
           [{ row: 0, col: 2 }, { row: 1, col: 2 }],
-          [{ row: 0, col: 3 }, { row: 1, col: 3 }],
+          [{ row: 0, col: 3 }, { row: 0, col: 4 }],
+          [{ row: 0, col: 5 }, { row: 1, col: 5 }],
           [{ row: 1, col: 0 }, { row: 1, col: 1 }],
-          [{ row: 2, col: 0 }, { row: 2, col: 1 }],
-          [{ row: 2, col: 2 }, { row: 3, col: 2 }],
-          [{ row: 2, col: 3 }, { row: 3, col: 3 }],
-          [{ row: 3, col: 0 }, { row: 3, col: 1 }],
+          [{ row: 1, col: 3 }, { row: 2, col: 3 }],
+          [{ row: 1, col: 4 }, { row: 2, col: 4 }],
+          [{ row: 2, col: 0 }, { row: 3, col: 0 }],
+          [{ row: 2, col: 1 }, { row: 2, col: 2 }],
+          [{ row: 2, col: 5 }, { row: 3, col: 5 }],
+          [{ row: 3, col: 1 }, { row: 4, col: 1 }],
+          [{ row: 3, col: 2 }, { row: 3, col: 3 }],
+          [{ row: 3, col: 4 }, { row: 4, col: 4 }],
+          [{ row: 4, col: 0 }, { row: 5, col: 0 }],
+          [{ row: 4, col: 2 }, { row: 4, col: 3 }],
+          [{ row: 4, col: 5 }, { row: 5, col: 5 }],
+          [{ row: 5, col: 1 }, { row: 5, col: 2 }],
+          [{ row: 5, col: 3 }, { row: 5, col: 4 }],
         ],
-        topClues: [1, 2, 2, 2],
-        topMinusClues: [2, 1, 2, 2],
-        leftClues: [2, 2, 1, 2],
-        leftPlusClues: [2, 2, 1, 2],
-        givens: Array.from({ length: 4 }, () => Array<MagnetsPole | null>(4).fill(null)),
-        correctGrid: [[1, 2, 1, 2], [2, 1, 2, 1], [null, null, 1, 2], [2, 1, 2, 1]],
+        topClues: [2, 2, 2, 3, 1, 1],
+        topMinusClues: [1, 1, 3, 2, 3, 1],
+        leftClues: [2, 2, 3, 1, 1, 2],
+        leftPlusClues: [1, 2, 2, 2, 2, 2],
+        givens: Array.from({ length: 6 }, () => Array<MagnetsPole | null>(6).fill(null)),
+        correctGrid: [
+          [null, null, 2, 1, 2, null],
+          [1, 2, 1, 2, null, null],
+          [2, 1, 2, 1, null, 2],
+          [1, null, null, null, 2, 1],
+          [null, null, 1, 2, 1, null],
+          [null, 1, 2, 1, 2, null],
+        ],
       },
     },
     renderBoard: (props) => <MagnetsBoard {...props} />,
@@ -3169,6 +3383,8 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
       return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1) && cell <= 9) &&
         isTypedMatrix(value.arrows, width, height, (cell) => typeof cell === 'string' && ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].includes(cell));
     case 'four-winds-with-parks':
+      return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1));
+    case 'fourwinds':
       return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1));
     case 'consecutive-kakuro':
       return isTypedMatrix(value.cells, width, height, (cell) => cell === null || (

@@ -76,9 +76,13 @@ export default function NurikabeBoard({
     grid: Array.from({ length: height }, () => Array(width).fill(0)),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeNurikabeSnapshot(initialSnapshot, width, height);
-  }, [height, initialSnapshot, width]);
+    return normalizeNurikabeSnapshot(initialSnapshotRef.current, width, height);
+  }, [height, width]);
 
   const history = usePuzzleHistory<NurikabeSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({

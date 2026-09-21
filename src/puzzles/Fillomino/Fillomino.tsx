@@ -42,6 +42,7 @@ interface Props {
   onComplete: (time: number) => void;
   initialSnapshot?: unknown;
   onSnapshotChange?: (snapshot: unknown) => void;
+  fixedCellSize?: number;
 }
 
 type DragType = 'copy' | 'clear' | 'thinLine' | 'deepLine' | 'tapNumber';
@@ -87,6 +88,7 @@ export default function FillominoBoard({
   onComplete,
   initialSnapshot,
   onSnapshotChange,
+  fixedCellSize,
 }: Props) {
   const { copy } = useI18n();
   const { width, height, clues } = puzzle;
@@ -94,10 +96,11 @@ export default function FillominoBoard({
   // ==================== 响应式尺寸 ====================
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const cellSize = useMemo(() => getResponsiveCellSize({
+    fixedCellSize,
     viewportWidth,
     width,
     containerWidth: true,
-  }), [viewportWidth, width]);
+  }), [fixedCellSize, viewportWidth, width]);
 
   const [isTouchDevice, setIsTouchDevice] = useState(() =>
     typeof window !== 'undefined' &&

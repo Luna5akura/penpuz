@@ -111,9 +111,13 @@ export default function HeyawakeBoard({
     grid: createEmptyHeyawakeGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(() => {
-    return normalizeHeyawakeSnapshot(initialSnapshot, width, height);
-  }, [height, initialSnapshot, width]);
+    return normalizeHeyawakeSnapshot(initialSnapshotRef.current, width, height);
+  }, [height, width]);
 
   const history = usePuzzleHistory<HeyawakeSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({

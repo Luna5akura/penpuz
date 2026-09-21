@@ -7,6 +7,7 @@ import {
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
+  getBoardCellStyle,
   getBoardBoundaryStrokeMetrics,
   getBoardFrameDimensions,
   getBoardFrameStyle,

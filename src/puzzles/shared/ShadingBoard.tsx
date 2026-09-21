@@ -22,6 +22,7 @@ import {
   commonBoardChrome,
   getBoardCellStyle,
   getBoardBoundaryStrokeMetrics,
+  getBoardClueTextStyle,
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
@@ -64,6 +65,8 @@ interface ShadingBoardProps<TPuzzle extends { width: number; height: number }> {
   fixedCellSize?: number;
   showValidationMessage?: boolean;
   outsideClues?: ShadingBoardOutsideClues;
+  /** Render outside clue digits at the same size as in-cell clues (e.g. Battleships). */
+  outsideClueCellTextSize?: boolean;
   renderBoardAccessory?: (cellSize: number) => ReactNode;
   boundaries?: BoundarySegments;
   isLockedCell?: (row: number, col: number) => boolean;
@@ -120,6 +123,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   fixedCellSize,
   showValidationMessage = false,
   outsideClues,
+  outsideClueCellTextSize = false,
   renderBoardAccessory,
   boundaries,
   isLockedCell = () => false,
@@ -454,7 +458,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                 style={{
                   left: `${gridLeft + (col + 0.5) * cellSize}px`,
                   top: `${BOARD_PADDING + outsideTop / 2}px`,
-                  ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
+                  ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, cellSize, value)),
                 }}
               >
                 {value}
@@ -467,7 +471,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                 style={{
                   left: `${gridLeft + (col + 0.5) * cellSize}px`,
                   top: `${gridTop + boardHeightPx + outsideBottom / 2}px`,
-                  ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
+                  ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, cellSize, value)),
                 }}
               >
                 {value}
@@ -480,7 +484,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                 style={{
                   left: `${BOARD_PADDING + outsideLeft / 2}px`,
                   top: `${gridTop + (row + 0.5) * cellSize}px`,
-                  ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
+                  ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value)),
                 }}
               >
                 {value}
@@ -493,7 +497,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                 style={{
                   left: `${gridLeft + boardWidthPx + outsideRight / 2}px`,
                   top: `${gridTop + (row + 0.5) * cellSize}px`,
-                  ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
+                  ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value)),
                 }}
               >
                 {value}

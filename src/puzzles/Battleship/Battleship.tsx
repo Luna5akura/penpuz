@@ -75,6 +75,7 @@ export default function BattleshipBoard({
       fixedCellSize={fixedCellSize}
       showValidationMessage={showValidationMessage}
       outsideClues={{ top: puzzle.columnClues, left: puzzle.rowClues }}
+      outsideClueCellTextSize
       renderBoardAccessory={(cellSize) => (
         <BattleshipFleet fleet={puzzle.fleet} boardCellSize={cellSize} />
       )}

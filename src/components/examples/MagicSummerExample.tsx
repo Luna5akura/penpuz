@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
   boardLayoutMetrics,
@@ -13,33 +11,43 @@ import {
   getBoardTextStyle,
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
-import type { MagicSummerPuzzleData } from '@/puzzles/types';
+import type { MagicSummerCell } from '@/puzzles/types';
 import BoardCellMark from '@/puzzles/shared/BoardCellMark';
 
 interface Props {
-  puzzle: MagicSummerPuzzleData;
+  width: number;
+  height: number;
+  cells: MagicSummerCell[][];
+  rowSums: (number | null)[];
+  columnSums: (number | null)[];
   correctGrid: (number | null)[][];
-  playableLabel: string;
-  answerLabel: string;
 }
 
 const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 3);
 
 function MagicSummerDiagram({
-  puzzle,
+  width,
+  height,
+  cells,
+  rowSums,
+  columnSums,
   values,
 }: {
-  puzzle: MagicSummerPuzzleData;
+  width: number;
+  height: number;
+  cells: MagicSummerCell[][];
+  rowSums: (number | null)[];
+  columnSums: (number | null)[];
   values?: (number | null)[][];
 }) {
   const clues = {
-    top: puzzle.columnSums,
-    left: puzzle.rowSums,
+    top: columnSums,
+    left: rowSums,
   };
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
-    puzzle.width,
-    puzzle.height,
+    width,
+    height,
     CELL_SIZE,
     {
       outsideLeft: CLUE_GUTTER,
@@ -62,9 +70,9 @@ function MagicSummerDiagram({
     >
       <div
         className="absolute grid"
-        style={getBoardGridStyle(gridLeft, gridTop, puzzle.width, CELL_SIZE)}
+        style={getBoardGridStyle(gridLeft, gridTop, width, CELL_SIZE)}
       >
-        {puzzle.cells.flatMap((row, rowIndex) =>
+        {cells.flatMap((row, rowIndex) =>
           row.map((cell, colIndex) => {
             const value = values?.[rowIndex]?.[colIndex] ?? (typeof cell === 'number' ? cell : null);
             const isBlocked = cell === 'block';
@@ -84,7 +92,7 @@ function MagicSummerDiagram({
                 }}
               >
                 {isBlocked ? (
-                  <BoardCellMark kind="cross" cellSize={CELL_SIZE} />
+                  <BoardCellMark kind="cross" cellSize={CELL_SIZE} color={woodBoardTheme.darkCellText} />
                 ) : value}
               </div>
             );
@@ -131,34 +139,12 @@ function MagicSummerDiagram({
 }
 
 export default function MagicSummerExample({
-  puzzle,
+  width,
+  height,
+  cells,
+  rowSums,
+  columnSums,
   correctGrid,
-  playableLabel,
-  answerLabel,
 }: Props) {
-  const [showAnswer, setShowAnswer] = useState(false);
-
-  return (
-    <>
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-          <div className="flex justify-center overflow-x-auto">
-            <MagicSummerDiagram puzzle={puzzle} />
-          </div>
-        </div>
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
-          <ExampleAnswerReveal
-            visible={showAnswer}
-            onVisibleChange={setShowAnswer}
-            ariaLabel={answerLabel}
-            className="flex justify-center overflow-x-auto"
-          >
-            <MagicSummerDiagram puzzle={puzzle} values={correctGrid} />
-          </ExampleAnswerReveal>
-        </div>
-      </div>
-    </>
-  );
+  return <MagicSummerDiagram width={width} height={height} cells={cells} rowSums={rowSums} columnSums={columnSums} values={correctGrid} />;
 }

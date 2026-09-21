@@ -244,9 +244,13 @@ export default function PillsBoard({ puzzle, startTime, resetToken, onComplete, 
     lineEdges: [],
     lineLevels: {},
   }), [height, width]);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(
-    () => normalizePillsSnapshot(initialSnapshot, width, height),
-    [height, initialSnapshot, width]
+    () => normalizePillsSnapshot(initialSnapshotRef.current, width, height),
+    [height, width]
   );
 
   const history = usePuzzleHistory<PillsSnapshot>(createInitialSnapshot(), {

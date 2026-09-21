@@ -1,15 +1,13 @@
-import { useState } from 'react';
-import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import {
   boardClassNames,
   boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
+  getBoardClueTextStyle,
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
   getBoardOutsideClueGutter,
-  getBoardOutsideClueTextStyle,
   getBoardTextStyle,
 } from '@/puzzles/boardTheme';
 import type { SkyscrapersClues } from '@/puzzles/types';
@@ -19,8 +17,6 @@ interface Props {
   height: number;
   clues: SkyscrapersClues;
   correctGrid: number[][];
-  playableLabel: string;
-  answerLabel: string;
 }
 
 const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
@@ -87,7 +83,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${left + (col + 0.5) * CELL_SIZE}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
-                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
+                ...getBoardClueTextStyle(CELL_SIZE),
               }}
             >
               {value}
@@ -102,7 +98,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${left + (col + 0.5) * CELL_SIZE}px`,
                 top: `${top + height * CELL_SIZE + CLUE_GUTTER / 2}px`,
-                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
+                ...getBoardClueTextStyle(CELL_SIZE),
               }}
             >
               {value}
@@ -117,7 +113,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
                 top: `${top + (row + 0.5) * CELL_SIZE}px`,
-                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
+                ...getBoardClueTextStyle(CELL_SIZE),
               }}
             >
               {value}
@@ -132,7 +128,7 @@ function SkyscrapersDiagram({
               style={{
                 left: `${left + width * CELL_SIZE + CLUE_GUTTER / 2}px`,
                 top: `${top + (row + 0.5) * CELL_SIZE}px`,
-                ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
+                ...getBoardClueTextStyle(CELL_SIZE),
               }}
             >
               {value}
@@ -149,32 +145,6 @@ export default function SkyscrapersExample({
   height,
   clues,
   correctGrid,
-  playableLabel,
-  answerLabel,
 }: Props) {
-  const [showAnswer, setShowAnswer] = useState(false);
-
-  return (
-    <>
-      <div className="grid gap-6 md:grid-cols-2">
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-          <div className="flex max-w-full justify-start overflow-x-auto overscroll-x-contain pb-1 md:justify-center">
-            <SkyscrapersDiagram width={width} height={height} clues={clues} />
-          </div>
-        </div>
-        <div>
-          <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>
-          <ExampleAnswerReveal
-            visible={showAnswer}
-            onVisibleChange={setShowAnswer}
-            ariaLabel={answerLabel}
-            className="flex max-w-full justify-start overflow-x-auto overscroll-x-contain pb-1 md:justify-center"
-          >
-            <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} />
-          </ExampleAnswerReveal>
-        </div>
-      </div>
-    </>
-  );
+  return <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} />;
 }

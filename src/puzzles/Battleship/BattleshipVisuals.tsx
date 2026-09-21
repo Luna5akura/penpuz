@@ -50,7 +50,6 @@ export function BattleshipSegmentSymbol({
     : color ?? woodBoardTheme.battleshipShip;
   const connections = getSegmentConnections(segment, neighbors);
   const center = cellSize / 2;
-  const padding = Math.max(2, cellSize * 0.08);
   const halfThickness = cellSize * 0.32;
   const thickness = halfThickness * 2;
   const connectionCount = Object.values(connections).filter(Boolean).length;
@@ -129,10 +128,10 @@ export function BattleshipSegmentSymbol({
     >
       {segment === 'unknown' || (segment === 'center' && connectionCount === 0) ? (
         <rect
-          x={padding}
-          y={padding}
-          width={cellSize - padding * 2}
-          height={cellSize - padding * 2}
+          x={center - halfThickness}
+          y={center - halfThickness}
+          width={thickness}
+          height={thickness}
           fill={fill}
         />
       ) : connectionCount === 0 ? (

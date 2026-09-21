@@ -117,6 +117,11 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
       top: Array.from({ length: puzzle.width }, (_, col) => [puzzle.topClues[col], puzzle.topMinusClues[col]]),
       left: Array.from({ length: puzzle.height }, (_, row) => [puzzle.leftPlusClues[row], puzzle.leftClues[row]]),
     }}
+    outsideClueStackCellTextSize
+    outsideClueCornerMarks={[
+      { row: 0, col: 0, label: '+' },
+      { row: 1, col: 1, label: '−' },
+    ]}
     startTime={startTime}
     resetToken={resetToken}
     onComplete={onComplete}

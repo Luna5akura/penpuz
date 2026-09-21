@@ -372,9 +372,13 @@ export default function SlitherlinkBoard({
     cellMarks: {},
     cellMarkLevels: {},
   }), []);
+  const initialSnapshotRef = useRef(initialSnapshot);
+  useEffect(() => {
+    initialSnapshotRef.current = initialSnapshot;
+  }, [initialSnapshot]);
   const getResetSnapshot = useCallback(
-    () => normalizeSlitherlinkSnapshot(initialSnapshot, width, height),
-    [height, initialSnapshot, width]
+    () => normalizeSlitherlinkSnapshot(initialSnapshotRef.current, width, height),
+    [height, width]
   );
 
   const history = usePuzzleHistory<SlitherlinkSnapshot>(createInitialSnapshot(), {
