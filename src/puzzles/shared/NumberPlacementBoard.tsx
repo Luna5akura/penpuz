@@ -127,6 +127,8 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   outsideClueStacks?: Partial<Record<NumberPlacementOutsideSide, readonly (readonly (number | string | null)[])[]>>;
   /** Render stack clues at the same size as in-cell clues instead of the compact gutter size (e.g. Magnets). */
   outsideClueStackCellTextSize?: boolean;
+  /** Keyboard digits go to the hovered cell, and the S key toggles the input mode (e.g. Skyscrapers). */
+  hoverKeyboardEntry?: boolean;
   /** Render single-value outside clues at the same size as in-cell clues (e.g. Skyscrapers). */
   outsideClueCellTextSize?: boolean;
   /** Legend marks drawn in the top-left corner cells of the clue gutter (e.g. Magnets pole labels). */
@@ -343,6 +345,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   outsideClueStacks,
   outsideClueStackCellTextSize = false,
   outsideClueCellTextSize = false,
+  hoverKeyboardEntry = false,
   outsideClueCornerMarks,
   outsideInput,
   initialSnapshot,
@@ -355,6 +358,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const { copy } = useI18n();
   const { width, height } = puzzle;
   const [selectedCell, setSelectedCell] = useState<CellCoord | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<CellCoord | null>(null);
   const [activeCellInputMode, setActiveCellInputMode] = useState<NumberPlacementInputMode>(cellInputMode);
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -893,8 +897,25 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isKeyboardInputTarget(event.target)) return;
-      if (!selectedCell || !selectedEditable || event.altKey || event.ctrlKey || event.metaKey) return;
-      const selectedOutside = getOutsidePosition(selectedCell.row, selectedCell.col) !== null;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+
+      // The S key toggles between the available input modes (number entry
+      // and candidates) when hover keyboard entry is enabled.
+      if (hoverKeyboardEntry && (event.key === 's' || event.key === 'S')) {
+        const modes = (inputModeOptions ?? []).map((option) => option.mode);
+        if (modes.length > 1) {
+          const nextIndex = (modes.indexOf(activeCellInputMode) + 1) % modes.length;
+          event.preventDefault();
+          setActiveCellInputMode(modes[nextIndex]);
+          setSelectedCell(null);
+          keyboardEntryRef.current = null;
+        }
+        return;
+      }
+
+      const target = hoverKeyboardEntry ? (hoveredCell ?? selectedCell) : selectedCell;
+      if (!target || !isPositionEditable(target.row, target.col)) return;
+      const targetOutside = getOutsidePosition(target.row, target.col) !== null;
 
       const value = getKeyboardDigit(event);
       // Treat 0 as a clear shortcut only for puzzles whose number set does
@@ -904,25 +925,25 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       if (event.key === 'Backspace' || event.key === 'Delete' || (value === 0 && !numbers.includes(0))) {
         event.preventDefault();
         keyboardEntryRef.current = null;
-        setPositionValue(selectedCell.row, selectedCell.col, null);
+        setPositionValue(target.row, target.col, null);
         return;
       }
 
       if (value === null) return;
 
-      if (activeCellInputMode === 'candidates' && !selectedOutside) {
+      if (activeCellInputMode === 'candidates' && !targetOutside) {
         keyboardEntryRef.current = null;
         if (!numbers.includes(value)) return;
         event.preventDefault();
-        toggleCandidate(selectedCell.row, selectedCell.col, value);
+        toggleCandidate(target.row, target.col, value);
         return;
       }
 
       const now = Date.now();
       const previousEntry = keyboardEntryRef.current;
       const canAppend = previousEntry !== null &&
-        previousEntry.row === selectedCell.row &&
-        previousEntry.col === selectedCell.col &&
+        previousEntry.row === target.row &&
+        previousEntry.col === target.col &&
         now - previousEntry.timestamp <= KEYBOARD_ENTRY_TIMEOUT_MS;
       const nextText = canAppend ? `${previousEntry.text}${value}` : String(value);
       const nextNumber = Number(nextText);
@@ -931,13 +952,13 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       if (hasAllowedPrefix) {
         event.preventDefault();
         keyboardEntryRef.current = {
-          row: selectedCell.row,
-          col: selectedCell.col,
+          row: target.row,
+          col: target.col,
           text: nextText,
           timestamp: now,
         };
         if (numbers.includes(nextNumber)) {
-          setPositionValue(selectedCell.row, selectedCell.col, nextNumber);
+          setPositionValue(target.row, target.col, nextNumber);
         }
         return;
       }
@@ -946,18 +967,18 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       if (numbers.includes(value)) {
         event.preventDefault();
         keyboardEntryRef.current = {
-          row: selectedCell.row,
-          col: selectedCell.col,
+          row: target.row,
+          col: target.col,
           text: String(value),
           timestamp: now,
         };
-        setPositionValue(selectedCell.row, selectedCell.col, value);
+        setPositionValue(target.row, target.col, value);
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [activeCellInputMode, getOutsidePosition, numbers, selectedCell, selectedEditable, setPositionValue, toggleCandidate]);
+  }, [activeCellInputMode, getOutsidePosition, hoverKeyboardEntry, hoveredCell, inputModeOptions, isPositionEditable, numbers, selectedCell, setPositionValue, toggleCandidate]);
 
   const handleCellPointerDown = (row: number, col: number, event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -1101,6 +1122,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               maxWidth: 'none',
             }}
             onContextMenu={(event) => event.preventDefault()}
+            onMouseLeave={hoverKeyboardEntry ? () => setHoveredCell(null) : undefined}
           >
         <div
           className="absolute grid"
@@ -1113,6 +1135,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               const blocked = isBlockedCell(row, col);
               const editable = !blocked && fixedValue === null;
               const selected = activeCellInputMode !== 'cycle' && selectedCell?.row === row && selectedCell?.col === col;
+              const hovered = hoverKeyboardEntry && editable && hoveredCell?.row === row && hoveredCell?.col === col;
               const trialColors = getTrialLevelColors(levels[row][col]);
               const tone = getCellTone?.(row, col, value) ?? (
                 blocked ? 'shaded' : fixedValue !== null ? 'prefilled' : 'cell'
@@ -1125,11 +1148,12 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 <div
                   key={key}
                   onPointerDown={(event) => handleCellPointerDown(row, col, event)}
+                  onMouseEnter={hoverKeyboardEntry ? () => setHoveredCell({ row, col }) : undefined}
                   className={boardClassNames.touchCellContent}
                   style={{
                     ...getBoardCellStyle(cellSize, tone, {
                       editable,
-                      selected,
+                      selected: selected || hovered,
                       cursor: editable ? 'pointer' : 'default',
                     }),
                     ...(editable ? trialStyle : undefined),
