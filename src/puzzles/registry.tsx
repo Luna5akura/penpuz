@@ -175,7 +175,7 @@ const magicSnailExampleCorrectGrid = magicSnailExampleAnswer.cells.map((row) =>
   row.map((cell) => (typeof cell === 'number' ? cell : null))
 );
 
-const TAPA_EXAMPLE_LINK = 'https://puzz.link/p?tapa/6/6/1ia71a86gaaajjafhad6g7g42j22g4321';
+const TAPA_EXAMPLE_LINK = 'http://localhost:8080/p.html?tapa/5/5/j1hbqoabh.j';
 const tapaExamplePuzzle = parseTapaLink(TAPA_EXAMPLE_LINK);
 
 if (!tapaExamplePuzzle) {
@@ -183,12 +183,11 @@ if (!tapaExamplePuzzle) {
 }
 
 const tapaExampleCorrectSolution: (0 | 1)[][] = [
-  [0, 1, 1, 1, 0, 0],
-  [0, 0, 1, 0, 0, 1],
-  [1, 1, 1, 0, 1, 1],
-  [0, 0, 1, 0, 1, 0],
-  [0, 1, 1, 1, 1, 0],
-  [0, 1, 0, 0, 0, 0],
+  [1, 1, 1, 0, 0],
+  [1, 0, 0, 1, 0],
+  [1, 1, 0, 1, 1],
+  [0, 1, 0, 0, 1],
+  [0, 1, 1, 1, 1],
 ];
 
 const MAGIC_SUMMER_EXAMPLE_LINK =
@@ -2053,8 +2052,8 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（6×6）',
-        en: 'Example (6×6)',
+        'zh-CN': '例题（5×5）',
+        en: 'Example (5×5)',
       },
       playableLabel: {
         'zh-CN': '题面',
