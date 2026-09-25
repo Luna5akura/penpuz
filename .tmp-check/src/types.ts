@@ -1,3 +1,3 @@
-export type FourWindsDirection = 1 | 2 | 3 | 4;
-export type FourWindsCellValue = FourWindsDirection | "cross" | null;
-export interface FourWindsPuzzleData { type: "fourwinds"; width: number; height: number; clues: (number | null)[][]; }
+export type FourWindsWithParksDirection = 1 | 2 | 3 | 4;
+export type FourWindsWithParksCellValue = FourWindsWithParksDirection | 'circle' | 'cross' | null;
+export interface FourWindsWithParksPuzzleData { type: 'four-winds-with-parks'; width: number; height: number; clues: (number | null)[][]; }
