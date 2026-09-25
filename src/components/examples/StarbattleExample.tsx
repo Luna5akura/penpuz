@@ -68,7 +68,7 @@ export default function StarbattleExample({
             {playableLabel}
           </p>
           <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
-          <div className="mx-auto w-max min-w-0">
+          <div className="flex w-full min-w-0 justify-center">
   <StarbattleBoard
               key={`starbattle-example-${width}-${height}`}
               puzzle={examplePuzzle}

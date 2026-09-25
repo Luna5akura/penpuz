@@ -50,7 +50,7 @@ export default function PlayableExample({ example, playableLabel, answerLabel, f
       <div className="min-w-0">
         <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
         <div ref={containerRef} className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
-          <div className="mx-auto w-max min-w-0">
+          <div className="flex w-full min-w-0 justify-center">
             {renderBoard({
               puzzle,
               startTime,

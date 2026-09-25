@@ -200,7 +200,7 @@ export default function SkyNeighborExample({
         <p className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</p>
         <div ref={containerRef} className="w-full min-w-0 max-w-full overflow-hidden">
           <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
-          <div className="mx-auto w-max min-w-0">
+          <div className="flex w-full min-w-0 justify-center">
   <SkyNeighborBoard
               puzzle={puzzle}
               startTime={exampleStartTime}
