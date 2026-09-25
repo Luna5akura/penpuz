@@ -26,6 +26,7 @@ import {
 } from '@/puzzles/boardTheme';
 import { getEdgeKey, getRegionBoundarySegments, parseGridLineEdgeKey, parseSolutionEdgeKey } from '@/puzzles/gridUtils';
 import { getPillComponents, getPillsPipsLayout } from '@/puzzles/Pills/utils';
+import { getMagicSnailBoundaryLines } from '@/puzzles/MagicSnail/utils';
 import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
@@ -389,16 +390,49 @@ function NumberGridBoard({
   cells,
   values,
   clueTone = false,
+  spiralBoundary = false,
 }: {
   width: number;
   height: number;
   cells: Array<Array<unknown>>;
   values?: (number | null)[][];
   clueTone?: boolean;
+  spiralBoundary?: boolean;
 }) {
   const CELL_SIZE = useExampleCellSize();
+  // The Magic Snail board draws its spiral wall from the same shared
+  // boundary-line library; the answer diagram reuses it so both views
+  // render the identical spiral.
+  const boundaryLines = useMemo(
+    () => (spiralBoundary ? getMagicSnailBoundaryLines(width, height) : []),
+    [height, spiralBoundary, width]
+  );
+  const boundaryStrokeWidth = getBoardBoundaryStrokeWidth(CELL_SIZE);
   return (
     <BoardFrame width={width} height={height}>
+      {boundaryLines.length > 0 ? (
+        <svg
+          className="pointer-events-none absolute"
+          style={{ left: `${commonBoardChrome.padding}px`, top: `${commonBoardChrome.padding}px` }}
+          width={width * CELL_SIZE}
+          height={height * CELL_SIZE}
+          viewBox={`0 0 ${width * CELL_SIZE} ${height * CELL_SIZE}`}
+          aria-hidden="true"
+        >
+          {boundaryLines.map((line, index) => (
+            <line
+              key={`snail-boundary-${index}`}
+              x1={line.x1 * CELL_SIZE}
+              y1={line.y1 * CELL_SIZE}
+              x2={line.x2 * CELL_SIZE}
+              y2={line.y2 * CELL_SIZE}
+              stroke={woodBoardTheme.border}
+              strokeLinecap="square"
+              strokeWidth={boundaryStrokeWidth}
+            />
+          ))}
+        </svg>
+      ) : null}
       <CellGrid width={width} height={height}>
         {(row, col) => {
           const cell = cells[row][col];
@@ -792,7 +826,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         playableLabel={playableLabel}
         answerLabel={answerLabel}
         fixedCellSize={boardLayoutMetrics.exampleCellSize}
-        answer={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
+        answer={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone spiralBoundary />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <MagicSnailBoard puzzle={puzzle as MagicSnailPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
         )}
