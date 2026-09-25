@@ -150,7 +150,7 @@ export default function KurarinBoard({
       loopEdgeLevels: {},
       crossedEdgeLevels: {},
     }),
-    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+    onSnapshotChange,
   });
   const {
     snapshot,

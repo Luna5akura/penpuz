@@ -95,7 +95,7 @@ export default function WalkwalkBoard({
         lineEdgeLevels: {},
         crossedEdgeLevels: {},
       }),
-      onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+      onSnapshotChange,
     }
   );
 

@@ -139,7 +139,7 @@ export default function AqreBoard({
       ...trialSnapshot,
       levels: trialSnapshot.levels.map((row) => row.map(() => 0)),
     }),
-    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+    onSnapshotChange,
   });
 
   const {

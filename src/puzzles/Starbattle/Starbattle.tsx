@@ -146,7 +146,7 @@ export default function StarbattleBoard({
       edgeDotLevels: {},
       vertexDotLevels: {},
     }),
-    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+    onSnapshotChange,
   });
 
   const {

@@ -96,7 +96,7 @@ export default function MintonetteBoard({
         lineEdgeLevels: {},
         crossedEdgeLevels: {},
       }),
-      onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+      onSnapshotChange,
     }
   );
 

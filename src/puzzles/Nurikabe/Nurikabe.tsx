@@ -89,7 +89,7 @@ export default function NurikabeBoard({
       ...normalizeNurikabeSnapshot(trialSnapshot, width, height),
       levels: Array.from({ length: height }, () => Array(width).fill(0)),
     }),
-    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+    onSnapshotChange,
   });
   const {
     snapshot,

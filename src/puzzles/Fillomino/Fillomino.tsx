@@ -152,14 +152,18 @@ export default function FillominoBoard({
   const getResetSnapshot = useCallback(() => {
     return normalizeFillominoSnapshot(initialSnapshotRef.current, createInitialSnapshot(), width, height);
   }, [createInitialSnapshot, height, width]);
+  const normalizeTrialSnapshot = useCallback((trialSnapshot: unknown) => ({
+    ...normalizeFillominoSnapshot(trialSnapshot, createInitialSnapshot(), width, height),
+    gridLevels: createInitialSnapshot().gridLevels.map((row) => row.map(() => 0)),
+    thinLineLevels: {},
+    deepLineLevels: {},
+  }), [createInitialSnapshot, height, width]);
   const history = usePuzzleHistory<FillominoSnapshot>(createInitialSnapshot(), {
-    normalizeTrialSnapshot: (trialSnapshot) => ({
-      ...normalizeFillominoSnapshot(trialSnapshot, createInitialSnapshot(), width, height),
-      gridLevels: createInitialSnapshot().gridLevels.map((row) => row.map(() => 0)),
-      thinLineLevels: {},
-      deepLineLevels: {},
-    }),
-    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+    normalizeTrialSnapshot,
+    // Pass the parent's callback through unchanged: an inline wrapper would
+    // get a new identity on every render and make the history effect report
+    // the same snapshot forever ("Maximum update depth exceeded").
+    onSnapshotChange,
   });
   const {
     snapshot,

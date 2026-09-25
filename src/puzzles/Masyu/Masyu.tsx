@@ -92,7 +92,7 @@ export default function MasyuBoard({
         lineEdgeLevels: {},
         crossedEdgeLevels: {},
       }),
-      onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+      onSnapshotChange,
     }
   );
 

@@ -164,7 +164,7 @@ export default function YajilinBoard({
       loopEdgeLevels: {},
       crossedEdgeLevels: {},
     }),
-    onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+    onSnapshotChange,
   });
   const {
     snapshot,

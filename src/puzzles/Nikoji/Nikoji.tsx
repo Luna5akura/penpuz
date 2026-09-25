@@ -92,7 +92,7 @@ export default function NikojiBoard({
         deepLineLevels: {},
         thinLineLevels: {},
       }),
-      onSnapshotChange: (nextSnapshot) => onSnapshotChange?.(nextSnapshot),
+      onSnapshotChange,
     }
   );
 
