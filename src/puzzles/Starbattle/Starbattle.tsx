@@ -12,11 +12,9 @@ import {
   getBoardBoundaryStrokeMetrics,
   getBoardBadgeStyle,
   getBoardDotRadius,
-  getBoardFixedTextStyle,
   getBoardFrameStyle,
   getBoardFrameDimensions,
   getBoardGridStyle,
-  getBoardSymbolFontSize,
   getBoardTrialCellStyle,
   getInvalidBoardCellColors,
   getResponsiveCellSize,
@@ -35,6 +33,7 @@ import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { filterValidGridLineEdgeKeys, filterValidGridVertexKeys } from '../gridUtils';
 import BoardCellMark from '../shared/BoardCellMark';
+import StarMark from '../shared/StarMark';
 
 interface Props {
   puzzle: StarbattlePuzzleData;
@@ -510,7 +509,6 @@ export default function StarbattleBoard({
     cellSize,
     { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
   );
-  const starFontSize = getBoardSymbolFontSize(cellSize);
   const dotRadius = getBoardDotRadius(cellSize, 0.16, 6);
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(cellSize);
 
@@ -567,7 +565,7 @@ export default function StarbattleBoard({
                   }}
                 >
                   {state === 1 ? (
-                    <span style={getBoardFixedTextStyle(starFontSize)}>★</span>
+                    <StarMark cellSize={cellSize} />
                   ) : state === 2 ? (
                     <BoardCellMark
                       kind="cross"

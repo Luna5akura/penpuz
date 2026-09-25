@@ -9,15 +9,14 @@ import {
   getBoardCellColors,
   getBoardBoundaryStrokeMetrics,
   getBoardBadgeStyle,
-  getBoardFixedTextStyle,
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
-  getBoardSymbolFontSize,
   getCellDividerStyle,
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getStarbattleBoundarySegments } from '../../puzzles/Starbattle/utils';
+import StarMark from '@/puzzles/shared/StarMark';
 
 interface Props extends StarbattlePuzzleData {
   starCells: { row: number; col: number }[];
@@ -58,7 +57,6 @@ export default function StarbattleExample({
     { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
   );
   const { strokeWidth: boundaryStroke, outlineWidth: boundaryOutlineStroke } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
-  const starFontSize = getBoardSymbolFontSize(CELL_SIZE);
 
   return (
     <>
@@ -153,7 +151,7 @@ export default function StarbattleExample({
                         }}
                       >
                         {starSet.has(`${row},${col}`) ? (
-                          <span style={getBoardFixedTextStyle(starFontSize)}>★</span>
+                          <StarMark cellSize={CELL_SIZE} />
                         ) : null}
                       </div>
                     ))

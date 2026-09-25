@@ -70,6 +70,7 @@ import {
 } from '@/puzzles/Battleship/utils';
 import type { BattleshipPuzzleData, PuzzleData, PuzzleType, YajilinDirection, JapaneseArrowDirection } from '@/puzzles/types';
 import { Button } from '../ui/button';
+import StarMark from '@/puzzles/shared/StarMark';
 
 interface NotePuzzleBoardProps {
   puzzle?: PuzzleData;
@@ -718,7 +719,7 @@ function getSnapshotCellView(
   }
 
   if (puzzleType === 'starbattle') {
-    if (value === 1) return { tone: 'cell', content: '★', fontRatio: 0.78 };
+    if (value === 1) return { tone: 'cell', content: <StarMark cellSize={cellSize} /> };
     if (value === 2) return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
     return null;
   }
@@ -808,7 +809,7 @@ function getRegionIds(puzzle: PuzzleData | undefined) {
 function getLegacyMarkView(mark?: NoteReplayCellMark): CellView | null {
   if (!mark) return null;
   if (mark.kind === 'shade') return { tone: 'playerShaded' };
-  if (mark.kind === 'star') return { tone: 'lit', content: '★', fontRatio: 0.78 };
+  if (mark.kind === 'star') return { tone: 'lit', content: <StarMark cellSize={cellSize} /> };
   if (mark.kind === 'path') return { tone: 'brightLit', content: '•', fontRatio: 0.78 };
   return { tone: 'marked', content: mark.label || '?' };
 }
