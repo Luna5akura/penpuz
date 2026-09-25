@@ -5,8 +5,9 @@ import { getTrialLevelColors } from '../trialStyles';
 import { getBoardTrialCellStyle } from '../boardTheme';
 import type { BattleshipPuzzleData } from '../types';
 import {
-  getBattleshipOccupiedGrid,
   getBattleshipNeighborConnections,
+  getBattleshipOccupiedGrid,
+  getBattleshipPlacedShapeCounts,
   getBattleshipWaterClueKeys,
   inferBattleshipSegment,
   isBattleshipSegmentResolved,

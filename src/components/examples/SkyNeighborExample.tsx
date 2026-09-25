@@ -1,4 +1,4 @@
-import { useResponsiveExampleCellSize } from './exampleCellSizeContext';
+import { useExampleCellSize, useResponsiveExampleCellSize } from './exampleCellSizeContext';
 import { ExampleCellSizeProvider } from './ExampleBoardChrome';
 import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
