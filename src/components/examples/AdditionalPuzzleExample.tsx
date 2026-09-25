@@ -28,6 +28,7 @@ import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
 import FourWindsWithParksMark from '@/puzzles/FourWindsWithParks/FourWindsWithParksVisuals';
+import { useExampleCellSize } from './exampleCellSizeContext';
 import FourWindsMark from '@/puzzles/FourWinds/FourWindsVisuals';
 import BoardEdgeCross from '@/puzzles/shared/BoardEdgeCross';
 import PlayableExample from './PlayableExample';
@@ -86,11 +87,11 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
 function BoardFrame({ width, height, children }: { width: number; height: number; children: ReactNode }) {
+  const CELL_SIZE = useExampleCellSize();
   const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
     borderWidth: BOARD_BORDER,
     padding: BOARD_PADDING,
@@ -120,6 +121,7 @@ function CellGrid({
   height: number;
   children: (row: number, col: number) => ReactNode;
 }) {
+  const CELL_SIZE = useExampleCellSize();
   return (
     <div
       className="absolute grid"
@@ -144,6 +146,7 @@ function CellGrid({
 }
 
 function RegionBoundaries({ regionIds, width, height }: { regionIds: number[][]; width: number; height: number }) {
+  const CELL_SIZE = useExampleCellSize();
   const boundaries = getRegionBoundarySegments(regionIds, width, height);
   const { strokeWidth, outlineWidth } = getBoardBoundaryStrokeMetrics(CELL_SIZE);
 
@@ -259,6 +262,7 @@ function SlitherBoard({ example, answer }: {
   example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'slither' | 'wolvesandsheepfences' }>;
   answer: boolean;
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const lineSet = new Set(answer ? example.loopEdges : []);
   const crossSet = new Set(answer ? example.crossedEdges ?? [] : []);
   const stroke = getLoopLineStrokeWidth(CELL_SIZE);
@@ -350,6 +354,7 @@ function SlitherBoard({ example, answer }: {
 }
 
 function DominoBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'domino-search' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   const edges = answer ? example.solutionEdges.map(getEdgeKey) : [];
 
   return (
@@ -416,6 +421,7 @@ function NumberGridBoard({
   values?: (number | null)[][];
   clueTone?: boolean;
 }) {
+  const CELL_SIZE = useExampleCellSize();
   return (
     <BoardFrame width={width} height={height}>
       <CellGrid width={width} height={height}>
@@ -447,6 +453,7 @@ function NumberGridBoard({
 }
 
 function JapaneseArrowsBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'japanese-arrows' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   const glyphs: Record<string, string> = { N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖' };
   return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
     const clue = example.clues[row][col];
@@ -456,6 +463,7 @@ function JapaneseArrowsBoard({ example, answer }: { example: Extract<AdditionalP
 }
 
 function FourWindsWithParksExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'four-winds-with-parks' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
     const clue = example.clues[row][col];
     return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <FourWindsWithParksMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} /> : null;
@@ -463,6 +471,7 @@ function FourWindsWithParksExampleBoard({ example, answer }: { example: Extract<
 }
 
 function FourWindsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'fourwinds' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
     const clue = example.clues[row][col];
     return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <FourWindsMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} /> : null;
@@ -470,6 +479,7 @@ function FourWindsExampleBoard({ example, answer }: { example: Extract<Additiona
 }
 
 function JapaneseSumsWithZeroesExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'japanese-sums-with-zeroes' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   const { width, height } = example;
   const topRows = Math.max(1, ...example.clues.top.map((values) => values.length));
   const leftCols = Math.max(1, ...example.clues.left.map((values) => values.length));
@@ -528,6 +538,7 @@ function JapaneseSumsWithZeroesExampleBoard({ example, answer }: { example: Extr
 }
 
 function ConsecutiveKakuroExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'consecutive-kakuro' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   const { radius, strokeWidth, outerRadiusOffset } = getBoardClueCircleMetrics(CELL_SIZE);
   const dotColors = getKurarinClueColors('white');
   const haloFill = getBoardCellColors('cell').background;
@@ -557,6 +568,7 @@ function ConsecutiveKakuroExampleBoard({ example, answer }: { example: Extract<A
 }
 
 function MagnetsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'magnets' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   const { width, height } = example;
   // Two clue rows above (farther '+' then nearer '−') and two clue columns
   // left (farther '+' then nearer '−'), matching the playable board.
@@ -641,6 +653,7 @@ function MagnetsExampleBoard({ example, answer }: { example: Extract<AdditionalP
 }
 
 function PillsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'pills' }>; answer: boolean }) {
+  const CELL_SIZE = useExampleCellSize();
   const clues = [] as Array<{ key: string; x: number; y: number; value: number }>;
   example.topClues.forEach((value, col) => {
     if (value !== null) clues.push({ key: `top-${col}`, x: BOARD_PADDING + (col + 0.5) * CELL_SIZE, y: BOARD_PADDING * 0.22, value });
@@ -721,7 +734,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<SlitherBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           example.puzzleType === 'slither'
@@ -738,7 +751,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<ShadedBoard width={example.width} height={example.height} shaded={example.correctSolution} regionIds={example.regionIds} />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <LitsBoard puzzle={puzzle as LitsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -753,7 +766,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<ShadedBoard width={example.width} height={example.height} clues={example.clues} shaded={example.correctSolution} />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <LakesBoard puzzle={puzzle as LakesPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -768,7 +781,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<DominoBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <DominoSearchBoard puzzle={puzzle as DominoSearchPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -783,7 +796,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <MagicSnailBoard puzzle={puzzle as MagicSnailPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -798,7 +811,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<NumberGridBoard width={example.width} height={example.height} cells={example.cells} values={example.correctGrid} clueTone />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <SlovakSumsBoard puzzle={puzzle as SlovakSumsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -813,7 +826,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<JapaneseArrowsBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <JapaneseArrowsGameBoard puzzle={puzzle as JapaneseArrowsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -828,7 +841,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<FourWindsWithParksExampleBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <FourWindsWithParksBoard puzzle={puzzle as FourWindsWithParksPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -843,7 +856,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<FourWindsExampleBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <FourWindsBoard puzzle={puzzle as FourWindsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -858,7 +871,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<JapaneseSumsWithZeroesExampleBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <JapaneseSumsBoard puzzle={puzzle as JapaneseSumsWithZeroesPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -873,7 +886,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<ConsecutiveKakuroExampleBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <ConsecutiveKakuroBoard puzzle={puzzle as ConsecutiveKakuroPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -888,7 +901,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<MagnetsExampleBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <MagnetsBoard puzzle={puzzle as MagnetsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
@@ -903,7 +916,7 @@ export default function AdditionalPuzzleExample({ example, playableLabel, answer
         example={example}
         playableLabel={playableLabel}
         answerLabel={answerLabel}
-        fixedCellSize={CELL_SIZE}
+        fixedCellSize={boardLayoutMetrics.exampleCellSize}
         answer={<PillsExampleBoard example={example} answer />}
         renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
           <PillsBoard puzzle={puzzle as PillsPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />

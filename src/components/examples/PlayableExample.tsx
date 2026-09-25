@@ -1,8 +1,9 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import ExampleAnswerReveal from '../ExampleAnswerReveal';
+import { ExampleCellSizeProvider } from './ExampleBoardChrome';
+import { useResponsiveExampleCellSize } from './exampleCellSizeContext';
 import { buildExamplePuzzleData } from '@/puzzles/examplePuzzleData';
-import { boardLayoutMetrics, getResponsiveCellSize } from '@/puzzles/boardTheme';
-import { useBoardContainerWidth } from '@/puzzles/useBoardContainerWidth';
+import { boardLayoutMetrics } from '@/puzzles/boardTheme';
 import type { PuzzleData, PuzzleExample } from '@/puzzles/types';
 
 interface Props {
@@ -38,15 +39,11 @@ export default function PlayableExample({ example, playableLabel, answerLabel, f
   const [showAnswer, setShowAnswer] = useState(false);
   const [startTime] = useState(() => Date.now());
   const puzzle = useMemo(() => buildExamplePuzzleData(example), [example]);
-  const [containerRef, containerWidth] = useBoardContainerWidth();
-  const maxCellSize = fixedCellSize ?? boardLayoutMetrics.exampleCellSize;
-  const cellSize = getResponsiveCellSize({
-    viewportWidth: containerWidth,
-    width: example.width,
+  const { containerRef, cellSize } = useResponsiveExampleCellSize(
+    example.width,
     outsideClueSides,
-    maxCellSize,
-    containerWidth: true,
-  });
+    fixedCellSize ?? boardLayoutMetrics.exampleCellSize
+  );
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -71,7 +68,9 @@ export default function PlayableExample({ example, playableLabel, answerLabel, f
           ariaLabel={answerLabel}
           className="flex justify-center overflow-x-auto"
         >
-          {typeof answer === 'function' ? answer(cellSize) : answer}
+          <ExampleCellSizeProvider cellSize={cellSize}>
+            {typeof answer === 'function' ? answer(cellSize) : answer}
+          </ExampleCellSizeProvider>
         </ExampleAnswerReveal>
       </div>
     </div>

@@ -1,10 +1,10 @@
+import { useExampleCellSize } from './exampleCellSizeContext';
 import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFixedTextStyle,
@@ -31,7 +31,6 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.loopExampleCellSize;
 const GAP = boardLayoutMetrics.cellGap;
 const PADDING = commonBoardChrome.padding;
 const BORDER = commonBoardChrome.border;
@@ -46,6 +45,7 @@ export default function YajilinExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 
@@ -70,9 +70,9 @@ export default function YajilinExample({
   );
   const boardWidthPx = boardWidth + PADDING * 2;
   const boardHeightPx = boardHeight + PADDING * 2;
-  const clueNumberFontSize = useMemo(() => getDirectionalClueNumberFontSize(CELL_SIZE), []);
-  const verticalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.5), []);
-  const horizontalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.52), []);
+  const clueNumberFontSize = useMemo(() => getDirectionalClueNumberFontSize(CELL_SIZE), [CELL_SIZE]);
+  const verticalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.5), [CELL_SIZE]);
+  const horizontalClueNumberTop = useMemo(() => Math.floor(CELL_SIZE * 0.52), [CELL_SIZE]);
 
   return (
     <>

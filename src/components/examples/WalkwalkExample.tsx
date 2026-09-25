@@ -1,10 +1,10 @@
+import { useExampleCellSize } from './exampleCellSizeContext';
 import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { WalkwalkPuzzleData, YajilinSolutionEdge } from '../../puzzles/types';
 import WalkwalkBoard from '../../puzzles/Walkwalk/Walkwalk';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardCellStyle,
@@ -31,7 +31,6 @@ interface Props extends Omit<WalkwalkPuzzleData, 'type'> {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -44,6 +43,7 @@ function StaticWalkwalkBoard({
   lineEdges: Set<string>;
   crossedEdges: Set<string>;
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const { width, height, clues, regionIds } = puzzle;
   const clueMap = useMemo(() => {
     const map = new Map<string, number>();
@@ -222,6 +222,7 @@ export default function WalkwalkExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

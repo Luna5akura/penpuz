@@ -1,6 +1,6 @@
+import { useExampleCellSize } from './exampleCellSizeContext';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameDimensions,
@@ -19,10 +19,10 @@ interface Props {
   correctSolution: (0 | 1)[][];
 }
 
-const CELL_SIZE = boardLayoutMetrics.loopExampleCellSize;
 
 /** Official answer diagram shown after the playable example is solved. */
 export default function TapaExample({ width, height, clues, correctSolution }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE);
 
   return (

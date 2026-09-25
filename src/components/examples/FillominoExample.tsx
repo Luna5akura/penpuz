@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardBoundaryStrokeWidth,
   getBoardCellStyle,
@@ -12,6 +11,7 @@ import {
   woodBoardTheme,
 } from '@/puzzles/boardTheme';
 import { getFillominoAutoBoundaryLines } from '@/puzzles/Fillomino/utils';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -20,7 +20,6 @@ interface Props {
   correctGrid: (number | null)[][];
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -30,6 +29,7 @@ const alignStrokeCoordinate = (coordinate: number, strokeWidth: number) => (
 
 /** Official answer diagram shown after the playable example is solved. */
 export default function FillominoExample({ width, height, cluesGrid, correctGrid }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const autoThinLines = useMemo(
     () => getFillominoAutoBoundaryLines(correctGrid, width, height),
     [correctGrid, height, width]

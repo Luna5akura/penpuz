@@ -2,9 +2,9 @@ import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { AkariPuzzleData } from '../../puzzles/types';
 import AkariBoard from '../../puzzles/Akari/Akari';
+import { useExampleCellSize } from './exampleCellSizeContext';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameDimensions,
@@ -26,7 +26,6 @@ interface Props extends Omit<AkariPuzzleData, 'type'> {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -38,6 +37,7 @@ export default function AkariExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

@@ -1,6 +1,5 @@
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardFrameDimensions,
@@ -11,6 +10,7 @@ import {
 } from '@/puzzles/boardTheme';
 import { parseMasyuEdgeKey } from '@/puzzles/Masyu/utils';
 import type { MasyuCell } from '@/puzzles/types';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -19,10 +19,10 @@ interface Props {
   solutionEdges: string[];
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 
 /** Official answer diagram shown after the playable example is solved. */
 export default function MasyuExample({ width, height, cells, solutionEdges }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const { outerWidth, outerHeight, boardWidth, boardHeight } = getBoardFrameDimensions(
     width,
     height,

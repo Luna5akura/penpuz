@@ -2248,7 +2248,7 @@ export const puzzleRegistry: PuzzleRegistry = {
           answerLabel={template.answerLabel[locale]}
           fixedCellSize={boardLayoutMetrics.exampleCellSize}
           outsideClueSides={2}
-          answer={(cellSize) => <SkyscrapersExample width={example.width} height={example.height} clues={example.clues} correctGrid={example.correctGrid} cellSize={cellSize} />}
+          answer={<SkyscrapersExample width={example.width} height={example.height} clues={example.clues} correctGrid={example.correctGrid} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <SkyscrapersBoard puzzle={puzzle as SkyscrapersPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
           )}
@@ -2644,7 +2644,7 @@ export const puzzleRegistry: PuzzleRegistry = {
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
           fixedCellSize={boardLayoutMetrics.exampleCellSize}
-          answer={(cellSize) => <KakuroExample width={example.width} height={example.height} cells={example.cells} correctGrid={example.correctGrid} cellSize={cellSize} />}
+          answer={<KakuroExample width={example.width} height={example.height} cells={example.cells} correctGrid={example.correctGrid} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <KakuroBoard puzzle={puzzle as KakuroPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
           )}
@@ -2794,7 +2794,7 @@ export const puzzleRegistry: PuzzleRegistry = {
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
           fixedCellSize={boardLayoutMetrics.exampleCellSize}
-          answer={(cellSize) => <ShadingPuzzleExample puzzle={examplePuzzle} correctSolution={example.correctSolution} cellSize={cellSize} />}
+          answer={<ShadingPuzzleExample puzzle={examplePuzzle} correctSolution={example.correctSolution} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <ShapeMinesweeperBoard puzzle={puzzle as ShapeMinesweeperPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
           )}

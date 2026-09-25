@@ -4,7 +4,6 @@ import type { HeyawakePuzzleData } from '../../puzzles/types';
 import HeyawakeBoard from '../../puzzles/Heyawake/Heyawake';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardBoundaryStrokeMetrics,
@@ -16,6 +15,7 @@ import {
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getHeyawakeBoundarySegments } from '../../puzzles/Heyawake/utils';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props extends Omit<HeyawakePuzzleData, 'type'> {
   correctSolution: (0 | 1)[][];
@@ -23,7 +23,6 @@ interface Props extends Omit<HeyawakePuzzleData, 'type'> {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -36,6 +35,7 @@ export default function HeyawakeExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

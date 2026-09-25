@@ -1,6 +1,5 @@
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardClueTextStyle,
@@ -11,6 +10,7 @@ import {
   getBoardTextStyle,
 } from '@/puzzles/boardTheme';
 import type { SkyscrapersClues } from '@/puzzles/types';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -146,7 +146,8 @@ export default function SkyscrapersExample({
   height,
   clues,
   correctGrid,
-  cellSize = boardLayoutMetrics.exampleCellSize,
+  cellSize: cellSizeProp,
 }: Props) {
-  return <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} cellSize={cellSize} />;
+  const contextCellSize = useExampleCellSize();
+  return <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} cellSize={cellSizeProp ?? contextCellSize} />;
 }

@@ -4,7 +4,6 @@ import type { AqrePuzzleData } from '../../puzzles/types';
 import AqreBoard from '../../puzzles/Aqre/Aqre';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardBoundaryStrokeMetrics,
@@ -16,6 +15,7 @@ import {
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getAqreBoundarySegments } from '../../puzzles/Aqre/utils';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props extends Omit<AqrePuzzleData, 'type'> {
   correctSolution: (0 | 1)[][];
@@ -23,7 +23,6 @@ interface Props extends Omit<AqrePuzzleData, 'type'> {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -36,6 +35,7 @@ export default function AqreExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

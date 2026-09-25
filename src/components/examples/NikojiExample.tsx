@@ -4,7 +4,6 @@ import type { NikojiPuzzleData } from '../../puzzles/types';
 import NikojiBoard from '../../puzzles/Nikoji/Nikoji';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFrameDimensions,
@@ -16,6 +15,7 @@ import {
   woodBoardTheme,
 } from '../../puzzles/boardTheme';
 import { getNikojiBoundarySegments } from '../../puzzles/Nikoji/utils';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props extends Omit<NikojiPuzzleData, 'type'> {
   solutionRegionIds: number[][];
@@ -23,7 +23,6 @@ interface Props extends Omit<NikojiPuzzleData, 'type'> {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 
 export default function NikojiExample({
@@ -34,6 +33,7 @@ export default function NikojiExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

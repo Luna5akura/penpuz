@@ -10,6 +10,7 @@ import {
 } from '@/puzzles/boardTheme';
 import ShapeInventory from '@/puzzles/ShapeMinesweeper/ShapeInventory';
 import type { CavePuzzleData, ShapeMinesweeperPuzzleData } from '@/puzzles/types';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   puzzle: CavePuzzleData | ShapeMinesweeperPuzzleData;
@@ -95,7 +96,8 @@ function ExamplePanel({
 export default function ShadingPuzzleExample({
   puzzle,
   correctSolution,
-  cellSize = boardLayoutMetrics.exampleCellSize,
+  cellSize: cellSizeProp,
 }: Props) {
-  return <ExamplePanel puzzle={puzzle} solution={correctSolution} cellSize={cellSize} />;
+  const contextCellSize = useExampleCellSize();
+  return <ExamplePanel puzzle={puzzle} solution={correctSolution} cellSize={cellSizeProp ?? contextCellSize} />;
 }

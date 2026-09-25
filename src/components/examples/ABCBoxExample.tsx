@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardClueTextStyle,
@@ -10,17 +9,18 @@ import {
   getBoardTextStyle,
 } from '@/puzzles/boardTheme';
 import type { PuzzleExample } from '@/puzzles/types';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   example: Extract<PuzzleExample, { puzzleType: 'abc-box' }>;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
 /** Official answer diagram shown after the playable example is solved. */
 export default function ABCBoxExample({ example }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const { width, height, clues, givens, correctGrid } = example;
   const topRows = Math.max(0, ...clues.top.map((values) => values.length), ...clues.bottom.map((values) => values.length));
   const leftCols = Math.max(0, ...clues.left.map((values) => values.length), ...clues.right.map((values) => values.length));

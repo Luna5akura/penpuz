@@ -1,6 +1,5 @@
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardFrameDimensions,
@@ -10,6 +9,7 @@ import {
 } from '@/puzzles/boardTheme';
 import type { KakuroCell } from '@/puzzles/types';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -23,7 +23,9 @@ const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
 /** Official answer diagram shown after the playable example is solved. */
-export default function KakuroExample({ width, height, cells, correctGrid, cellSize = boardLayoutMetrics.exampleCellSize }: Props) {
+export default function KakuroExample({ width, height, cells, correctGrid, cellSize: cellSizeProp }: Props) {
+  const contextCellSize = useExampleCellSize();
+  const cellSize = cellSizeProp ?? contextCellSize;
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     width,
     height,

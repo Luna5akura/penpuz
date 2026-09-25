@@ -1,6 +1,5 @@
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardFrameDimensions,
@@ -13,6 +12,7 @@ import {
 } from '@/puzzles/boardTheme';
 import type { MagicSummerCell } from '@/puzzles/types';
 import BoardCellMark from '@/puzzles/shared/BoardCellMark';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -23,7 +23,6 @@ interface Props {
   correctGrid: (number | null)[][];
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 3);
 
 function MagicSummerDiagram({
@@ -41,6 +40,7 @@ function MagicSummerDiagram({
   columnSums: (number | null)[];
   values?: (number | null)[][];
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const clues = {
     top: columnSums,
     left: rowSums,

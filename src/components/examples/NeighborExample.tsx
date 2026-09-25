@@ -3,9 +3,9 @@ import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import type { NeighborDigit, NeighborPuzzleData } from '@/puzzles/types';
 import NeighborBoard from '@/puzzles/Neighbor/Neighbor';
 import BoardCellOutline from '@/puzzles/shared/BoardCellOutline';
+import { useExampleCellSize } from './exampleCellSizeContext';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardFrameDimensions,
@@ -24,7 +24,6 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -39,6 +38,7 @@ function AnswerDiagram({
   grayCells: boolean[][];
   values: NeighborDigit[][];
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     width,
     height,
@@ -88,6 +88,7 @@ export default function NeighborExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
   const puzzle = useMemo<NeighborPuzzleData>(

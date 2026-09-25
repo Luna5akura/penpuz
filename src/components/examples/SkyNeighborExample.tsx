@@ -1,3 +1,4 @@
+import { useExampleCellSize } from './exampleCellSizeContext';
 import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import SkyNeighborBoard from '@/puzzles/SkyNeighbor/SkyNeighbor';
@@ -11,7 +12,6 @@ import type {
 } from '@/puzzles/types';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardFrameDimensions,
@@ -35,7 +35,6 @@ interface Props {
 }
 
 // Match the standard example cell size while preserving square ring geometry.
-const CELL_SIZE = boardLayoutMetrics.skyNeighborCellSize;
 const CLUE_GUTTER = CELL_SIZE;
 
 function getOutsideGray(
@@ -66,6 +65,7 @@ function SkyNeighborDiagram({
   outsideGrayCells?: SkyNeighborOutsideGrayCells;
   values?: NeighborDigit[][];
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const outside = getOutsideGray(outsideGrayCells, width, height);
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     width + 2,
@@ -169,6 +169,7 @@ export default function SkyNeighborExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
   const puzzle = useMemo<SkyNeighborPuzzleData>(

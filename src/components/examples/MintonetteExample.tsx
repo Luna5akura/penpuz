@@ -4,7 +4,6 @@ import type { MintonettePuzzleData, MintonetteSolutionEdge } from '../../puzzles
 import MintonetteBoard from '../../puzzles/Mintonette/Mintonette';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardRegionStrokeWidth,
@@ -19,6 +18,7 @@ import {
 } from '../../puzzles/boardTheme';
 import { createMintonetteEdgeSet, parseMintonetteEdgeKey } from '../../puzzles/Mintonette/utils';
 import BoardEdgeCross from '../../puzzles/shared/BoardEdgeCross';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props extends Omit<MintonettePuzzleData, 'type'> {
   solutionEdges: MintonetteSolutionEdge[];
@@ -27,7 +27,6 @@ interface Props extends Omit<MintonettePuzzleData, 'type'> {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 
 function StaticMintonetteBoard({
@@ -39,6 +38,7 @@ function StaticMintonetteBoard({
   lineEdges: Set<string>;
   crossedEdges: Set<string>;
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const { width, height, clues } = puzzle;
   const clueMap = useMemo(() => {
     const map = new Map<string, number | null>();
@@ -162,6 +162,7 @@ export default function MintonetteExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

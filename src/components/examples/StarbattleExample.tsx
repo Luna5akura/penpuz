@@ -1,10 +1,10 @@
+import { useExampleCellSize } from './exampleCellSizeContext';
 import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import { useI18n } from '@/i18n/useI18n';
 import type { StarbattlePuzzleData } from '../../puzzles/types';
 import StarbattleBoard from '../../puzzles/Starbattle/Starbattle';
 import {
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardBoundaryStrokeMetrics,
@@ -25,7 +25,6 @@ interface Props extends StarbattlePuzzleData {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
@@ -38,6 +37,7 @@ export default function StarbattleExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const { copy } = useI18n();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());

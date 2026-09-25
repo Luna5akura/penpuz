@@ -17,6 +17,7 @@ import {
 } from '../../puzzles/boardTheme';
 import { createKurarinEdgeSet, parseKurarinEdgeKey } from '../../puzzles/Kurarin/utils';
 import BoardEdgeCross from '../../puzzles/shared/BoardEdgeCross';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -29,7 +30,6 @@ interface Props {
   answerLabel: string;
 }
 
-const CELL_SIZE = boardLayoutMetrics.loopExampleCellSize;
 const GAP = boardLayoutMetrics.cellGap;
 const PADDING = commonBoardChrome.padding;
 const BORDER = commonBoardChrome.border;
@@ -44,6 +44,7 @@ export default function KurarinExample({
   playableLabel,
   answerLabel,
 }: Props) {
+  const CELL_SIZE = useExampleCellSize();
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
 

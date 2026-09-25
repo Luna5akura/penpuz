@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import {
   boardClassNames,
-  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellStyle,
   getBoardClueTextStyle,
@@ -22,6 +21,7 @@ import {
 } from '@/puzzles/Battleship/utils';
 import { getCellKey } from '@/puzzles/gridUtils';
 import type { BattleshipCellClue, BattleshipPuzzleData, BattleshipShipShape } from '@/puzzles/types';
+import { useExampleCellSize } from './exampleCellSizeContext';
 
 interface Props {
   width: number;
@@ -33,7 +33,6 @@ interface Props {
   correctSolution: (0 | 1)[][];
 }
 
-const CELL_SIZE = boardLayoutMetrics.compactExampleCellSize;
 
 function BattleshipDiagram({
   puzzle,
@@ -42,6 +41,7 @@ function BattleshipDiagram({
   puzzle: BattleshipPuzzleData;
   solution?: (0 | 1)[][];
 }) {
+  const CELL_SIZE = useExampleCellSize();
   const clueMap = useMemo(
     () => new Map(puzzle.cellClues.map((clue) => [getCellKey(clue.row, clue.col), clue])),
     [puzzle.cellClues]
