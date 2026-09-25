@@ -279,6 +279,7 @@ export function getBattleshipPlacedShapeCounts(
   puzzle: BattleshipPuzzleData
 ): Map<string, number> {
   const occupied = getBattleshipOccupiedGrid(grid, puzzle);
+  const waterClues = getBattleshipWaterClueKeys(puzzle);
   const seen = Array.from({ length: puzzle.height }, () => Array<boolean>(puzzle.width).fill(false));
   const counts = new Map<string, number>();
   for (let row = 0; row < puzzle.height; row++) {
@@ -299,6 +300,21 @@ export function getBattleshipPlacedShapeCounts(
           stack.push({ row: nextRow, col: nextCol });
         }
       }
+      // The shape only counts as determined once every endpoint is round:
+      // each end cell's visible cap must be resolved (board edge, cross
+      // mark, water clue) instead of possibly extending further.
+      const endpoints = cells.filter((cell) => {
+        const neighbors = [[-1, 0], [1, 0], [0, -1], [0, 1]].filter(([dr, dc]) => {
+          const nextRow = cell.row + dr;
+          const nextCol = cell.col + dc;
+          return nextRow >= 0 && nextRow < puzzle.height && nextCol >= 0 && nextCol < puzzle.width && occupied[nextRow][nextCol];
+        });
+        return neighbors.length <= 1;
+      });
+      const determined = endpoints.length > 0 && endpoints.every((cell) =>
+        isBattleshipSegmentResolved(grid, puzzle, occupied, cell.row, cell.col, waterClues)
+      );
+      if (!determined) continue;
       const key = canonicalizeCoords(cells);
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
