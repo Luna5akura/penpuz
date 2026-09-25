@@ -9,7 +9,7 @@ import {
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import ValidationMessage from '@/components/ValidationMessage';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
-import { safeSetPointerCapture } from '@/lib/pointer';
+import { LONG_PRESS_MS, LONG_PRESS_MOVE_TOLERANCE, safeSetPointerCapture, triggerHapticFeedback } from '@/lib/pointer';
 import { sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import { useBoardContainerWidth } from '../useBoardContainerWidth';
@@ -362,6 +362,8 @@ export default function SlitherlinkBoard({
     visitedEdges: new Set(),
     isTouch: false,
   });
+  const pendingTouchMarkRef = useRef<{ row: number; col: number; pointerId: number; startX: number; startY: number } | null>(null);
+  const pendingTouchMarkTimerRef = useRef<number | null>(null);
   const hasCompleted = useRef(false);
 
   const createInitialSnapshot = useCallback<() => SlitherlinkSnapshot>(() => ({
@@ -581,6 +583,17 @@ export default function SlitherlinkBoard({
   }, [applyEdgeDuringDrag, cellSize, height, width]);
 
   const finishPointer = useCallback((pointerId?: number) => {
+    const pendingMark = pendingTouchMarkRef.current;
+    if (pendingMark && (pointerId === undefined || pendingMark.pointerId === pointerId)) {
+      pendingTouchMarkRef.current = null;
+      if (pendingTouchMarkTimerRef.current !== null) {
+        window.clearTimeout(pendingTouchMarkTimerRef.current);
+        pendingTouchMarkTimerRef.current = null;
+      }
+      toggleCellCenterMark(pendingMark.row, pendingMark.col, 'circle');
+      return;
+    }
+
     const current = pointerState.current;
     if (current.pointerId === null) return;
     if (pointerId !== undefined && current.pointerId !== pointerId) return;
@@ -594,7 +607,7 @@ export default function SlitherlinkBoard({
       isTouch: false,
     };
     finishBatch();
-  }, [finishBatch]);
+  }, [finishBatch, toggleCellCenterMark]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const rect = boardRef.current?.getBoundingClientRect();
@@ -619,7 +632,27 @@ export default function SlitherlinkBoard({
       if (!cell) return;
 
       event.preventDefault();
-      toggleCellCenterMark(cell.row, cell.col, !isTouchPointer && event.button === 2 ? 'cross' : 'circle');
+      // Touch: a quick tap places a circle mark, a long press places a cross.
+      if (isTouchPointer) {
+        pendingTouchMarkRef.current = {
+          row: cell.row,
+          col: cell.col,
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+        };
+        if (pendingTouchMarkTimerRef.current !== null) window.clearTimeout(pendingTouchMarkTimerRef.current);
+        pendingTouchMarkTimerRef.current = window.setTimeout(() => {
+          const pending = pendingTouchMarkRef.current;
+          if (!pending) return;
+          pendingTouchMarkRef.current = null;
+          pendingTouchMarkTimerRef.current = null;
+          triggerHapticFeedback();
+          toggleCellCenterMark(pending.row, pending.col, 'cross');
+        }, LONG_PRESS_MS);
+        return;
+      }
+      toggleCellCenterMark(cell.row, cell.col, event.button === 2 ? 'cross' : 'circle');
       return;
     }
 
@@ -666,6 +699,20 @@ export default function SlitherlinkBoard({
     if (typeof document === 'undefined') return undefined;
 
     const handleDocumentPointerMove = (event: globalThis.PointerEvent) => {
+      const pendingMark = pendingTouchMarkRef.current;
+      if (pendingMark && pendingMark.pointerId === event.pointerId) {
+        if (
+          Math.abs(event.clientX - pendingMark.startX) > LONG_PRESS_MOVE_TOLERANCE ||
+          Math.abs(event.clientY - pendingMark.startY) > LONG_PRESS_MOVE_TOLERANCE
+        ) {
+          pendingTouchMarkRef.current = null;
+          if (pendingTouchMarkTimerRef.current !== null) {
+            window.clearTimeout(pendingTouchMarkTimerRef.current);
+            pendingTouchMarkTimerRef.current = null;
+          }
+        }
+      }
+
       const current = pointerState.current;
       if (current.pointerId !== event.pointerId) return;
       if (current.isTouch && event.cancelable) {
@@ -686,6 +733,7 @@ export default function SlitherlinkBoard({
       document.removeEventListener('pointermove', handleDocumentPointerMove);
       document.removeEventListener('pointerup', handleDocumentPointerEnd);
       document.removeEventListener('pointercancel', handleDocumentPointerEnd);
+      if (pendingTouchMarkTimerRef.current !== null) window.clearTimeout(pendingTouchMarkTimerRef.current);
     };
   }, [finishPointer, handlePointerMoveAt]);
 

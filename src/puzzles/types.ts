@@ -497,6 +497,34 @@ export interface PillsPuzzleData {
   pillValues: number[];
 }
 
+/** Cell content for Masyu: 0 empty, 1 white circle, 2 black circle. */
+export type MasyuCell = 0 | 1 | 2;
+export interface MasyuPuzzleData {
+  type: 'masyu';
+  width: number;
+  height: number;
+  cells: MasyuCell[][];
+}
+
+export interface PlaceByProductPieceShape {
+  /** Normalized cell offsets, row-major offsets relative to the piece origin. */
+  cells: Array<[number, number]>;
+}
+
+export interface PlaceByProductPuzzleData {
+  type: 'place-by-product';
+  width: number;
+  height: number;
+  /** Product clues per row (null = no clue; 0 = fully filled row). */
+  rowClues: (number | null)[];
+  /** Product clues per column (null = no clue; 0 = fully filled column). */
+  colClues: (number | null)[];
+  /** The exact set of pieces to place (rotations/reflections allowed). */
+  pieces: PlaceByProductPieceShape[];
+  /** Pre-placed piece parts; which piece each belongs to is not identified. */
+  givens: boolean[][];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -533,7 +561,9 @@ export type PuzzleData =
   | JapaneseSumsWithZeroesPuzzleData
   | ABCBoxPuzzleData
   | MagnetsPuzzleData
-  | PillsPuzzleData;
+  | PillsPuzzleData
+  | PlaceByProductPuzzleData
+  | MasyuPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -826,7 +856,24 @@ export type PuzzleExample =
   | { puzzleType: 'japanese-sums-with-zeroes'; width: number; height: number; maxDigit: number; clues: JapaneseSumsWithZeroesPuzzleData['clues']; correctGrid: (number | null)[][]; }
   | { puzzleType: 'abc-box'; width: number; height: number; givens: ABCBoxPuzzleData['givens']; clues: ABCBoxPuzzleData['clues']; correctGrid: string[][]; }
   | { puzzleType: 'magnets'; width: number; height: number; regions: MagnetsPuzzleData['regions']; topClues: MagnetsPuzzleData['topClues']; topMinusClues: MagnetsPuzzleData['topMinusClues']; leftClues: MagnetsPuzzleData['leftClues']; leftPlusClues: MagnetsPuzzleData['leftPlusClues']; givens: MagnetsPuzzleData['givens']; correctGrid: (number | null)[][]; }
-  | { puzzleType: 'pills'; width: number; height: number; dots: PillsPuzzleData['dots']; topClues: PillsPuzzleData['topClues']; leftClues: PillsPuzzleData['leftClues']; pillValues: PillsPuzzleData['pillValues']; correctGrid: (0 | 1)[][]; };
+  | { puzzleType: 'pills'; width: number; height: number; dots: PillsPuzzleData['dots']; topClues: PillsPuzzleData['topClues']; leftClues: PillsPuzzleData['leftClues']; pillValues: PillsPuzzleData['pillValues']; correctGrid: (0 | 1)[][]; }
+  | {
+      puzzleType: 'place-by-product';
+      width: number;
+      height: number;
+      rowClues: (number | null)[];
+      colClues: (number | null)[];
+      pieces: PlaceByProductPieceShape[];
+      givens: boolean[][];
+      correctGrid: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'masyu';
+      width: number;
+      height: number;
+      cells: MasyuCell[][];
+      solutionEdges: string[];
+    };
 
 export interface PuzzleTemplate {
   type: PuzzleType;

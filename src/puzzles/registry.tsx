@@ -36,6 +36,10 @@ import ABCBoxBoard from './ABCBox/ABCBox';
 import ABCBoxExample from '../components/examples/ABCBoxExample';
 import MagnetsBoard from './Magnets/Magnets';
 import PillsBoard from './Pills/Pills';
+import PlaceByProductBoard from './PlaceByProduct/PlaceByProduct';
+import MasyuBoard from './Masyu/Masyu';
+import MasyuExample from '../components/examples/MasyuExample';
+import PlaceByProductExample from '../components/examples/PlaceByProductExample';
 import NurikabeExample from '../components/examples/NurikabeExample';
 import FillominoExample from '../components/examples/FillominoExample';
 import YajilinExample from '../components/examples/YajilinExample';
@@ -120,6 +124,8 @@ import type {
   MagnetsPole,
   MagnetsPuzzleData,
   PillsPuzzleData,
+  PlaceByProductPuzzleData,
+  MasyuPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
 import TapaExample from '../components/examples/TapaExample';
@@ -145,6 +151,8 @@ import { parseJapaneseSumsLink } from './JapaneseSums/utils';
 import { parseABCBoxLink } from './ABCBox/utils';
 import { parseMagnetsLink } from './Magnets/utils';
 import { parsePillsLink } from './Pills/utils';
+import { parsePlaceByProductLink } from './PlaceByProduct/utils';
+import { parseMasyuLink } from './Masyu/utils';
 
 const WALKWALK_EXAMPLE_LINK = 'https://luna5akura.github.io/Atol-Solver/p.html?walkwalk/5/5/8gh20v00l1g6m7l3g';
 const walkwalkExamplePuzzle = parseWalkwalkLink(WALKWALK_EXAMPLE_LINK);
@@ -479,6 +487,8 @@ type PuzzleRegistry = {
   'abc-box': PuzzleRegistryEntry<ABCBoxPuzzleData>;
   magnets: PuzzleRegistryEntry<MagnetsPuzzleData>;
   pills: PuzzleRegistryEntry<PillsPuzzleData>;
+  'place-by-product': PuzzleRegistryEntry<PlaceByProductPuzzleData>;
+  masyu: PuzzleRegistryEntry<MasyuPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -3187,6 +3197,130 @@ export const puzzleRegistry: PuzzleRegistry = {
       return <AdditionalPuzzleExample example={example} playableLabel={template.playableLabel[locale]} answerLabel={template.answerLabel[locale]} />;
     },
   },
+  'place-by-product': {
+    parsePuzzLink: parsePlaceByProductLink,
+    template: {
+      type: 'place-by-product', name: { 'zh-CN': '乘积摆放', en: 'Place by Product' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '将给定的一组拼块放入盘面。拼块之间不能相互接触，即使是斜对角接触也不行。',
+          '拼块可以旋转和翻转。拼块将每一行（列）的白色格分割成若干组。',
+          '部分行（列）旁标有数字：它表示该行（列）中所有白色分组的长度的乘积。数字 0 表示该行（列）被拼块完全填满。',
+          '部分拼块的某些格已预先给出，但它们属于哪个拼块并不标明。',
+        ],
+        en: [
+          'Place the given set of pieces into the grid. Pieces may not touch, not even diagonally.',
+          'Pieces may be rotated and reflected. The pieces divide rows (and columns) into groups of adjacent white (unoccupied) cells.',
+          'Numeric clues are provided for some rows (and columns); a clue indicates the multiplicative product of the sizes of the (white) groups in that row (or column). A zero indicates that that row or column is completely filled.',
+          'Some piece parts may already be placed for you; however, which piece the parts belong to is not identified for you.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      // WPF Puzzle GP 2016 Round 1 instructions example (5×5).
+      example: {
+        puzzleType: 'place-by-product',
+        width: 5,
+        height: 5,
+        rowClues: [null, 3, 3, 2, 3],
+        colClues: [null, 4, 4, null, 1],
+        pieces: [
+          { cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
+          { cells: [[0, 0], [0, 1], [1, 0]] },
+          { cells: [[0, 0], [0, 1], [1, 0]] },
+        ],
+        givens: [
+          [false, false, false, false, false],
+          [false, false, false, false, false],
+          [false, false, false, false, false],
+          [false, false, false, false, false],
+          [false, false, false, false, false],
+        ],
+        correctGrid: [
+          [0, 0, 1, 1, 0],
+          [0, 0, 0, 1, 1],
+          [1, 1, 0, 0, 0],
+          [1, 0, 0, 1, 1],
+          [0, 0, 0, 1, 0],
+        ],
+      },
+    },
+    renderBoard: (props) => <PlaceByProductBoard {...props} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'place-by-product') throw new Error('Place by Product template example type mismatch.');
+      return (
+        <PlayableExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<PlaceByProductExample width={example.width} height={example.height} rowClues={example.rowClues} colClues={example.colClues} correctGrid={example.correctGrid} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <PlaceByProductBoard puzzle={puzzle as PlaceByProductPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} />
+          )}
+        />
+      );
+    },
+  },
+  masyu: {
+    parsePuzzLink: parseMasyuLink,
+    template: {
+      type: 'masyu', name: { 'zh-CN': '黑白珍珠', en: 'Masyu' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '画一条不交叉的单一回路，回路从相邻格子的中心之间穿过，并通过所有带圆圈的格子。',
+          '回路必须从白圈中直行穿过，并且白圈前后的格子中至少一个必须转弯。',
+          '回路必须在黑圈中转弯，并且黑圈前后的两个格子都必须直行穿过。',
+        ],
+        en: [
+          'Draw a single, non-intersecting loop that passes orthogonally through all circled cells.',
+          'The loop must go straight through the cells with white circles, with a turn in at least one of the cells immediately before or after each white circle.',
+          'The loop must make a turn in all the black circles, but must go straight in both cells immediately before and after each black circle.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题', en: 'Example' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '答案', en: 'Answer' },
+      // pzprjs official masyu test puzzle (verified against the pzpr checker).
+      example: {
+        puzzleType: 'masyu',
+        width: 6,
+        height: 6,
+        cells: [
+          [0, 0, 1, 0, 0, 0],
+          [0, 2, 0, 0, 1, 0],
+          [0, 0, 0, 0, 0, 0],
+          [0, 0, 0, 2, 0, 0],
+          [0, 1, 0, 0, 0, 0],
+          [0, 0, 0, 0, 0, 0],
+        ],
+        solutionEdges: [
+          '0,0-0,1', '0,1-0,2', '0,2-0,3', '0,4-0,5',
+          '1,1-1,2', '1,2-1,3', '2,2-2,3', '2,3-2,4',
+          '3,1-3,2', '3,3-3,4', '3,4-3,5', '4,0-4,1', '4,1-4,2', '5,2-5,3',
+          '0,0-1,0', '0,3-1,3', '0,4-1,4', '0,5-1,5',
+          '1,0-2,0', '1,1-2,1', '1,4-2,4', '1,5-2,5',
+          '2,0-3,0', '2,1-3,1', '2,2-3,2', '2,5-3,5',
+          '3,0-4,0', '3,3-4,3', '4,2-5,2', '4,3-5,3',
+        ],
+      },
+    },
+    renderBoard: (props) => <MasyuBoard {...props} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'masyu') throw new Error('Masyu template example type mismatch.');
+      return (
+        <PlayableExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<MasyuExample width={example.width} height={example.height} cells={example.cells} solutionEdges={example.solutionEdges} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <MasyuBoard puzzle={puzzle as MasyuPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} />
+          )}
+        />
+      );
+    },
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
@@ -3385,7 +3519,7 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
     case 'four-winds-with-parks':
       return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1));
     case 'fourwinds':
-      return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 1));
+      return isTypedMatrix(value.clues, width, height, (cell) => cell === null || isFiniteInteger(cell, 0) && cell <= width + height);
     case 'consecutive-kakuro':
       return isTypedMatrix(value.cells, width, height, (cell) => cell === null || (
         isRecord(cell) && isNullableInteger(cell.right, 0, 45) && isNullableInteger(cell.down, 0, 45)
@@ -3412,6 +3546,15 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
         isNullableNumberArray(value.topClues, width, 0) &&
         isNullableNumberArray(value.leftClues, height, 0) &&
         Array.isArray(value.pillValues) && value.pillValues.every((item) => isFiniteInteger(item, 1));
+    case 'masyu':
+      return isTypedMatrix(value.cells, width, height, (cell) => cell === 0 || cell === 1 || cell === 2);
+    case 'place-by-product':
+      return isNullableNumberArray(value.rowClues, height, 0) &&
+        isNullableNumberArray(value.colClues, width, 0) &&
+        Array.isArray(value.pieces) && value.pieces.every((piece: { cells: unknown }) =>
+          Array.isArray(piece.cells) && piece.cells.every((cell: unknown) =>
+            Array.isArray(cell) && isFiniteInteger(cell[0], 0) && isFiniteInteger(cell[1], 0))) &&
+        isTypedMatrix(value.givens, width, height, (cell) => typeof cell === 'boolean');
     case 'tapa':
       return isTypedMatrix(value.clues, width, height, (cell) =>
         cell === null || (Array.isArray(cell) && cell.every((item) => item === '?' || (isFiniteInteger(item, 0) && item <= 8)))
@@ -3524,6 +3667,9 @@ export function getPuzzleTypeFromLink(link: string | undefined | null): PuzzleTy
     japanesesumswithzeroes: 'japanese-sums-with-zeroes',
     japanesesums: 'japanese-sums-with-zeroes',
     abcbox: 'abc-box',
+    placebyproduct: 'place-by-product',
+    pearl: 'masyu',
+    mashu: 'masyu',
   };
   if (Object.prototype.hasOwnProperty.call(aliases, type)) {
     return aliases[type];

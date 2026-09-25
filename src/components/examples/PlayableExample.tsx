@@ -35,12 +35,16 @@ export default function PlayableExample({ example, playableLabel, answerLabel, f
     <div className="grid gap-6 md:grid-cols-2">
       <div className="min-w-0">
         <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-        {renderBoard({
-          puzzle,
-          startTime,
-          onComplete: () => setShowAnswer(true),
-          fixedCellSize,
-        })}
+        <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
+          <div className="mx-auto w-max min-w-0">
+            {renderBoard({
+              puzzle,
+              startTime,
+              onComplete: () => setShowAnswer(true),
+              fixedCellSize,
+            })}
+          </div>
+        </div>
       </div>
       <div className="min-w-0">
         <div className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</div>

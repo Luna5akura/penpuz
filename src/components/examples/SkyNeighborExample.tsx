@@ -195,13 +195,17 @@ export default function SkyNeighborExample({
       <div className="min-w-0">
         <p className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</p>
         <div className="w-full min-w-0 max-w-full overflow-hidden">
-          <SkyNeighborBoard
-            puzzle={puzzle}
-            startTime={exampleStartTime}
-            resetToken={0}
-            onComplete={() => setShowAnswer(true)}
-            fixedCellSize={CELL_SIZE}
-          />
+          <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
+          <div className="mx-auto w-max min-w-0">
+  <SkyNeighborBoard
+              puzzle={puzzle}
+              startTime={exampleStartTime}
+              resetToken={0}
+              onComplete={() => setShowAnswer(true)}
+              fixedCellSize={CELL_SIZE}
+            />
+          </div>
+        </div>
         </div>
       </div>
       <div className="min-w-0">

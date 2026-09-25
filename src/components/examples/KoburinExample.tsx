@@ -143,14 +143,18 @@ export default function KoburinExample({
     <div className="flex flex-col justify-center gap-10 xl:flex-row">
       <div className="flex flex-col items-center">
         <p className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</p>
-        <KoburinBoard
-          key={`koburin-example-${width}-${height}`}
-          puzzle={puzzle}
-          startTime={exampleStartTime}
-          resetToken={0}
-          onComplete={() => setShowAnswer(true)}
-          fixedCellSize={CELL_SIZE}
-        />
+        <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
+          <div className="mx-auto w-max min-w-0">
+  <KoburinBoard
+            key={`koburin-example-${width}-${height}`}
+            puzzle={puzzle}
+            startTime={exampleStartTime}
+            resetToken={0}
+            onComplete={() => setShowAnswer(true)}
+            fixedCellSize={CELL_SIZE}
+          />
+          </div>
+        </div>
       </div>
       <div className="flex flex-col items-center">
         <p className="mb-4 text-center text-base font-medium text-muted-foreground">{answerLabel}</p>

@@ -145,6 +145,23 @@ export function buildExamplePuzzleData(example: PuzzleExample): PuzzleData {
         leftClues: example.leftClues,
         pillValues: example.pillValues,
       };
+    case 'place-by-product':
+      return {
+        type: 'place-by-product',
+        width: example.width,
+        height: example.height,
+        rowClues: example.rowClues,
+        colClues: example.colClues,
+        pieces: example.pieces,
+        givens: example.givens,
+      };
+    case 'masyu':
+      return {
+        type: 'masyu',
+        width: example.width,
+        height: example.height,
+        cells: example.cells,
+      };
     default: {
       const unreachable: never = example;
       throw new Error(`Unhandled example type: ${String(unreachable)}`);

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type PointerEvent } from 'reac
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import ValidationMessage from '@/components/ValidationMessage';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
-import { safeSetPointerCapture } from '@/lib/pointer';
+import { LONG_PRESS_MS, LONG_PRESS_MOVE_TOLERANCE, safeSetPointerCapture, triggerHapticFeedback } from '@/lib/pointer';
 import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import { useBoardContainerWidth } from '../useBoardContainerWidth';
@@ -201,6 +201,8 @@ export default function FourWindsWithParksBoard({
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<PointerState>(resetPointerState());
+  const pendingTouchRightClickRef = useRef<{ cell: CellCoord; startX: number; startY: number } | null>(null);
+  const pendingTouchTimerRef = useRef<number | null>(null);
   const hasCompleted = useRef(false);
   // The parent persists every snapshot through `onSnapshotChange`. Keep the
   // latest value available for an explicit reset without making the reset
@@ -287,6 +289,12 @@ export default function FourWindsWithParksBoard({
   }, [getResetSnapshot, reset]);
 
   useEffect(() => {
+    return () => {
+      if (pendingTouchTimerRef.current !== null) window.clearTimeout(pendingTouchTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     resetBoard();
   }, [puzzle, resetBoard, resetToken]);
 
@@ -313,9 +321,13 @@ export default function FourWindsWithParksBoard({
     if (puzzle.clues[cell.row]?.[cell.col] !== null) return;
     const currentValue = grid[cell.row]?.[cell.col] ?? null;
     if (button === 0) {
-      // Left-click is a circle toggle.  A cross is treated like blank so the
-      // two mark buttons can switch between the three click-only states.
-      if (typeof currentValue === 'number' && currentValue > 0) return;
+      // Left-click deletes an existing arrow and otherwise toggles the
+      // circle (park) mark.  A cross is treated like blank so the two mark
+      // buttons can switch between the three click-only states.
+      if (typeof currentValue === 'number' && currentValue > 0) {
+        updateCell(cell.row, cell.col, null);
+        return;
+      }
       updateCell(cell.row, cell.col, currentValue === 'circle' ? null : 'circle');
       return;
     }
@@ -377,13 +389,29 @@ export default function FourWindsWithParksBoard({
     safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
     pointerState.current = {
       pointerId: event.pointerId,
-      button: event.button,
+      button: event.pointerType === 'touch' ? 0 : event.button,
       startCell: cell,
       lastCell: cell,
       lastArrowTarget: null,
       moved: false,
     };
     startBatch();
+
+    // Touch: a quick tap performs the left action on release, while a long
+    // press triggers the right-button action in place.
+    if (event.pointerType === 'touch') {
+      pendingTouchRightClickRef.current = { cell, startX: event.clientX, startY: event.clientY };
+      if (pendingTouchTimerRef.current !== null) window.clearTimeout(pendingTouchTimerRef.current);
+      pendingTouchTimerRef.current = window.setTimeout(() => {
+        const pending = pendingTouchRightClickRef.current;
+        if (!pending) return;
+        pendingTouchRightClickRef.current = null;
+        pendingTouchTimerRef.current = null;
+        pointerState.current.moved = true;
+        triggerHapticFeedback();
+        applyCellClick(pending.cell, 2);
+      }, LONG_PRESS_MS);
+    }
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -401,6 +429,18 @@ export default function FourWindsWithParksBoard({
       current.lastCell = null;
       return;
     }
+    const pending = pendingTouchRightClickRef.current;
+    if (pending && (
+      Math.abs(event.clientX - pending.startX) > LONG_PRESS_MOVE_TOLERANCE ||
+      Math.abs(event.clientY - pending.startY) > LONG_PRESS_MOVE_TOLERANCE
+    )) {
+      pendingTouchRightClickRef.current = null;
+      if (pendingTouchTimerRef.current !== null) {
+        window.clearTimeout(pendingTouchTimerRef.current);
+        pendingTouchTimerRef.current = null;
+      }
+    }
+
     if (!sameCell(current.startCell, cell)) {
       current.moved = true;
 
@@ -425,6 +465,11 @@ export default function FourWindsWithParksBoard({
   const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const current = pointerState.current;
     if (current.pointerId !== event.pointerId) return;
+    if (pendingTouchTimerRef.current !== null) {
+      window.clearTimeout(pendingTouchTimerRef.current);
+      pendingTouchTimerRef.current = null;
+    }
+    pendingTouchRightClickRef.current = null;
     if (current.startCell && current.button !== null && !current.moved) {
       applyCellClick(current.startCell, current.button);
     }

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n/useI18n';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
 import { getKeyboardDigit, isKeyboardInputTarget } from '@/lib/keyboard';
-import { safeSetPointerCapture } from '@/lib/pointer';
+import { LONG_PRESS_MS, LONG_PRESS_MOVE_TOLERANCE, safeSetPointerCapture, triggerHapticFeedback } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import type { CellCoord } from '../gridUtils';
@@ -363,6 +363,14 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const keyboardEntryRef = useRef<{ row: number; col: number; text: string; timestamp: number } | null>(null);
+  const pendingCycleRef = useRef<{
+    row: number;
+    col: number;
+    startX: number;
+    startY: number;
+    apply: (backward: boolean) => void;
+  } | null>(null);
+  const pendingCycleTimerRef = useRef<number | null>(null);
   const hasCompleted = useRef(false);
   const resetBoardRef = useRef<() => void>(() => {});
   const initialSnapshotRef = useRef(initialSnapshot);
@@ -586,6 +594,12 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   }, [height, isOutsideCoordinate]);
 
   const selectedEditable = !!selectedCell && isPositionEditable(selectedCell.row, selectedCell.col);
+
+  useEffect(() => {
+    return () => {
+      if (pendingCycleTimerRef.current !== null) window.clearTimeout(pendingCycleTimerRef.current);
+    };
+  }, []);
 
   const resetBoard = useCallback(() => {
     reset(getResetSnapshot());
@@ -980,6 +994,32 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [activeCellInputMode, getOutsidePosition, hoverKeyboardEntry, hoveredCell, inputModeOptions, isPositionEditable, numbers, selectedCell, setPositionValue, toggleCandidate]);
 
+  const handleBoardPointerUp = () => {
+    const pending = pendingCycleRef.current;
+    if (!pending) return;
+    pendingCycleRef.current = null;
+    if (pendingCycleTimerRef.current !== null) {
+      window.clearTimeout(pendingCycleTimerRef.current);
+      pendingCycleTimerRef.current = null;
+    }
+    pending.apply(false);
+  };
+
+  const handleBoardPointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const pending = pendingCycleRef.current;
+    if (!pending) return;
+    if (
+      Math.abs(event.clientX - pending.startX) > LONG_PRESS_MOVE_TOLERANCE ||
+      Math.abs(event.clientY - pending.startY) > LONG_PRESS_MOVE_TOLERANCE
+    ) {
+      pendingCycleRef.current = null;
+      if (pendingCycleTimerRef.current !== null) {
+        window.clearTimeout(pendingCycleTimerRef.current);
+        pendingCycleTimerRef.current = null;
+      }
+    }
+  };
+
   const handleCellPointerDown = (row: number, col: number, event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
     keyboardEntryRef.current = null;
@@ -988,12 +1028,37 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       if (!isPositionEditable(row, col)) return;
       if (event.button !== 0 && event.button !== 2) return;
 
-      if (getGroupCells && getGroupStates) {
-        cycleGroupValue(row, col, event.button);
-      } else {
-        cycleCellValue(row, col, event.button === 2 ? -1 : 1);
+      const applyCycle = (backward: boolean) => {
+        if (getGroupCells && getGroupStates) {
+          cycleGroupValue(row, col, backward ? 2 : 0);
+        } else {
+          cycleCellValue(row, col, backward ? -1 : 1);
+        }
+        setSelectedCell({ row, col });
+      };
+
+      // Touch: a quick tap cycles forward, a long press cycles backward.
+      if (event.pointerType === 'touch') {
+        pendingCycleRef.current = {
+          row,
+          col,
+          startX: event.clientX,
+          startY: event.clientY,
+          apply: applyCycle,
+        };
+        if (pendingCycleTimerRef.current !== null) window.clearTimeout(pendingCycleTimerRef.current);
+        pendingCycleTimerRef.current = window.setTimeout(() => {
+          const pending = pendingCycleRef.current;
+          if (!pending) return;
+          pendingCycleRef.current = null;
+          pendingCycleTimerRef.current = null;
+          triggerHapticFeedback();
+          pending.apply(true);
+        }, LONG_PRESS_MS);
+        return;
       }
-      setSelectedCell({ row, col });
+
+      applyCycle(event.button === 2);
       return;
     }
 
@@ -1020,8 +1085,34 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     }
     if (activeCellInputMode === 'cycle') {
       if (event.button !== 0 && event.button !== 2) return;
-      cyclePositionValue(row, col, event.button === 2 ? -1 : 1);
-      setSelectedCell({ row, col });
+
+      const applyCycle = (backward: boolean) => {
+        cyclePositionValue(row, col, backward ? -1 : 1);
+        setSelectedCell({ row, col });
+      };
+
+      // Touch: a quick tap cycles forward, a long press cycles backward.
+      if (event.pointerType === 'touch') {
+        pendingCycleRef.current = {
+          row,
+          col,
+          startX: event.clientX,
+          startY: event.clientY,
+          apply: applyCycle,
+        };
+        if (pendingCycleTimerRef.current !== null) window.clearTimeout(pendingCycleTimerRef.current);
+        pendingCycleTimerRef.current = window.setTimeout(() => {
+          const pending = pendingCycleRef.current;
+          if (!pending) return;
+          pendingCycleRef.current = null;
+          pendingCycleTimerRef.current = null;
+          triggerHapticFeedback();
+          pending.apply(true);
+        }, LONG_PRESS_MS);
+        return;
+      }
+
+      applyCycle(event.button === 2);
       return;
     }
     setSelectedCell({ row, col });
@@ -1111,7 +1202,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   return (
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
-        <div className="flex w-full min-w-0 justify-center">
+        <div className="mx-auto w-max min-w-0">
           <div
             ref={boardRef}
             className="relative select-none touch-none"
@@ -1121,6 +1212,8 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               ...getBoardFrameStyle(BOARD_BORDER),
               maxWidth: 'none',
             }}
+            onPointerUp={handleBoardPointerUp}
+            onPointerMove={handleBoardPointerMove}
             onContextMenu={(event) => event.preventDefault()}
             onMouseLeave={hoverKeyboardEntry ? () => setHoveredCell(null) : undefined}
           >

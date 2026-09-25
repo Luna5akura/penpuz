@@ -29,12 +29,16 @@ const HISTORY_PAGE_SIZE = 5;
 const RuleQuickReferenceDialog = lazy(() => import('./components/RuleQuickReferenceDialog'));
 const NotesPage = lazy(() => import('./components/notes/NotesPage'));
 const DatabasePuzzleTestPage = lazy(() => import('./components/DatabasePuzzleTestPage'));
+// Hidden page: only reachable through the `?page=all-puzzles` link and
+// intentionally absent from every navigation UI.
+const AllPuzzlesPage = lazy(() => import('./components/AllPuzzlesPage'));
 
-type ActivePage = 'puzzle' | 'notes' | 'database-test';
+type ActivePage = 'puzzle' | 'notes' | 'database-test' | 'all-puzzles';
 
 function readActivePageFromUrl(): ActivePage {
   if (typeof window === 'undefined') return 'puzzle';
   const params = new URLSearchParams(window.location.search);
+  if (params.get('page') === 'all-puzzles') return 'all-puzzles';
   if (params.get('page') === 'database-test' || params.get('page') === 'test') return 'database-test';
   return params.has('note') || params.get('page') === 'notes' ? 'notes' : 'puzzle';
 }
@@ -405,6 +409,14 @@ function App() {
     return (
       <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading…</div>}>
         <DatabasePuzzleTestPage />
+      </Suspense>
+    );
+  }
+
+  if (activePage === 'all-puzzles') {
+    return (
+      <Suspense fallback={<div className="p-8 text-center text-muted-foreground">Loading…</div>}>
+        <AllPuzzlesPage />
       </Suspense>
     );
   }

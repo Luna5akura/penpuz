@@ -184,6 +184,17 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
       return [isZh
         ? `${puzzle.pillValues.length} 枚药丸`
         : `${puzzle.pillValues.length} pills to locate`];
+    case 'place-by-product':
+      return [isZh
+        ? `将 ${puzzle.pieces.length} 个拼块放入盘面`
+        : `place ${puzzle.pieces.length} pieces into the grid`];
+    case 'masyu': {
+      const whiteCount = matrixCount(puzzle.cells, (value) => value === 1);
+      const blackCount = matrixCount(puzzle.cells, (value) => value === 2);
+      return [isZh
+        ? `${whiteCount} 个白圈，${blackCount} 个黑圈`
+        : `${whiteCount} white and ${blackCount} black circles`];
+    }
     case 'japanese-arrows':
       return [isZh
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个箭头线索`

@@ -67,6 +67,10 @@ interface ShadingBoardProps<TPuzzle extends { width: number; height: number }> {
   outsideClues?: ShadingBoardOutsideClues;
   /** Render outside clue digits at the same size as in-cell clues (e.g. Battleships). */
   outsideClueCellTextSize?: boolean;
+  /** Optional pre-filled initial grid (e.g. given piece parts in Place by Product). */
+  getInitialGrid?: (width: number, height: number) => ShadingCellState[][];
+  /** Apply the cell action on pointer down instead of waiting for release (e.g. Place by Product). */
+  applyOnPointerDown?: boolean;
   renderBoardAccessory?: (cellSize: number) => ReactNode;
   boundaries?: BoundarySegments;
   isLockedCell?: (row: number, col: number) => boolean;
@@ -124,6 +128,8 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   showValidationMessage = false,
   outsideClues,
   outsideClueCellTextSize = false,
+  getInitialGrid,
+  applyOnPointerDown = false,
   renderBoardAccessory,
   boundaries,
   isLockedCell = () => false,
@@ -152,13 +158,19 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   const resetBoardRef = useRef<() => void>(() => {});
 
   const createInitialSnapshot = useCallback<() => ShadingSnapshot>(() => ({
-    grid: createEmptyShadingGrid(width, height),
+    grid: getInitialGrid ? getInitialGrid(width, height) : createEmptyShadingGrid(width, height),
     levels: Array.from({ length: height }, () => Array(width).fill(0)),
-  }), [height, width]);
-  const getResetSnapshot = useCallback(
-    () => normalizeShadingSnapshot(initialSnapshotRef.current, width, height),
-    [height, width]
-  );
+  }), [getInitialGrid, height, width]);
+  const getResetSnapshot = useCallback(() => {
+    const base = normalizeShadingSnapshot(initialSnapshotRef.current, width, height);
+    if (!getInitialGrid) return base;
+    // Re-apply the pre-filled initial cells on reset so given cells survive.
+    const initialGrid = getInitialGrid(width, height);
+    return {
+      ...base,
+      grid: base.grid.map((row, rowIndex) => row.map((value, colIndex) => initialGrid[rowIndex][colIndex] !== 0 ? initialGrid[rowIndex][colIndex] : value)),
+    };
+  }, [getInitialGrid, height, width]);
 
   const history = usePuzzleHistory<ShadingSnapshot>(createInitialSnapshot(), {
     normalizeTrialSnapshot: (trialSnapshot) => ({
@@ -354,6 +366,15 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
       lastCell: { row, col },
     };
     startBatch();
+
+    // Apply the action as soon as the button goes down; the release then has
+    // nothing left to apply and dragging continues painting other cells.
+    // (applyDragToCell would skip the start cell via its lastCell guard, so
+    // apply the state directly here.)
+    if (applyOnPointerDown) {
+      applyCellState(row, col, nextDragMode);
+      pointerState.current.pendingTap = null;
+    }
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {

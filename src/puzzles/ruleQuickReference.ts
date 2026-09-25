@@ -1203,6 +1203,36 @@ export const ruleQuickReferenceItems: RuleQuickReferenceItem[] = [
     "sourceUrl": "https://puzz.link/rules.html?pills"
   },
   {
+    "id": "place-by-product",
+    "order": 241,
+    "refName": "placebyproduct",
+    "englishName": "Place by Product",
+    "chineseName": "乘积摆放",
+    "chineseAlias": "乘积摆放",
+    "category": "放置",
+    "ruleTags": "放置",
+    "chineseRules": "将给定的一组拼块放入盘面。拼块之间不能相互接触，即使是斜对角接触也不行。拼块可以旋转和翻转，并把每一行（列）的白色格分割成若干组。部分行（列）旁标有数字：它表示该行（列）中所有白色分组的长度的乘积，0 表示该行（列）被拼块完全填满。部分拼块的某些格已预先给出，但它们属于哪个拼块并不标明。",
+    "englishRules": "Place the given set of pieces into the grid. Pieces may not touch, not even diagonally. Pieces may be rotated and reflected. The pieces divide rows (and columns) into groups of adjacent white (unoccupied) cells. Numeric clues are provided for some rows (and columns); a clue indicates the multiplicative product of the sizes of the (white) groups in that row (or column). A zero indicates that that row or column is completely filled. Some piece parts may already be placed for you; however, which piece the parts belong to is not identified for you.",
+    "tableRuleSource": "WPF GP 2016 Round 1",
+    "englishSource": "app-registry",
+    "sourceUrl": "https://gp.worldpuzzle.org/"
+  },
+  {
+    "id": "masyu",
+    "order": 242,
+    "refName": "masyu",
+    "englishName": "Masyu",
+    "chineseName": "黑白珍珠",
+    "chineseAlias": "黑白珍珠",
+    "category": "画线",
+    "ruleTags": "画线",
+    "chineseRules": "画一条不交叉的单一回路，回路从相邻格子的中心之间穿过，并通过所有带圆圈的格子。回路必须从白圈中直行穿过，并且白圈前后的格子中至少一个必须转弯。回路必须在黑圈中转弯，并且黑圈前后的两个格子都必须直行穿过。",
+    "englishRules": "Draw a single, non-intersecting loop that passes orthogonally through all circled cells. The loop must go straight through the cells with white circles, with a turn in at least one of the cells immediately before or after each white circle. The loop must make a turn in all the black circles, but must go straight in both cells immediately before and after each black circle.",
+    "tableRuleSource": "WPF GP 2016 Round 2",
+    "englishSource": "app-registry",
+    "sourceUrl": "https://puzz.link/rules.html?mashu"
+  },
+  {
     "id": "gaps",
     "order": 79,
     "refName": "gaps",
