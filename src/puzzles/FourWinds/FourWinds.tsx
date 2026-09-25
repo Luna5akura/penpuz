@@ -209,11 +209,14 @@ export default function FourWindsBoard({
     [grid, puzzle]
   );
   // A run of same-direction cells draws one continuous line: every cell
-  // except the last is a bare shaft, and the final cell carries the arrowhead.
+  // except the last is a bare shaft, and the final cell carries the
+  // arrowhead.  Every arrow (including a lone single-cell arrow) uses the
+  // `head` tail geometry, so its shaft spans the full cell just like the
+  // shaft cells of a run.
   const arrowVariants = useMemo<DirectionalArrowVariant[][]>(() => {
     const variants: DirectionalArrowVariant[][] = Array.from(
       { length: height },
-      () => Array<DirectionalArrowVariant>(width).fill('full')
+      () => Array<DirectionalArrowVariant>(width).fill('head')
     );
     for (let row = 0; row < height; row++) {
       for (let col = 0; col < width; col++) {
@@ -224,12 +227,6 @@ export default function FourWindsBoard({
         const nextCol = col + dc;
         if (nextRow >= 0 && nextRow < height && nextCol >= 0 && nextCol < width && grid[nextRow][nextCol] === value) {
           variants[row][col] = 'shaft';
-          continue;
-        }
-        const prevRow = row - dr;
-        const prevCol = col - dc;
-        if (prevRow >= 0 && prevRow < height && prevCol >= 0 && prevCol < width && grid[prevRow][prevCol] === value) {
-          variants[row][col] = 'head';
         }
       }
     }
