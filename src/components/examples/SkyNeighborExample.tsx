@@ -1,4 +1,5 @@
-import { useExampleCellSize } from './exampleCellSizeContext';
+import { useResponsiveExampleCellSize } from './exampleCellSizeContext';
+import { ExampleCellSizeProvider } from './ExampleBoardChrome';
 import { useMemo, useState } from 'react';
 import ExampleAnswerReveal from '@/components/ExampleAnswerReveal';
 import SkyNeighborBoard from '@/puzzles/SkyNeighbor/SkyNeighbor';
@@ -169,7 +170,9 @@ export default function SkyNeighborExample({
   playableLabel,
   answerLabel,
 }: Props) {
-  const CELL_SIZE = useExampleCellSize();
+  // The board includes the outside answer ring, so reserve width + 2 cell
+  // columns when fitting the example to the column width.
+  const { containerRef, cellSize } = useResponsiveExampleCellSize(width + 2);
   const [showAnswer, setShowAnswer] = useState(false);
   const [exampleStartTime] = useState(() => Date.now());
   const puzzle = useMemo<SkyNeighborPuzzleData>(
@@ -195,7 +198,7 @@ export default function SkyNeighborExample({
     <div className="grid min-w-0 gap-6 md:grid-cols-2">
       <div className="min-w-0">
         <p className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</p>
-        <div className="w-full min-w-0 max-w-full overflow-hidden">
+        <div ref={containerRef} className="w-full min-w-0 max-w-full overflow-hidden">
           <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
           <div className="mx-auto w-max min-w-0">
   <SkyNeighborBoard
@@ -203,7 +206,7 @@ export default function SkyNeighborExample({
               startTime={exampleStartTime}
               resetToken={0}
               onComplete={() => setShowAnswer(true)}
-              fixedCellSize={CELL_SIZE}
+              fixedCellSize={cellSize}
             />
           </div>
         </div>
@@ -217,14 +220,16 @@ export default function SkyNeighborExample({
           ariaLabel={answerLabel}
           className="flex max-w-full justify-start overflow-x-auto overscroll-x-contain pb-1 md:justify-center"
         >
-          <SkyNeighborDiagram
-            width={width}
-            height={height}
-            clues={answerClues}
-            grayCells={grayCells}
-            outsideGrayCells={outsideGrayCells}
-            values={correctGrid}
-          />
+          <ExampleCellSizeProvider cellSize={cellSize}>
+            <SkyNeighborDiagram
+              width={width}
+              height={height}
+              clues={answerClues}
+              grayCells={grayCells}
+              outsideGrayCells={outsideGrayCells}
+              values={correctGrid}
+            />
+          </ExampleCellSizeProvider>
         </ExampleAnswerReveal>
       </div>
     </div>
