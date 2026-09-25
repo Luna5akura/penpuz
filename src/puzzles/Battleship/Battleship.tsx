@@ -76,8 +76,12 @@ export default function BattleshipBoard({
       showValidationMessage={showValidationMessage}
       outsideClues={{ top: puzzle.columnClues, left: puzzle.rowClues }}
       outsideClueCellTextSize
-      renderBoardAccessory={(cellSize) => (
-        <BattleshipFleet fleet={puzzle.fleet} boardCellSize={cellSize} />
+      renderBoardAccessory={(cellSize, grid) => (
+        <BattleshipFleet
+          fleet={puzzle.fleet}
+          boardCellSize={cellSize}
+          usedCounts={getBattleshipPlacedShapeCounts(grid, puzzle)}
+        />
       )}
       isLockedCell={isLockedCell}
       getCellTone={(row, col, state) => {

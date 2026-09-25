@@ -1,7 +1,6 @@
 import { Waves } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import {
-  boardClassNames,
   boardLayoutMetrics,
   getBoardIconSize,
   getBoardIconStrokeWidth,
@@ -186,9 +185,11 @@ export function BattleshipWaterSymbol({ cellSize }: { cellSize: number }) {
 export function BattleshipShapePreview({
   shape,
   cellSize = boardLayoutMetrics.shipPreviewCellSize,
+  used = false,
 }: {
   shape: BattleshipShipShape;
   cellSize?: number;
+  used?: boolean;
 }) {
   return (
     <div
@@ -211,7 +212,7 @@ export function BattleshipShapePreview({
             style={{
               width: `${cellSize}px`,
               height: `${cellSize}px`,
-              background: occupied ? woodBoardTheme.battleshipShip : 'transparent',
+              background: occupied ? (used ? woodBoardTheme.neutralSoft : woodBoardTheme.battleshipShip) : 'transparent',
               borderRadius: occupied
                 ? `${top || left ? 0 : cellSize / 2}px ${top || right ? 0 : cellSize / 2}px ${bottom || right ? 0 : cellSize / 2}px ${bottom || left ? 0 : cellSize / 2}px`
                 : undefined,
@@ -227,36 +228,39 @@ export function BattleshipFleet({
   fleet,
   boardCellSize,
   compact = false,
+  usedCounts,
 }: {
   fleet: BattleshipShipShape[];
   boardCellSize: number;
   compact?: boolean;
+  usedCounts?: ReadonlyMap<string, number>;
 }) {
   const { locale } = useI18n();
-  const grouped = new Map<string, { shape: BattleshipShipShape; count: number }>();
-  fleet.forEach((shape) => {
-    const key = getBattleshipShapeKey(shape);
-    const current = grouped.get(key);
-    if (current) current.count += 1;
-    else grouped.set(key, { shape, count: 1 });
-  });
   const previewCellSize = getBoardPreviewCellSize(boardCellSize, compact);
+  // Gray one listed ship per completed ship of that shape on the board, so
+  // the remaining (ungrayed) entries show exactly which ships are left.
+  const remaining = new Map<string, number>();
+  for (const [key, count] of usedCounts ?? []) remaining.set(key, count);
 
   return (
     <div className="flex max-w-full flex-col items-center gap-2">
       <div className="text-xs font-semibold text-muted-foreground">
         {locale === 'zh-CN' ? '舰队' : 'Fleet'}
       </div>
-      <div className="flex max-w-full flex-wrap items-center justify-center gap-x-5 gap-y-3 px-2">
-        {Array.from(grouped.values()).map(({ shape, count }) => (
-          <div
-            key={getBattleshipShapeKey(shape)}
-            className={`flex min-h-7 items-center gap-2 text-sm text-muted-foreground ${boardClassNames.cellText}`}
-          >
-            <BattleshipShapePreview shape={shape} cellSize={previewCellSize} />
-            {count > 1 ? <span>×{count}</span> : null}
-          </div>
-        ))}
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-3 px-2">
+        {fleet.map((shape, index) => {
+          const key = getBattleshipShapeKey(shape);
+          const used = (remaining.get(key) ?? 0) > 0;
+          if (used) remaining.set(key, (remaining.get(key) ?? 0) - 1);
+          return (
+            <div
+              key={`${key}-${index}`}
+              className="flex min-h-7 items-center gap-2 text-sm text-muted-foreground"
+            >
+              <BattleshipShapePreview shape={shape} cellSize={previewCellSize} used={used} />
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -269,6 +269,43 @@ function canonicalizeCoords(coords: Coord[]) {
   return variants.sort()[0];
 }
 
+/**
+ * Shape keys of every complete ship currently visible on the board (drawn
+ * cells plus pre-given ship segments), counted per shape.  The fleet bank
+ * uses these counts to gray out the ships whose shape is already placed.
+ */
+export function getBattleshipPlacedShapeCounts(
+  grid: ReadonlyArray<ReadonlyArray<unknown>>,
+  puzzle: BattleshipPuzzleData
+): Map<string, number> {
+  const occupied = getBattleshipOccupiedGrid(grid, puzzle);
+  const seen = Array.from({ length: puzzle.height }, () => Array<boolean>(puzzle.width).fill(false));
+  const counts = new Map<string, number>();
+  for (let row = 0; row < puzzle.height; row++) {
+    for (let col = 0; col < puzzle.width; col++) {
+      if (!occupied[row]?.[col] || seen[row][col]) continue;
+      const cells: Coord[] = [];
+      const stack: Coord[] = [{ row, col }];
+      seen[row][col] = true;
+      while (stack.length > 0) {
+        const current = stack.pop()!;
+        cells.push(current);
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          const nextRow = current.row + dr;
+          const nextCol = current.col + dc;
+          if (nextRow < 0 || nextRow >= puzzle.height || nextCol < 0 || nextCol >= puzzle.width) continue;
+          if (!occupied[nextRow][nextCol] || seen[nextRow][nextCol]) continue;
+          seen[nextRow][nextCol] = true;
+          stack.push({ row: nextRow, col: nextCol });
+        }
+      }
+      const key = canonicalizeCoords(cells);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 export function getBattleshipShapeKey(shape: BattleshipShipShape) {
   const coords = shape.cells.flatMap((row, rowIndex) =>
     row.flatMap((occupied, colIndex) => occupied ? [{ row: rowIndex, col: colIndex }] : [])

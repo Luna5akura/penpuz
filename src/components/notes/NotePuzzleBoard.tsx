@@ -806,7 +806,7 @@ function getRegionIds(puzzle: PuzzleData | undefined) {
   }
 }
 
-function getLegacyMarkView(mark?: NoteReplayCellMark): CellView | null {
+function getLegacyMarkView(mark: NoteReplayCellMark | undefined, cellSize: number): CellView | null {
   if (!mark) return null;
   if (mark.kind === 'shade') return { tone: 'playerShaded' };
   if (mark.kind === 'star') return { tone: 'lit', content: <StarMark cellSize={cellSize} /> };
@@ -1741,7 +1741,7 @@ export default function NotePuzzleBoard({
                       ),
                     };
                 const snapshotOverlay = snapshotView ?? candidateView;
-                const legacyView = snapshotOverlay ? null : getLegacyMarkView(markMap.get(getLocalCellKey(row, col)));
+                const legacyView = snapshotOverlay ? null : getLegacyMarkView(markMap.get(getLocalCellKey(row, col)), cellSize);
                 const view = mergeCellViews(base, snapshotOverlay ?? legacyView);
                 const slitherMark = isSlither && snapshotTrialVisible
                   ? getSlitherCellMark(snapshot, row, col)
