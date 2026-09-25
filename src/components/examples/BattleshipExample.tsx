@@ -20,6 +20,7 @@ import {
   inferBattleshipSegment,
 } from '@/puzzles/Battleship/utils';
 import { getCellKey } from '@/puzzles/gridUtils';
+import { getBattleshipShapeKey } from '@/puzzles/Battleship/utils';
 import type { BattleshipCellClue, BattleshipPuzzleData, BattleshipShipShape } from '@/puzzles/types';
 import { useExampleCellSize } from './exampleCellSizeContext';
 
@@ -46,6 +47,17 @@ function BattleshipDiagram({
     () => new Map(puzzle.cellClues.map((clue) => [getCellKey(clue.row, clue.col), clue])),
     [puzzle.cellClues]
   );
+  // The official answer places every fleet ship, so the whole bank is
+  // grayed out, matching the board's determined-ship behavior.
+  const answerUsedCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const shape of puzzle.fleet) {
+      const key = getBattleshipShapeKey(shape);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [puzzle.fleet]);
+
   const grid = solution ?? Array.from(
     { length: puzzle.height },
     () => Array.from({ length: puzzle.width }, () => 0 as const)
@@ -148,7 +160,12 @@ function BattleshipDiagram({
           </span>
         ))}
       </div>
-      <BattleshipFleet fleet={puzzle.fleet} boardCellSize={CELL_SIZE} compact />
+      <BattleshipFleet
+        fleet={puzzle.fleet}
+        boardCellSize={CELL_SIZE}
+        compact
+        usedCounts={answerUsedCounts}
+      />
     </div>
   );
 }
