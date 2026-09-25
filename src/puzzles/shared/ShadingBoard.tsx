@@ -71,7 +71,7 @@ interface ShadingBoardProps<TPuzzle extends { width: number; height: number }> {
   getInitialGrid?: (width: number, height: number) => ShadingCellState[][];
   /** Apply the cell action on pointer down instead of waiting for release (e.g. Place by Product). */
   applyOnPointerDown?: boolean;
-  renderBoardAccessory?: (cellSize: number) => ReactNode;
+  renderBoardAccessory?: (cellSize: number, grid: ShadingCellState[][]) => ReactNode;
   boundaries?: BoundarySegments;
   isLockedCell?: (row: number, col: number) => boolean;
   getCellTone?: (row: number, col: number, state: ShadingCellState) => BoardCellTone;
@@ -605,7 +605,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
         ) : null}
       </div>
 
-      {renderBoardAccessory?.(cellSize)}
+      {renderBoardAccessory?.(cellSize, grid)}
 
       <PuzzleAssistToolbar
         canUndo={canUndo}

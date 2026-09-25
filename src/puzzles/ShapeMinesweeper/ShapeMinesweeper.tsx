@@ -4,7 +4,7 @@ import type { ShapeMinesweeperPuzzleData } from '../types';
 import { getCellKey } from '../gridUtils';
 import { boardClassNames, getBoardClueTextStyle } from '../boardTheme';
 import ShapeInventory from './ShapeInventory';
-import { validateShapeMinesweeper } from './utils';
+import { getPlacedShapeLabels, validateShapeMinesweeper } from './utils';
 
 interface Props {
   puzzle: ShapeMinesweeperPuzzleData;
@@ -67,7 +67,13 @@ export default function ShapeMinesweeperBoard({
           </span>
         );
       }}
-      renderBoardAccessory={(cellSize) => <ShapeInventory shapes={puzzle.shapes} cellSize={Math.max(11, Math.floor(cellSize * 0.42))} />}
+      renderBoardAccessory={(cellSize, grid) => (
+        <ShapeInventory
+          shapes={puzzle.shapes}
+          cellSize={Math.max(11, Math.floor(cellSize * 0.42))}
+          placedLabels={getPlacedShapeLabels(grid, puzzle)}
+        />
+      )}
     />
   );
 }

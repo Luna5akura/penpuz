@@ -373,10 +373,11 @@ export function getBoardBadgeStyle() {
 }
 
 /** Cell style used by compact shape/ship inventories. */
-export function getBoardInventoryCellStyle(occupied: boolean) {
+export function getBoardInventoryCellStyle(occupied: boolean, used = false) {
+  const fill = used ? woodBoardTheme.neutralSoft : woodBoardTheme.darkCell;
   return {
-    background: occupied ? woodBoardTheme.darkCell : 'transparent',
-    border: occupied ? `${boardStrokeWidths.grid}px solid ${woodBoardTheme.border}` : undefined,
+    background: occupied ? fill : 'transparent',
+    border: occupied ? `${boardStrokeWidths.grid}px solid ${fill}` : undefined,
   } as const;
 }
 

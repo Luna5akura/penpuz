@@ -329,6 +329,35 @@ function getShapeMultiset(shapes: ShapeMinesweeperShape[]) {
   return counts;
 }
 
+/**
+ * Labels of the shapes the player has already drawn on the board.  A
+ * shaded component counts as a drawn shape when its canonical key matches
+ * one of the bank shapes; the shape inventory grays such shapes out.
+ */
+export function getPlacedShapeLabels(
+  grid: ShadingCellState[][],
+  puzzle: ShapeMinesweeperPuzzleData
+): Set<string> {
+  const shaded = grid.map((row) => row.map((cell) => cell === 1));
+  const shapeLabels = new Map<string, string>();
+  for (const shape of puzzle.shapes) {
+    shapeLabels.set(getShapeCanonicalKey(shape.cells), shape.label);
+  }
+  const placed = new Set<string>();
+  for (const component of collectBooleanComponents(shaded, true)) {
+    const minRow = Math.min(...component.map((cell) => cell.row));
+    const minCol = Math.min(...component.map((cell) => cell.col));
+    const maxRow = Math.max(...component.map((cell) => cell.row));
+    const maxCol = Math.max(...component.map((cell) => cell.col));
+    const mask = Array.from({ length: maxRow - minRow + 1 }, (_, row) =>
+      Array.from({ length: maxCol - minCol + 1 }, (_, col) => shaded[minRow + row][minCol + col])
+    );
+    const label = shapeLabels.get(getShapeCanonicalKey(mask));
+    if (label !== undefined) placed.add(label);
+  }
+  return placed;
+}
+
 export function validateShapeMinesweeper(
   grid: ShadingCellState[][],
   puzzle: ShapeMinesweeperPuzzleData
