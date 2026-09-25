@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import type { PuzzleExample } from '@/puzzles/types';
+import type { BoardCellTone } from '@/puzzles/boardTheme';
 import {
   boardClassNames,
   boardLayoutMetrics,
@@ -8,10 +10,10 @@ import {
   getBoardCellColors,
   getBoardClueCircleMetrics,
   getBoardClueTextStyle,
+  getBoardSatisfiedClueTextStyle,
   getBoardDotRadius,
   getBoardBoundaryStrokeMetrics,
   getBoardBoundaryStrokeWidth,
-  getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
   getBoardPillCapsuleMetrics,
@@ -28,8 +30,12 @@ import SlovakSumsClue from '@/puzzles/SlovakSums/SlovakSumsClue';
 import WolvesAndSheepSymbol from '@/puzzles/WolvesAndSheep/WolvesAndSheepSymbol';
 import KakuroClue from '@/puzzles/Kakuro/KakuroClue';
 import FourWindsWithParksMark from '@/puzzles/FourWindsWithParks/FourWindsWithParksVisuals';
+import { getSatisfiedFourWindsWithParksClues } from '@/puzzles/FourWindsWithParks/utils';
 import { useExampleCellSize } from './exampleCellSizeContext';
+import { ExampleBoardFrame, ExampleCellGrid } from './ExampleBoardChrome';
 import FourWindsMark from '@/puzzles/FourWinds/FourWindsVisuals';
+import { getSatisfiedFourWindsClues } from '@/puzzles/FourWinds/utils';
+import { computeArrowRunLengths, computeArrowRunVariants } from '@/puzzles/shared/ArrowRunLayout';
 import BoardEdgeCross from '@/puzzles/shared/BoardEdgeCross';
 import PlayableExample from './PlayableExample';
 import SlitherlinkBoard from '@/puzzles/Slitherlink/Slitherlink';
@@ -92,56 +98,25 @@ const BOARD_BORDER = commonBoardChrome.border;
 
 function BoardFrame({ width, height, children }: { width: number; height: number; children: ReactNode }) {
   const CELL_SIZE = useExampleCellSize();
-  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
-    borderWidth: BOARD_BORDER,
-    padding: BOARD_PADDING,
-  });
-  return (
-    <div className="flex justify-center overflow-x-auto">
-      <div
-        className="relative select-none"
-        style={{
-          width: `${outerWidth}px`,
-          height: `${outerHeight}px`,
-          ...getBoardFrameStyle(BOARD_BORDER),
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
+  return <ExampleBoardFrame width={width} height={height} cellSize={CELL_SIZE}>{children}</ExampleBoardFrame>;
 }
 
 function CellGrid({
   width,
   height,
+  getCellTone,
   children,
 }: {
   width: number;
   height: number;
+  getCellTone?: (row: number, col: number) => BoardCellTone;
   children: (row: number, col: number) => ReactNode;
 }) {
   const CELL_SIZE = useExampleCellSize();
   return (
-    <div
-      className="absolute grid"
-      style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
-    >
-      {Array.from({ length: height }, (_, row) =>
-        Array.from({ length: width }, (_, col) => (
-          <div
-            key={`${row}-${col}`}
-            className={boardClassNames.cellContent}
-            style={{
-              ...getBoardCellStyle(CELL_SIZE, 'cell'),
-              ...getBoardTextStyle(CELL_SIZE),
-            }}
-          >
-            {children(row, col)}
-          </div>
-        ))
-      )}
-    </div>
+    <ExampleCellGrid width={width} height={height} cellSize={CELL_SIZE} getCellTone={getCellTone}>
+      {children}
+    </ExampleCellGrid>
   );
 }
 
@@ -464,17 +439,37 @@ function JapaneseArrowsBoard({ example, answer }: { example: Extract<AdditionalP
 
 function FourWindsWithParksExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'four-winds-with-parks' }>; answer: boolean }) {
   const CELL_SIZE = useExampleCellSize();
-  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+  const grid = useMemo(
+    () => example.correctGrid.map((row, r) => row.map((value, c) => (example.clues[r][c] !== null ? null : value))),
+    [example]
+  );
+  const arrowVariants = useMemo(() => computeArrowRunVariants(grid, example.width, example.height), [example.height, example.width, grid]);
+  const arrowRunLengths = useMemo(() => computeArrowRunLengths(grid, example.width, example.height), [example.height, example.width, grid]);
+  const satisfied = useMemo(
+    () => getSatisfiedFourWindsWithParksClues(grid, { type: 'four-winds-with-parks', width: example.width, height: example.height, clues: example.clues }),
+    [example, grid]
+  );
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height} getCellTone={(row, col) => (example.clues[row][col] !== null ? 'clue' : 'cell')}>{(row, col) => {
     const clue = example.clues[row][col];
-    return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <FourWindsWithParksMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} /> : null;
+    return clue !== null ? <span className={boardClassNames.cellTextTight} style={satisfied[row][col] ? getBoardSatisfiedClueTextStyle(CELL_SIZE) : getBoardClueTextStyle(CELL_SIZE)}>{clue}</span> : answer ? <FourWindsWithParksMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} variant={arrowVariants[row][col]} runLength={arrowRunLengths[row][col]} /> : null;
   }}</CellGrid></BoardFrame>;
 }
 
 function FourWindsExampleBoard({ example, answer }: { example: Extract<AdditionalPuzzleExampleData, { puzzleType: 'fourwinds' }>; answer: boolean }) {
   const CELL_SIZE = useExampleCellSize();
-  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height}>{(row, col) => {
+  const grid = useMemo(
+    () => example.correctGrid.map((row, r) => row.map((value, c) => (example.clues[r][c] !== null ? null : value))),
+    [example]
+  );
+  const arrowVariants = useMemo(() => computeArrowRunVariants(grid, example.width, example.height), [example.height, example.width, grid]);
+  const arrowRunLengths = useMemo(() => computeArrowRunLengths(grid, example.width, example.height), [example.height, example.width, grid]);
+  const satisfied = useMemo(
+    () => getSatisfiedFourWindsClues(grid, { type: 'fourwinds', width: example.width, height: example.height, clues: example.clues }),
+    [example, grid]
+  );
+  return <BoardFrame width={example.width} height={example.height}><CellGrid width={example.width} height={example.height} getCellTone={(row, col) => (example.clues[row][col] !== null ? 'clue' : 'cell')}>{(row, col) => {
     const clue = example.clues[row][col];
-    return clue !== null ? <span className={boardClassNames.cellText}>{clue}</span> : answer ? <FourWindsMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} /> : null;
+    return clue !== null ? <span className={boardClassNames.cellTextTight} style={satisfied[row][col] ? getBoardSatisfiedClueTextStyle(CELL_SIZE) : getBoardClueTextStyle(CELL_SIZE)}>{clue}</span> : answer ? <FourWindsMark value={example.correctGrid[row][col]} cellSize={CELL_SIZE} variant={arrowVariants[row][col]} runLength={arrowRunLengths[row][col]} /> : null;
   }}</CellGrid></BoardFrame>;
 }
 

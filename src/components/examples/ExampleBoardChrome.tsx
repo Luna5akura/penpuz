@@ -8,6 +8,7 @@ import {
   getBoardGridStyle,
   getBoardTextStyle,
 } from '@/puzzles/boardTheme';
+import type { BoardCellTone } from '@/puzzles/boardTheme';
 import { ExampleCellSizeContext } from './exampleCellSizeContext';
 
 /**
@@ -68,6 +69,7 @@ export function ExampleCellGrid({
   cellSize,
   left = commonBoardChrome.padding,
   top = commonBoardChrome.padding,
+  getCellTone,
   children,
 }: {
   width: number;
@@ -75,6 +77,7 @@ export function ExampleCellGrid({
   cellSize: number;
   left?: number;
   top?: number;
+  getCellTone?: (row: number, col: number) => BoardCellTone;
   children: (row: number, col: number) => ReactNode;
 }) {
   return (
@@ -88,7 +91,7 @@ export function ExampleCellGrid({
             key={`${row}-${col}`}
             className={boardClassNames.cellContent}
             style={{
-              ...getBoardCellStyle(cellSize, 'cell'),
+              ...getBoardCellStyle(cellSize, getCellTone?.(row, col) ?? 'cell'),
               ...getBoardTextStyle(cellSize),
             }}
           >
