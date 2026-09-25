@@ -19,11 +19,10 @@ interface Props {
   correctGrid: (0 | 1)[][];
 }
 
-const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 2);
-
 /** Official answer diagram shown after the playable example is solved. */
 export default function PlaceByProductExample({ width, height, rowClues, colClues, correctGrid }: Props) {
   const CELL_SIZE = useExampleCellSize();
+  const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 2);
   const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
     outsideLeft: CLUE_GUTTER,
     outsideTop: CLUE_GUTTER,

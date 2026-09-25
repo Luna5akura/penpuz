@@ -35,7 +35,6 @@ interface Props {
 }
 
 // Match the standard example cell size while preserving square ring geometry.
-const CLUE_GUTTER = CELL_SIZE;
 
 function getOutsideGray(
   outsideGrayCells: SkyNeighborOutsideGrayCells | undefined,
@@ -66,6 +65,7 @@ function SkyNeighborDiagram({
   values?: NeighborDigit[][];
 }) {
   const CELL_SIZE = useExampleCellSize();
+  const CLUE_GUTTER = CELL_SIZE;
   const outside = getOutsideGray(outsideGrayCells, width, height);
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     width + 2,

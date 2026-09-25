@@ -23,8 +23,6 @@ interface Props {
   correctGrid: (number | null)[][];
 }
 
-const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 3);
-
 function MagicSummerDiagram({
   width,
   height,
@@ -41,6 +39,7 @@ function MagicSummerDiagram({
   values?: (number | null)[][];
 }) {
   const CELL_SIZE = useExampleCellSize();
+  const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 3);
   const clues = {
     top: columnSums,
     left: rowSums,
