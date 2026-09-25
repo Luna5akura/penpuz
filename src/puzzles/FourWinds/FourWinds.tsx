@@ -21,6 +21,7 @@ import {
   getResponsiveCellSize,
 } from '../boardTheme';
 import FourWindsMark from './FourWindsVisuals';
+import type { DirectionalArrowVariant } from '../shared/DirectionalArrowMark';
 import { getSatisfiedFourWindsClues, validateFourWinds } from './utils';
 
 interface Props {
@@ -54,6 +55,13 @@ interface PointerState {
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 const FOUR_WINDS_VALUES = new Set([1, 2, 3, 4]);
+
+const ARROW_DELTAS: Record<FourWindsDirection, [number, number]> = {
+  1: [-1, 0],
+  2: [0, 1],
+  3: [1, 0],
+  4: [0, -1],
+};
 
 function emptyGrid(width: number, height: number): FourWindsCellValue[][] {
   return Array.from({ length: height }, () => Array<FourWindsCellValue>(width).fill(null));
@@ -200,6 +208,33 @@ export default function FourWindsBoard({
     () => getSatisfiedFourWindsClues(grid, puzzle),
     [grid, puzzle]
   );
+  // A run of same-direction cells draws one continuous line: every cell
+  // except the last is a bare shaft, and the final cell carries the arrowhead.
+  const arrowVariants = useMemo<DirectionalArrowVariant[][]>(() => {
+    const variants: DirectionalArrowVariant[][] = Array.from(
+      { length: height },
+      () => Array<DirectionalArrowVariant>(width).fill('full')
+    );
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const value = grid[row][col];
+        if (value === null || value === 'cross') continue;
+        const [dr, dc] = ARROW_DELTAS[value];
+        const nextRow = row + dr;
+        const nextCol = col + dc;
+        if (nextRow >= 0 && nextRow < height && nextCol >= 0 && nextCol < width && grid[nextRow][nextCol] === value) {
+          variants[row][col] = 'shaft';
+          continue;
+        }
+        const prevRow = row - dr;
+        const prevCol = col - dc;
+        if (prevRow >= 0 && prevRow < height && prevCol >= 0 && prevCol < width && grid[prevRow][prevCol] === value) {
+          variants[row][col] = 'head';
+        }
+      }
+    }
+    return variants;
+  }, [grid, height, width]);
   const cellSize = useMemo(
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
     [fixedCellSize, viewportWidth, width]
@@ -422,7 +457,7 @@ export default function FourWindsBoard({
                       ? <span className={boardClassNames.cellTextTight} style={satisfiedClues[row][col] ? getBoardSatisfiedClueTextStyle(cellSize) : getBoardClueTextStyle(cellSize)}>{clue}</span>
                       : value === null
                         ? null
-                        : <FourWindsMark value={value} cellSize={cellSize} />}
+                        : <FourWindsMark value={value} cellSize={cellSize} variant={arrowVariants[row][col]} />}
                   </div>
                 );
               }))}
