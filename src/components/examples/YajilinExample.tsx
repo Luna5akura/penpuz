@@ -5,6 +5,7 @@ import type { YajilinClue, YajilinPuzzleData, YajilinSolutionEdge } from '../../
 import YajilinBoard from '../../puzzles/Yajilin/Yajilin';
 import {
   boardClassNames,
+  boardLayoutMetrics,
   commonBoardChrome,
   getBoardCellColors,
   getBoardFixedTextStyle,
