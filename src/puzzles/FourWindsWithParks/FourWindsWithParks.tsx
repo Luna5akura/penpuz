@@ -15,6 +15,7 @@ import {
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
+  getBoardSatisfiedClueTextStyle,
   getBoardTextStyle,
   getBoardTrialCellStyle,
   getResponsiveCellSize,
@@ -27,7 +28,8 @@ import {
   parseGridLineEdgeKey,
 } from '../gridUtils';
 import FourWindsWithParksMark from './FourWindsWithParksVisuals';
-import { validateFourWindsWithParks } from './utils';
+import { computeArrowRunLengths, computeArrowRunVariants } from '../shared/ArrowRunLayout';
+import { getSatisfiedFourWindsWithParksClues, validateFourWindsWithParks } from './utils';
 
 interface Props {
   puzzle: FourWindsWithParksPuzzleData;
@@ -270,6 +272,21 @@ export default function FourWindsWithParksBoard({
   const validation = useMemo(
     () => validateFourWindsWithParks(grid, puzzle),
     [grid, puzzle]
+  );
+  const satisfiedClues = useMemo(
+    () => getSatisfiedFourWindsWithParksClues(grid, puzzle),
+    [grid, puzzle]
+  );
+  // Run layout (shaft cells, arrowheads and length badges) comes from the
+  // shared style library so Four Winds and Four Winds with Parks render
+  // identical arrows.
+  const arrowVariants = useMemo(
+    () => computeArrowRunVariants(grid, width, height),
+    [grid, height, width]
+  );
+  const arrowRunLengths = useMemo(
+    () => computeArrowRunLengths(grid, width, height),
+    [grid, height, width]
   );
   const cellSize = useMemo(
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
@@ -514,10 +531,10 @@ export default function FourWindsWithParksBoard({
                     }}
                   >
                     {clue !== null
-                      ? <span className={boardClassNames.cellTextTight} style={getBoardClueTextStyle(cellSize)}>{clue}</span>
+                      ? <span className={boardClassNames.cellTextTight} style={satisfiedClues[row][col] ? getBoardSatisfiedClueTextStyle(cellSize) : getBoardClueTextStyle(cellSize)}>{clue}</span>
                       : value === null
                         ? null
-                        : <FourWindsWithParksMark value={value} cellSize={cellSize} />}
+                        : <FourWindsWithParksMark value={value} cellSize={cellSize} variant={arrowVariants[row][col]} runLength={arrowRunLengths[row][col]} />}
                   </div>
                 );
               }))}
