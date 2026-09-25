@@ -235,6 +235,35 @@ export default function FourWindsBoard({
     }
     return variants;
   }, [grid, height, width]);
+  // The starting cell of every arrow longer than one cell shows its length.
+  const arrowRunLengths = useMemo<(number | undefined)[][]>(() => {
+    const lengths: (number | undefined)[][] = Array.from(
+      { length: height },
+      () => Array<number | undefined>(width).fill(undefined)
+    );
+    for (let row = 0; row < height; row++) {
+      for (let col = 0; col < width; col++) {
+        const value = grid[row][col];
+        if (value === null || value === 'cross') continue;
+        const [dr, dc] = ARROW_DELTAS[value];
+        const prevRow = row - dr;
+        const prevCol = col - dc;
+        if (prevRow >= 0 && prevRow < height && prevCol >= 0 && prevCol < width && grid[prevRow][prevCol] === value) {
+          continue;
+        }
+        let length = 0;
+        let r = row;
+        let c = col;
+        while (r >= 0 && r < height && c >= 0 && c < width && grid[r][c] === value) {
+          length++;
+          r += dr;
+          c += dc;
+        }
+        if (length > 1) lengths[row][col] = length;
+      }
+    }
+    return lengths;
+  }, [grid, height, width]);
   const cellSize = useMemo(
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
     [fixedCellSize, viewportWidth, width]
@@ -457,7 +486,7 @@ export default function FourWindsBoard({
                       ? <span className={boardClassNames.cellTextTight} style={satisfiedClues[row][col] ? getBoardSatisfiedClueTextStyle(cellSize) : getBoardClueTextStyle(cellSize)}>{clue}</span>
                       : value === null
                         ? null
-                        : <FourWindsMark value={value} cellSize={cellSize} variant={arrowVariants[row][col]} />}
+                        : <FourWindsMark value={value} cellSize={cellSize} variant={arrowVariants[row][col]} runLength={arrowRunLengths[row][col]} />}
                   </div>
                 );
               }))}
