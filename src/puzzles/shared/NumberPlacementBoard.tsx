@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import ValidationMessage from '@/components/ValidationMessage';
 import { Button } from '@/components/ui/button';
@@ -125,6 +125,8 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   outsideClueStacks?: Partial<Record<NumberPlacementOutsideSide, readonly (readonly (number | string | null)[])[]>>;
   /** Render stack clues at the same size as in-cell clues instead of the compact gutter size (e.g. Magnets). */
   outsideClueStackCellTextSize?: boolean;
+  /** Style override for stacked outside clue values (e.g. to match in-cell text). */
+  outsideClueStackTextStyle?: (cellSize: number, value: NumberPlacementCellValue) => CSSProperties;
   /** Keyboard digits go to the hovered cell, and the S key toggles the input mode (e.g. Skyscrapers). */
   hoverKeyboardEntry?: boolean;
   /** Render single-value outside clues at the same size as in-cell clues (e.g. Skyscrapers). */
@@ -341,6 +343,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   outsideClues,
   outsideClueStacks,
   outsideClueStackCellTextSize = false,
+  outsideClueStackTextStyle,
   outsideClueCellTextSize = false,
   hoverKeyboardEntry = false,
   outsideClueCornerMarks,
@@ -1353,7 +1356,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 const y = side === 'top' ? BOARD_PADDING + topSlot * outsideClueLayout.clueSize : side === 'bottom' ? gridTop + boardHeightPx + stack * outsideClueLayout.clueSize : gridTop + index * cellSize;
                 const clueWidth = side === 'top' || side === 'bottom' ? cellSize : outsideClueLayout.clueSize;
                 const clueHeight = side === 'left' || side === 'right' ? cellSize : outsideClueLayout.clueSize;
-                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...(outsideClueStackCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, clueWidth, value)), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
+                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...(outsideClueStackTextStyle ? outsideClueStackTextStyle(cellSize, value) : outsideClueStackCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, clueWidth, value)), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
               }))
             )}
           </div>
