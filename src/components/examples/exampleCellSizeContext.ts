@@ -22,7 +22,7 @@ export function useExampleCellSize() {
 export function useResponsiveExampleCellSize(
   width: number,
   outsideClueSides = 0,
-  maxCellSize = boardLayoutMetrics.exampleCellSize
+  maxCellSize: number = boardLayoutMetrics.exampleCellSize
 ) {
   const [containerRef, containerWidth] = useBoardContainerWidth();
   const cellSize = getResponsiveCellSize({
