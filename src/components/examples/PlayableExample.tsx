@@ -1,6 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import ExampleAnswerReveal from '../ExampleAnswerReveal';
 import { buildExamplePuzzleData } from '@/puzzles/examplePuzzleData';
+import { boardLayoutMetrics, getResponsiveCellSize } from '@/puzzles/boardTheme';
+import { useBoardContainerWidth } from '@/puzzles/useBoardContainerWidth';
 import type { PuzzleData, PuzzleExample } from '@/puzzles/types';
 
 interface Props {
@@ -9,8 +11,10 @@ interface Props {
   answerLabel: string;
   /** Fixed cell size forwarded to the board (keeps examples at rule-diagram size). */
   fixedCellSize?: number;
+  /** Number of horizontal outside-clue gutters the board reserves. */
+  outsideClueSides?: number;
   /** Official answer diagram, shown automatically once the example is solved. */
-  answer: ReactNode;
+  answer: ReactNode | ((cellSize: number) => ReactNode);
   /** Renders the type's regular board. Examples never persist snapshots. */
   renderBoard: (props: {
     puzzle: PuzzleData;
@@ -25,23 +29,36 @@ interface Props {
  * masked official answer on the right.  Solving the example reveals the answer
  * automatically; the board receives no snapshot callbacks, so example progress
  * is never persisted.
+ *
+ * The example cell size is capped at `fixedCellSize` (the rule-diagram size)
+ * and shrinks with the available column width on narrow screens so examples
+ * never overflow the viewport.
  */
-export default function PlayableExample({ example, playableLabel, answerLabel, fixedCellSize, answer, renderBoard }: Props) {
+export default function PlayableExample({ example, playableLabel, answerLabel, fixedCellSize, outsideClueSides = 0, answer, renderBoard }: Props) {
   const [showAnswer, setShowAnswer] = useState(false);
   const [startTime] = useState(() => Date.now());
   const puzzle = useMemo(() => buildExamplePuzzleData(example), [example]);
+  const [containerRef, containerWidth] = useBoardContainerWidth();
+  const maxCellSize = fixedCellSize ?? boardLayoutMetrics.exampleCellSize;
+  const cellSize = getResponsiveCellSize({
+    viewportWidth: containerWidth,
+    width: example.width,
+    outsideClueSides,
+    maxCellSize,
+    containerWidth: true,
+  });
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="min-w-0">
         <div className="mb-4 text-center text-base font-medium text-muted-foreground">{playableLabel}</div>
-        <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
+        <div ref={containerRef} className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain pb-1">
           <div className="mx-auto w-max min-w-0">
             {renderBoard({
               puzzle,
               startTime,
               onComplete: () => setShowAnswer(true),
-              fixedCellSize,
+              fixedCellSize: cellSize,
             })}
           </div>
         </div>
@@ -54,7 +71,7 @@ export default function PlayableExample({ example, playableLabel, answerLabel, f
           ariaLabel={answerLabel}
           className="flex justify-center overflow-x-auto"
         >
-          {answer}
+          {typeof answer === 'function' ? answer(cellSize) : answer}
         </ExampleAnswerReveal>
       </div>
     </div>

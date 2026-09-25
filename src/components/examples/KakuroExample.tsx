@@ -16,18 +16,18 @@ interface Props {
   height: number;
   cells: KakuroCell[][];
   correctGrid: (number | null)[][];
+  cellSize?: number;
 }
 
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 const BOARD_PADDING = commonBoardChrome.padding;
 const BOARD_BORDER = commonBoardChrome.border;
 
 /** Official answer diagram shown after the playable example is solved. */
-export default function KakuroExample({ width, height, cells, correctGrid }: Props) {
+export default function KakuroExample({ width, height, cells, correctGrid, cellSize = boardLayoutMetrics.exampleCellSize }: Props) {
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     width,
     height,
-    CELL_SIZE,
+    cellSize,
     { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
   );
 
@@ -42,7 +42,7 @@ export default function KakuroExample({ width, height, cells, correctGrid }: Pro
     >
       <div
         className="absolute grid"
-        style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, CELL_SIZE)}
+        style={getBoardGridStyle(BOARD_PADDING, BOARD_PADDING, width, cellSize)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => {
@@ -53,11 +53,11 @@ export default function KakuroExample({ width, height, cells, correctGrid }: Pro
                 key={`${row}-${col}`}
                 className={boardClassNames.cellContent}
                 style={{
-                  ...getBoardCellStyle(CELL_SIZE, clue ? 'shaded' : 'cell'),
-                  ...getBoardTextStyle(CELL_SIZE),
+                  ...getBoardCellStyle(cellSize, clue ? 'shaded' : 'cell'),
+                  ...getBoardTextStyle(cellSize),
                 }}
               >
-                {clue ? <KakuroClue right={clue.right} down={clue.down} cellSize={CELL_SIZE} /> : value}
+                {clue ? <KakuroClue right={clue.right} down={clue.down} cellSize={cellSize} /> : value}
               </div>
             );
           })

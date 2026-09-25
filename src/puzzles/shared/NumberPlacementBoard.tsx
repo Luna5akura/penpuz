@@ -486,12 +486,23 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       : undefined
   );
   const outsideClueMaxDigits = getBoardOutsideClueMaxDigits(layoutOutsideClues);
+  // Stacked clue columns are full cell-width columns; a side covered by a
+  // stack consumes cell-size columns instead of the base gutter.
+  const stackLeftCols = outsideClueStacks?.left
+    ? Math.max(1, ...outsideClueStacks.left.map((values) => values.length))
+    : 0;
+  const stackRightCols = outsideClueStacks?.right
+    ? Math.max(1, ...outsideClueStacks.right.map((values) => values.length))
+    : 0;
   const cellSize = useMemo(
     () => getResponsiveCellSize({
       fixedCellSize,
       viewportWidth,
       width,
-      outsideClueSides: Number(!!layoutOutsideClues?.left) + Number(!!layoutOutsideClues?.right),
+      outsideClueSides:
+        Number(!!layoutOutsideClues?.left && stackLeftCols === 0) +
+        Number(!!layoutOutsideClues?.right && stackRightCols === 0),
+      outsideClueStackColumns: stackLeftCols + stackRightCols,
       outsideClueMaxDigits,
       maxCellSize,
       containerWidth: true,
@@ -507,7 +518,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         ? outsideClueMaxDigits >= 3 ? 20 : 24
         : commonBoardChrome.minCellSize,
     }),
-    [fixedCellSize, layoutOutsideClues?.left, layoutOutsideClues?.right, maxCellSize, outsideClueMaxDigits, squareOutsideCells, viewportWidth, width]
+    [fixedCellSize, layoutOutsideClues?.left, layoutOutsideClues?.right, maxCellSize, outsideClueMaxDigits, squareOutsideCells, stackLeftCols, stackRightCols, viewportWidth, width]
   );
   // Outside answer cells (Sky-neighbors) are part of the same grid as the
   // central cells.  Do not let the generic clue-gutter minimum (24px) make
@@ -523,8 +534,6 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     : getBoardOutsideClueLayout(cellSize, layoutOutsideClues);
   const stackRows = Math.max(1, ...(outsideClueStacks?.top ?? []).map((values) => values.length));
   const stackBottomRows = Math.max(1, ...(outsideClueStacks?.bottom ?? []).map((values) => values.length));
-  const stackLeftCols = Math.max(1, ...(outsideClueStacks?.left ?? []).map((values) => values.length));
-  const stackRightCols = Math.max(1, ...(outsideClueStacks?.right ?? []).map((values) => values.length));
   if (outsideClueStacks) outsideClueLayout.clueSize = cellSize;
   outsideClueLayout.top = Math.max(outsideClueLayout.top, outsideClueStacks?.top ? outsideClueLayout.clueSize * stackRows : 0);
   outsideClueLayout.bottom = Math.max(outsideClueLayout.bottom, outsideClueStacks?.bottom ? outsideClueLayout.clueSize * stackBottomRows : 0);

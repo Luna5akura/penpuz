@@ -17,32 +17,33 @@ interface Props {
   height: number;
   clues: SkyscrapersClues;
   correctGrid: number[][];
+  cellSize?: number;
 }
-
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
-const CLUE_GUTTER = getBoardOutsideClueGutter(CELL_SIZE, 1);
 
 function SkyscrapersDiagram({
   width,
   height,
   clues,
   values,
+  cellSize,
 }: {
   width: number;
   height: number;
   clues: SkyscrapersClues;
   values?: number[][];
+  cellSize: number;
 }) {
-  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, CELL_SIZE, {
-    outsideLeft: CLUE_GUTTER,
-    outsideRight: CLUE_GUTTER,
-    outsideTop: CLUE_GUTTER,
-    outsideBottom: CLUE_GUTTER,
+  const clueGutter = getBoardOutsideClueGutter(cellSize, 1);
+  const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, cellSize, {
+    outsideLeft: clueGutter,
+    outsideRight: clueGutter,
+    outsideTop: clueGutter,
+    outsideBottom: clueGutter,
     borderWidth: commonBoardChrome.border,
     padding: commonBoardChrome.padding,
   });
-  const left = commonBoardChrome.padding + CLUE_GUTTER;
-  const top = commonBoardChrome.padding + CLUE_GUTTER;
+  const left = commonBoardChrome.padding + clueGutter;
+  const top = commonBoardChrome.padding + clueGutter;
 
   return (
     <div
@@ -56,7 +57,7 @@ function SkyscrapersDiagram({
     >
       <div
         className="absolute grid"
-        style={getBoardGridStyle(left, top, width, CELL_SIZE)}
+        style={getBoardGridStyle(left, top, width, cellSize)}
       >
         {Array.from({ length: height }, (_, row) =>
           Array.from({ length: width }, (_, col) => (
@@ -64,8 +65,8 @@ function SkyscrapersDiagram({
               key={`${row}-${col}`}
               className={boardClassNames.cellContent}
               style={{
-                ...getBoardCellStyle(CELL_SIZE, 'cell'),
-                ...getBoardTextStyle(CELL_SIZE),
+                ...getBoardCellStyle(cellSize, 'cell'),
+                ...getBoardTextStyle(cellSize),
               }}
             >
               {values?.[row]?.[col] ?? null}
@@ -81,9 +82,9 @@ function SkyscrapersDiagram({
               key={`top-${col}`}
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{
-                left: `${left + (col + 0.5) * CELL_SIZE}px`,
-                top: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
-                ...getBoardClueTextStyle(CELL_SIZE),
+                left: `${left + (col + 0.5) * cellSize}px`,
+                top: `${commonBoardChrome.padding + clueGutter / 2}px`,
+                ...getBoardClueTextStyle(cellSize),
               }}
             >
               {value}
@@ -96,9 +97,9 @@ function SkyscrapersDiagram({
               key={`bottom-${col}`}
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{
-                left: `${left + (col + 0.5) * CELL_SIZE}px`,
-                top: `${top + height * CELL_SIZE + CLUE_GUTTER / 2}px`,
-                ...getBoardClueTextStyle(CELL_SIZE),
+                left: `${left + (col + 0.5) * cellSize}px`,
+                top: `${top + height * cellSize + clueGutter / 2}px`,
+                ...getBoardClueTextStyle(cellSize),
               }}
             >
               {value}
@@ -111,9 +112,9 @@ function SkyscrapersDiagram({
               key={`left-${row}`}
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{
-                left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
-                top: `${top + (row + 0.5) * CELL_SIZE}px`,
-                ...getBoardClueTextStyle(CELL_SIZE),
+                left: `${commonBoardChrome.padding + clueGutter / 2}px`,
+                top: `${top + (row + 0.5) * cellSize}px`,
+                ...getBoardClueTextStyle(cellSize),
               }}
             >
               {value}
@@ -126,9 +127,9 @@ function SkyscrapersDiagram({
               key={`right-${row}`}
               className="absolute -translate-x-1/2 -translate-y-1/2"
               style={{
-                left: `${left + width * CELL_SIZE + CLUE_GUTTER / 2}px`,
-                top: `${top + (row + 0.5) * CELL_SIZE}px`,
-                ...getBoardClueTextStyle(CELL_SIZE),
+                left: `${left + width * cellSize + clueGutter / 2}px`,
+                top: `${top + (row + 0.5) * cellSize}px`,
+                ...getBoardClueTextStyle(cellSize),
               }}
             >
               {value}
@@ -145,6 +146,7 @@ export default function SkyscrapersExample({
   height,
   clues,
   correctGrid,
+  cellSize = boardLayoutMetrics.exampleCellSize,
 }: Props) {
-  return <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} />;
+  return <SkyscrapersDiagram width={width} height={height} clues={clues} values={correctGrid} cellSize={cellSize} />;
 }

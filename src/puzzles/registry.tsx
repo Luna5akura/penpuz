@@ -901,7 +901,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（9×9，2015 WPF Puzzle GP 第 4 轮）',
+        'zh-CN': '例题',
         en: 'Example (9×9, WPF Puzzle GP 2015 Round 4)',
       },
       playableLabel: {
@@ -975,7 +975,7 @@ export const puzzleRegistry: PuzzleRegistry = {
         ],
       },
       exampleTitle: {
-        'zh-CN': '例题（9×9，摩天邻居）',
+        'zh-CN': '例题（9×9）',
         en: 'Example (9×9 Sky-neighbors, WPF Puzzle GP 2015 Round 4)',
       },
       playableLabel: {
@@ -2247,7 +2247,8 @@ export const puzzleRegistry: PuzzleRegistry = {
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
           fixedCellSize={boardLayoutMetrics.exampleCellSize}
-          answer={<SkyscrapersExample width={example.width} height={example.height} clues={example.clues} correctGrid={example.correctGrid} />}
+          outsideClueSides={2}
+          answer={(cellSize) => <SkyscrapersExample width={example.width} height={example.height} clues={example.clues} correctGrid={example.correctGrid} cellSize={cellSize} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <SkyscrapersBoard puzzle={puzzle as SkyscrapersPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
           )}
@@ -2643,7 +2644,7 @@ export const puzzleRegistry: PuzzleRegistry = {
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
           fixedCellSize={boardLayoutMetrics.exampleCellSize}
-          answer={<KakuroExample width={example.width} height={example.height} cells={example.cells} correctGrid={example.correctGrid} />}
+          answer={(cellSize) => <KakuroExample width={example.width} height={example.height} cells={example.cells} correctGrid={example.correctGrid} cellSize={cellSize} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <KakuroBoard puzzle={puzzle as KakuroPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
           )}
@@ -2793,7 +2794,7 @@ export const puzzleRegistry: PuzzleRegistry = {
           playableLabel={template.playableLabel[locale]}
           answerLabel={template.answerLabel[locale]}
           fixedCellSize={boardLayoutMetrics.exampleCellSize}
-          answer={<ShadingPuzzleExample puzzle={examplePuzzle} correctSolution={example.correctSolution} />}
+          answer={(cellSize) => <ShadingPuzzleExample puzzle={examplePuzzle} correctSolution={example.correctSolution} cellSize={cellSize} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <ShapeMinesweeperBoard puzzle={puzzle as ShapeMinesweeperPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
           )}

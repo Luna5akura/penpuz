@@ -14,21 +14,22 @@ import type { CavePuzzleData, ShapeMinesweeperPuzzleData } from '@/puzzles/types
 interface Props {
   puzzle: CavePuzzleData | ShapeMinesweeperPuzzleData;
   correctSolution: (0 | 1)[][];
+  cellSize?: number;
 }
-
-const CELL_SIZE = boardLayoutMetrics.exampleCellSize;
 
 function Diagram({
   puzzle,
   solution,
+  cellSize,
 }: {
   puzzle: Props['puzzle'];
   solution?: (0 | 1)[][];
+  cellSize: number;
 }) {
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
     puzzle.width,
     puzzle.height,
-    CELL_SIZE,
+    cellSize,
     { borderWidth: commonBoardChrome.border, padding: commonBoardChrome.padding }
   );
 
@@ -45,7 +46,7 @@ function Diagram({
         >
           <div
             className="absolute grid"
-            style={getBoardGridStyle(commonBoardChrome.padding, commonBoardChrome.padding, puzzle.width, CELL_SIZE)}
+            style={getBoardGridStyle(commonBoardChrome.padding, commonBoardChrome.padding, puzzle.width, cellSize)}
           >
             {Array.from({ length: puzzle.height }, (_, row) =>
               Array.from({ length: puzzle.width }, (_, col) => {
@@ -56,8 +57,8 @@ function Diagram({
                     key={`${row}-${col}`}
                     className={boardClassNames.cellContent}
                     style={{
-                      ...getBoardCellStyle(CELL_SIZE, shaded ? 'playerShaded' : clue === null ? 'cell' : 'clue'),
-                      ...getBoardTextStyle(CELL_SIZE),
+                      ...getBoardCellStyle(cellSize, shaded ? 'playerShaded' : clue === null ? 'cell' : 'clue'),
+                      ...getBoardTextStyle(cellSize),
                     }}
                   >
                     {clue}
@@ -75,13 +76,15 @@ function Diagram({
 function ExamplePanel({
   puzzle,
   solution,
+  cellSize,
 }: {
   puzzle: Props['puzzle'];
   solution?: (0 | 1)[][];
+  cellSize: number;
 }) {
   return (
     <div className="flex min-w-0 flex-col items-center gap-3">
-      <Diagram puzzle={puzzle} solution={solution} />
+      <Diagram puzzle={puzzle} solution={solution} cellSize={cellSize} />
       {puzzle.type === 'shape-minesweeper' ? (
         <ShapeInventory shapes={puzzle.shapes} cellSize={boardLayoutMetrics.compactInventoryCellSize} />
       ) : null}
@@ -92,6 +95,7 @@ function ExamplePanel({
 export default function ShadingPuzzleExample({
   puzzle,
   correctSolution,
+  cellSize = boardLayoutMetrics.exampleCellSize,
 }: Props) {
-  return <ExamplePanel puzzle={puzzle} solution={correctSolution} />;
+  return <ExamplePanel puzzle={puzzle} solution={correctSolution} cellSize={cellSize} />;
 }

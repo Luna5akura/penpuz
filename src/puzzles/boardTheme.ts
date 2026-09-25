@@ -78,7 +78,7 @@ export const boardGeometry = {
   /** Small inset used for secondary marks in a clue cell. */
   clueInsetRatio: 0.08,
   /** Radius used by compact circular clues. */
-  clueRadiusRatio: 0.16,
+  clueRadiusRatio: 0.19,
   /** Relative size of a bulb/center symbol. */
   symbolRatio: 0.8,
   boundaryRatio: 0.08,
@@ -743,10 +743,13 @@ export function getBoardSymbolDiameter(cellSize: number, ratio = boardGeometry.s
 }
 
 export function getBoardClueCircleMetrics(cellSize: number) {
+  // Scale proportionally with the cell so clue dots stay in step with a
+  // board that shrinks on narrow screens; the small floors only guard
+  // against rounding to zero on tiny cells.
   return {
-    radius: Math.max(8, Math.floor(cellSize * boardGeometry.clueRadiusRatio)),
-    strokeWidth: Math.max(2, Math.floor(cellSize * 0.05)),
-    outerRadiusOffset: Math.max(1.5, Math.floor(cellSize * 0.03)),
+    radius: Math.max(4, Math.round(cellSize * boardGeometry.clueRadiusRatio)),
+    strokeWidth: Math.max(1, Math.round(cellSize * 0.05)),
+    outerRadiusOffset: Math.max(1, Math.round(cellSize * 0.03)),
   } as const;
 }
 
@@ -924,6 +927,11 @@ interface ResponsiveCellSizeOptions {
   extraWidth?: number;
   /** Number of horizontal clue gutters that consume board width. */
   outsideClueSides?: number;
+  /**
+   * Additional full-cell-width columns consumed by stacked outside clue
+   * gutters (their clue size always equals the cell size).
+   */
+  outsideClueStackColumns?: number;
   /** Largest clue width (in digits) used when sizing a responsive board. */
   outsideClueMaxDigits?: number;
   /** Optional puzzle-specific cap for the responsive cell size. */
@@ -940,6 +948,7 @@ export function getResponsiveCellSize({
   columnGap = 0,
   extraWidth = 0,
   outsideClueSides = 0,
+  outsideClueStackColumns = 0,
   outsideClueMaxDigits = 1,
   maxCellSize,
   minCellSize = commonBoardChrome.minCellSize,
@@ -962,20 +971,21 @@ export function getResponsiveCellSize({
     viewportWidth - horizontalViewportPadding - boardChromeWidth - extraWidth
   );
   const cellGapWidth = (width - 1) * columnGap;
-  const constrainedColumnCount = width + outsideClueSides;
+  const constrainedColumnCount = width + outsideClueSides + outsideClueStackColumns;
   const effectiveMinCellSize = containerWidth
     ? Math.min(minCellSize, Math.floor(maxAvailableWidth / Math.max(1, constrainedColumnCount)))
     : minCellSize;
-  let nextSize = Math.floor((maxAvailableWidth - cellGapWidth) / width);
+  let nextSize = Math.floor((maxAvailableWidth - cellGapWidth) / (width + outsideClueStackColumns));
 
   // Gutters scale with the cell size. Iterate to solve the small dependency
   // instead of reserving a hard-coded 24px and allowing mobile boards to
-  // overflow their frame.
+  // overflow their frame.  Stacked clue columns are full cell-width columns
+  // and are reserved directly.
   if (outsideClueSides > 0) {
     for (let iteration = 0; iteration < 3; iteration++) {
       const clueGutter = getBoardOutsideClueGutter(nextSize, outsideClueMaxDigits);
       nextSize = Math.floor(
-        (maxAvailableWidth - outsideClueSides * clueGutter - cellGapWidth) / width
+        (maxAvailableWidth - outsideClueSides * clueGutter - cellGapWidth) / (width + outsideClueStackColumns)
       );
     }
   }
