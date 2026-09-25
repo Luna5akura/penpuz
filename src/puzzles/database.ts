@@ -729,6 +729,10 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'http://localhost:8080/p.html?mashu/8/8/000316oa0900i6aa320000',
+    difficulty: '简单',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/02a08b02b02a02b04b02o04c04c04c04c04o02b02b02a04b02b06a02',
     difficulty: '简单',
   },
@@ -737,22 +741,35 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'http://localhost:8080/p.html?mashu/8/8/0003011i0g07i0f3010000',
+    difficulty: '简单',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/b01c03f09d03a05e01c03f07b00b05f03c03e05a01d07f03c05b',
     difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?placebyproduct/12/12/g-151-24919bk4acc4-146ji000000000000006000000i2i20000060000000000000002//p',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?battleship/10/10/2h4h6h4h1g35g3hi0n0g0n0g0h0n0j0i0g0h0g0i0j0n0h0g0n0g0n0i//d',
+    difficulty: '极难',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/a01d03g05d05b03d05b03d03g05d03b05d05g05d05b03d05b03d03g03d07a',
     difficulty: '困难',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?placebyproduct/12/12/g-151-24919bk4acc4-146ji000000000000006000000i2i20000060000000000000002//p',
-    difficulty: '极难',
-  },
-  // Masyu (pzprjs official sample)
-  {
-    puzzLink: 'http://localhost:8080/p.html?masyu/6/6/001000020010000000020001000000000000',
+    puzzLink: 'http://localhost:8080/p.html?battleships/8/8/2g4222g61g1h5g5p00g00h0i00h0g0g0j00g0zl/12/11g/11g/11g/11g/11g/11g/11g/11g/31s/31s/31s/31s',
     difficulty: '困难',
   },
+  {
+    puzzLink: 'http://localhost:8080/p.html?battleships/9/9/513i155h4g4g4hh0n0n0n0n0g0g0n0n0n0n0h/9/41u/41u/41u/21o/21o/21o/21o/21o/21o',
+    difficulty: '困难',
+  },
+
+
 ];
 
 /**
