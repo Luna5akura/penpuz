@@ -407,6 +407,36 @@ export function getBattleshipWaterClueKeys(puzzle: BattleshipPuzzleData) {
   );
 }
 
+/**
+ * Connections implied by a segment's own shape (the given-clue view),
+ * optionally overlaid with the actual drawn neighbours.
+ */
+export function getSegmentConnections(
+  segment: BattleshipSegment,
+  neighbors?: BattleshipNeighborConnections
+): BattleshipNeighborConnections {
+  const base = (() => {
+    switch (segment) {
+      case 'up': return { top: false, right: false, bottom: true, left: false };
+      case 'down': return { top: true, right: false, bottom: false, left: false };
+      case 'left': return { top: false, right: true, bottom: false, left: false };
+      case 'right': return { top: false, right: false, bottom: false, left: true };
+      case 'center': return neighbors ?? { top: true, right: false, bottom: true, left: false };
+      case 'up-left': return { top: false, right: true, bottom: true, left: false };
+      case 'up-right': return { top: false, right: false, bottom: true, left: true };
+      case 'down-left': return { top: true, right: true, bottom: false, left: false };
+      case 'down-right': return { top: true, right: false, bottom: false, left: true };
+      default: return { top: false, right: false, bottom: false, left: false };
+    }
+  })();
+  return {
+    top: base.top || neighbors?.top === true,
+    right: base.right || neighbors?.right === true,
+    bottom: base.bottom || neighbors?.bottom === true,
+    left: base.left || neighbors?.left === true,
+  };
+}
+
 export function inferBattleshipSegment(occupied: boolean[][], row: number, col: number): BattleshipSegment {
   const top = occupied[row - 1]?.[col] === true;
   const bottom = occupied[row + 1]?.[col] === true;

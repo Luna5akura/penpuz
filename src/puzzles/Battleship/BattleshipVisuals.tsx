@@ -8,25 +8,7 @@ import {
   woodBoardTheme,
 } from '../boardTheme';
 import type { BattleshipSegment, BattleshipShipShape } from '../types';
-import { getBattleshipShapeKey, type BattleshipNeighborConnections } from './utils';
-
-function getSegmentConnections(
-  segment: BattleshipSegment,
-  neighbors?: BattleshipNeighborConnections
-): BattleshipNeighborConnections {
-  switch (segment) {
-    case 'up': return { top: false, right: false, bottom: true, left: false };
-    case 'down': return { top: true, right: false, bottom: false, left: false };
-    case 'left': return { top: false, right: true, bottom: false, left: false };
-    case 'right': return { top: false, right: false, bottom: false, left: true };
-    case 'center': return neighbors ?? { top: true, right: false, bottom: true, left: false };
-    case 'up-left': return { top: false, right: true, bottom: true, left: false };
-    case 'up-right': return { top: false, right: false, bottom: true, left: true };
-    case 'down-left': return { top: true, right: true, bottom: false, left: false };
-    case 'down-right': return { top: true, right: false, bottom: false, left: true };
-    default: return { top: false, right: false, bottom: false, left: false };
-  }
-}
+import { getBattleshipShapeKey, getSegmentConnections, type BattleshipNeighborConnections } from './utils';
 
 export function BattleshipSegmentSymbol({
   segment,
@@ -34,6 +16,7 @@ export function BattleshipSegmentSymbol({
   neighbors,
   given = false,
   resolved = false,
+  extended = false,
   color,
 }: {
   segment: BattleshipSegment;
@@ -41,6 +24,8 @@ export function BattleshipSegmentSymbol({
   neighbors?: BattleshipNeighborConnections;
   given?: boolean;
   resolved?: boolean;
+  /** True when the player drew an extension from a given clue in a new direction. */
+  extended?: boolean;
   /** Optional trial/annotation color for a resolved ship segment. */
   color?: string;
 }) {
@@ -52,7 +37,10 @@ export function BattleshipSegmentSymbol({
   const halfThickness = cellSize * 0.32;
   const thickness = halfThickness * 2;
   const connectionCount = Object.values(connections).filter(Boolean).length;
-  const rounded = given || resolved;
+  // A given clue's own caps stay round, but once the player extends it the
+  // open directions become ordinary endpoints: round only when blocked,
+  // otherwise a diamond head that shows the ship may still continue.
+  const rounded = resolved || (given && !extended);
 
   const renderEndpoint = () => {
     const capCenter = center;
@@ -125,7 +113,7 @@ export function BattleshipSegmentSymbol({
       viewBox={`0 0 ${cellSize} ${cellSize}`}
       aria-hidden="true"
     >
-      {segment === 'unknown' || (segment === 'center' && connectionCount === 0) ? (
+      {segment === 'unknown' && connectionCount === 0 ? (
         <rect
           x={center - halfThickness}
           y={center - halfThickness}

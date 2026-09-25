@@ -9,6 +9,7 @@ import {
   getBattleshipOccupiedGrid,
   getBattleshipPlacedShapeCounts,
   getBattleshipWaterClueKeys,
+  getSegmentConnections,
   inferBattleshipSegment,
   isBattleshipSegmentResolved,
   validateBattleship,
@@ -49,6 +50,14 @@ export default function BattleshipBoard({
     [clueMap]
   );
   const waterClueKeys = useMemo(() => getBattleshipWaterClueKeys(puzzle), [puzzle]);
+  const givenShipKeys = useMemo(
+    () => new Set(
+      puzzle.cellClues
+        .filter((clue) => clue.kind === 'ship')
+        .map((clue) => getCellKey(clue.row, clue.col))
+    ),
+    [puzzle.cellClues]
+  );
   const occupiedCache = useRef<{
     puzzle: BattleshipPuzzleData;
     grid: ShadingCellState[][];
@@ -103,12 +112,25 @@ export default function BattleshipBoard({
         const neighbors = getBattleshipNeighborConnections(occupied, row, col);
         if (clue?.kind === 'ship') {
           const segment = clue.segment ?? 'unknown';
+          const implied = getSegmentConnections(segment);
+          // A drawn neighbour in a direction the given shape does not imply
+          // extends the clue; its open sides then render like ordinary
+          // endpoints (round only when blocked, diamond otherwise).
+          const directionDeltas = { top: [-1, 0], right: [0, 1], bottom: [1, 0], left: [0, -1] } as const;
+          const extended = (Object.keys(directionDeltas) as Array<keyof typeof directionDeltas>).some((direction) => {
+            if (!neighbors[direction]) return false;
+            const [dr, dc] = directionDeltas[direction];
+            if (givenShipKeys.has(getCellKey(clue.row + dr, clue.col + dc))) return false;
+            return !implied[direction];
+          });
           return (
             <BattleshipSegmentSymbol
               segment={segment}
               cellSize={cellSize}
               given
               neighbors={neighbors}
+              extended={extended}
+              resolved={isBattleshipSegmentResolved(grid, puzzle, occupied, clue.row, clue.col, waterClueKeys)}
             />
           );
         }
