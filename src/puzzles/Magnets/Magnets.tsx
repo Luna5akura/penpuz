@@ -1,4 +1,5 @@
-import NumberPlacementBoard from '../shared/NumberPlacementBoard';
+import NumberPlacementBoard, { type NumberPlacementCellValue } from '../shared/NumberPlacementBoard';
+import BoardCellMark from '../shared/BoardCellMark';
 import type { MagnetsPuzzleData } from '../types';
 import {
   getBoardBoundaryStrokeWidth,
@@ -10,6 +11,7 @@ import { validateMagnets } from './utils';
 const PLUS = 1;
 const MINUS = 2;
 const SHADED = 'shaded' as const;
+const CIRCLE = 'circle' as const;
 
 interface Props {
   puzzle: MagnetsPuzzleData;
@@ -36,28 +38,32 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
     return region >= 0 ? puzzle.regions[region] : null;
   };
   /**
-   * Left-click sequence for a region: with no given pole the magnet cycles
-   * empty → (+|−) → (−|+); a region containing a given pole cycles between
-   * empty and the opposite pole on the first free cell.
+   * Desktop left click cycles a region forward through
+   * (+|−) → (−|+) → 涂黑 → 画圈 → 空白, and right click cycles backward.
+   * A region containing a given pole keeps the pole and cycles the first
+   * free cell through opposite → 涂黑 → 画圈 → 空白.
    */
-  const getGroupStates = (cells: Array<{ row: number; col: number }>): Array<Array<number | null>> => {
+  const getGroupStates = (cells: Array<{ row: number; col: number }>): NumberPlacementCellValue[][] => {
     const fixed = cells.map(({ row, col }) => getFixedValue(row, col));
     const freeIndexes = fixed.flatMap((value, index) => (value === null ? [index] : []));
     const emptyState = fixed.map((value) => value);
+    const shadedState = fixed.map((value, index) => (freeIndexes.length === 0 || index === freeIndexes[0] ? SHADED : value));
+    const circleState = fixed.map((value, index) => (freeIndexes.length === 0 || index === freeIndexes[0] ? CIRCLE : value));
     if (fixed.length === freeIndexes.length) {
-      if (cells.length < 2) return [emptyState];
-      const plusMinus = fixed.map(() => null as number | null);
+      if (cells.length < 2) return [emptyState, shadedState, circleState];
+      const plusMinus = fixed.map(() => null as NumberPlacementCellValue);
       plusMinus[0] = PLUS;
       plusMinus[1] = MINUS;
-      const minusPlus = fixed.map(() => null as number | null);
+      const minusPlus = fixed.map(() => null as NumberPlacementCellValue);
       minusPlus[0] = MINUS;
       minusPlus[1] = PLUS;
-      return [emptyState, plusMinus, minusPlus];
+      // (+|−) → (−|+) → 涂黑 → 画圈 → 空白
+      return [plusMinus, minusPlus, fixed.map(() => SHADED), fixed.map(() => CIRCLE), emptyState];
     }
     if (freeIndexes.length === 0) return [emptyState];
     const opposite = fixed.includes(PLUS) ? MINUS : PLUS;
     const oppositeState = fixed.map((value, index) => (index === freeIndexes[0] ? opposite : value));
-    return [emptyState, oppositeState];
+    return [oppositeState, shadedState, circleState, emptyState];
   };
   const renderOverlay = (cellSize: number) => {
     const strokeWidth = getBoardBoundaryStrokeWidth(cellSize);
@@ -108,8 +114,7 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
     getFixedValue={getFixedValue}
     getGroupCells={getGroupCells}
     getGroupStates={getGroupStates}
-    groupBlackValue={SHADED}
-    extraCellValues={[SHADED]}
+    extraCellValues={[SHADED, CIRCLE]}
     getCellTone={(_row, _col, value) => (value === SHADED ? 'playerShaded' : undefined)}
     outsideClueStacks={{
       // pzpr layout: two clue rows above (farther '+' then nearer '−') and
@@ -128,6 +133,9 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
     validate={validateMagnets}
     renderOverlay={renderOverlay}
     renderCellValue={(value, cellSize) => {
+      if (value === CIRCLE) {
+        return <BoardCellMark kind="circle" cellSize={cellSize} />;
+      }
       if (value !== PLUS && value !== MINUS) return null;
       const { length, thickness } = getBoardPoleMarkMetrics(cellSize);
       return (

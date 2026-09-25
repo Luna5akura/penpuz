@@ -115,10 +115,8 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   cycleValuesRight?: NumberPlacementCellValue[];
   /** Ordered cells of the group containing a cell, for group-wide cycling (e.g. Magnets). */
   getGroupCells?: (row: number, col: number) => Array<CellCoord> | null;
-  /** Left-click state sequence for a group; each state's values align with getGroupCells order. */
+  /** State sequence cycled by a group click; each state's values align with getGroupCells order. */
   getGroupStates?: (cells: CellCoord[]) => NumberPlacementCellValue[][];
-  /** Value applied to every cell of a group on right click (marks "no magnet"). */
-  groupBlackValue?: NumberPlacementCellValue;
   inputModeOptions?: Array<{ mode: NumberPlacementInputMode; label: string }>;
   showValueButtons?: boolean;
   /** Static outside clues, or a resolver used for answer cells derived from the grid. */
@@ -338,7 +336,6 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   cycleValuesRight,
   getGroupCells,
   getGroupStates,
-  groupBlackValue,
   inputModeOptions,
   showValueButtons = true,
   outsideClues,
@@ -841,8 +838,9 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
 
   /**
    * Group-wide interaction for puzzles like Magnets: a left click advances
-   * the whole group through its state sequence (pole orientation cycles),
-   * while a right click toggles the group-wide "no magnet" mark.
+   * the whole group through its state sequence and a right click steps back
+   * through it, so one hand can reach every group state (pole orientation,
+   * no-magnet marks and empty) in either direction.
    */
   const cycleGroupValue = useCallback((row: number, col: number, button: number) => {
     const cells = getGroupCells?.(row, col) ?? null;
@@ -862,26 +860,23 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       );
 
       let nextValues: Array<NumberPlacementCellValue | null>;
+      // A group matches exactly one state of the sequence; states may carry
+      // any cell value (poles, marks, null) aligned with the group's cells.
+      const matchesState = (state: NumberPlacementCellValue[]) =>
+        cells.every(({ row: r, col: c }, index) => {
+          const fixed = getFixedValue(r, c);
+          if (fixed !== null) return (state[index] ?? null) === fixed;
+          return current.grid[r][c] === (state[index] ?? null);
+        });
+      const currentIndex = states.findIndex(matchesState);
       if (button === 2) {
-        // Right click toggles the black "no magnet" mark across the group.
-        // Only cells the player can edit take part in the toggle, so groups
-        // with a pre-given pole still black/un-black consistently.
-        const freeCells = cells.filter(({ row: r, col: c }) =>
-          !isBlockedCell(r, c) && getFixedValue(r, c) === null
-        );
-        const isBlack = freeCells.length > 0 &&
-          freeCells.every(({ row: r, col: c }) => current.grid[r][c] === groupBlackValue);
-        nextValues = cells.map(() => (isBlack ? null : groupBlackValue ?? null));
+        // Right click steps backward through the sequence; an unmatched
+        // group starts from the last state.
+        const previousIndex = (currentIndex < 0 ? states.length - 1 : currentIndex - 1 + states.length) % states.length;
+        nextValues = [...(states[previousIndex] ?? [])];
       } else {
-        // Left click advances the group through its state sequence. A black
-        // group matches no state, so the first click clears the mark.
-        const matchesState = (state: NumberPlacementCellValue[]) =>
-          cells.every(({ row: r, col: c }, index) => {
-            const fixed = getFixedValue(r, c);
-            if (fixed !== null) return (state[index] ?? null) === fixed;
-            return current.grid[r][c] === (state[index] ?? null);
-          });
-        const currentIndex = states.findIndex(matchesState);
+        // Left click advances the group through its state sequence; an
+        // unmatched group starts from the first state.
         nextValues = [...(states[(currentIndex < 0 ? 0 : currentIndex + 1) % states.length] ?? [])];
       }
 
@@ -908,7 +903,6 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     getFixedValue,
     getGroupCells,
     getGroupStates,
-    groupBlackValue,
     height,
     isBlockedCell,
     numbers,
