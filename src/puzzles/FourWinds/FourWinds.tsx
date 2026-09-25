@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, type PointerEvent } from 'reac
 import PuzzleAssistToolbar from '@/components/PuzzleAssistToolbar';
 import ValidationMessage from '@/components/ValidationMessage';
 import { usePuzzleHistory } from '@/hooks/usePuzzleHistory';
-import { safeSetPointerCapture } from '@/lib/pointer';
+import { LONG_PRESS_MS, LONG_PRESS_MOVE_TOLERANCE, safeSetPointerCapture, triggerHapticFeedback } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
 import { getTrialLevelColors } from '../trialStyles';
 import { useBoardContainerWidth } from '../useBoardContainerWidth';
@@ -15,12 +15,13 @@ import {
   getBoardFrameDimensions,
   getBoardFrameStyle,
   getBoardGridStyle,
+  getBoardSatisfiedClueTextStyle,
   getBoardTextStyle,
   getBoardTrialCellStyle,
   getResponsiveCellSize,
 } from '../boardTheme';
 import FourWindsMark from './FourWindsVisuals';
-import { validateFourWinds } from './utils';
+import { getSatisfiedFourWindsClues, validateFourWinds } from './utils';
 
 interface Props {
   puzzle: FourWindsPuzzleData;
@@ -129,6 +130,8 @@ export default function FourWindsBoard({
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
   const pointerState = useRef<PointerState>(resetPointerState());
+  const pendingTouchRightClickRef = useRef<{ cell: CellCoord; startX: number; startY: number } | null>(null);
+  const pendingTouchTimerRef = useRef<number | null>(null);
   const hasCompleted = useRef(false);
   // The parent persists every snapshot through `onSnapshotChange`. Keep the
   // latest value available for an explicit reset without making the reset
@@ -193,6 +196,10 @@ export default function FourWindsBoard({
     () => validateFourWinds(grid, puzzle),
     [grid, puzzle]
   );
+  const satisfiedClues = useMemo(
+    () => getSatisfiedFourWindsClues(grid, puzzle),
+    [grid, puzzle]
+  );
   const cellSize = useMemo(
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
     [fixedCellSize, viewportWidth, width]
@@ -209,6 +216,12 @@ export default function FourWindsBoard({
     pointerState.current = resetPointerState();
     hasCompleted.current = false;
   }, [getResetSnapshot, reset]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingTouchTimerRef.current !== null) window.clearTimeout(pendingTouchTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     resetBoard();
@@ -268,13 +281,34 @@ export default function FourWindsBoard({
     safeSetPointerCapture(boardRef.current ?? event.currentTarget, event.pointerId);
     pointerState.current = {
       pointerId: event.pointerId,
-      button: event.button,
+      button: event.pointerType === 'touch' ? 0 : event.button,
       startCell: cell,
       lastCell: cell,
       lastArrowTarget: null,
       moved: false,
     };
+    // The right button applies its action immediately on press; the drag
+    // below then extends the same action over every cell it enters.
+    if (event.button === 2) {
+      applyCellClick(cell, 2);
+    }
     startBatch();
+
+    // Touch: a quick tap performs the left action on release, while a long
+    // press triggers the right-button action in place.
+    if (event.pointerType === 'touch') {
+      pendingTouchRightClickRef.current = { cell, startX: event.clientX, startY: event.clientY };
+      if (pendingTouchTimerRef.current !== null) window.clearTimeout(pendingTouchTimerRef.current);
+      pendingTouchTimerRef.current = window.setTimeout(() => {
+        const pending = pendingTouchRightClickRef.current;
+        if (!pending) return;
+        pendingTouchRightClickRef.current = null;
+        pendingTouchTimerRef.current = null;
+        pointerState.current.moved = true;
+        triggerHapticFeedback();
+        applyCellClick(pending.cell, 2);
+      }, LONG_PRESS_MS);
+    }
   };
 
   const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
@@ -292,17 +326,35 @@ export default function FourWindsBoard({
       current.lastCell = null;
       return;
     }
+    const pending = pendingTouchRightClickRef.current;
+    if (pending && (
+      Math.abs(event.clientX - pending.startX) > LONG_PRESS_MOVE_TOLERANCE ||
+      Math.abs(event.clientY - pending.startY) > LONG_PRESS_MOVE_TOLERANCE
+    )) {
+      pendingTouchRightClickRef.current = null;
+      if (pendingTouchTimerRef.current !== null) {
+        window.clearTimeout(pendingTouchTimerRef.current);
+        pendingTouchTimerRef.current = null;
+      }
+    }
+
     if (!sameCell(current.startCell, cell)) {
       current.moved = true;
 
-      // A drag is recognized as soon as it reaches a different cell on the
-      // same row or column. Draw the arrow during the drag instead of waiting
-      // for pointerup. Keep the target guard so a stream of pointermove
-      // events over one cell does not enqueue duplicate history updates.
-      if (
+      if (current.button === 2) {
+        // Batch modification: the right-button action is applied to every
+        // newly entered cell while the button stays held down.
+        if (current.lastCell && !sameCell(current.lastCell, cell)) {
+          applyCellClick(cell, 2);
+        }
+      } else if (
+        // A left drag is recognized as soon as it reaches a different cell on
+        // the same row or column. Draw the arrow during the drag instead of
+        // waiting for pointerup. Keep the target guard so a stream of
+        // pointermove events over one cell does not enqueue duplicate
+        // history updates.
         current.button === 0 &&
         current.startCell &&
-        !sameCell(current.startCell, cell) &&
         !sameCell(current.lastArrowTarget, cell) &&
         getArrowDirection(current.startCell, cell) !== null
       ) {
@@ -316,8 +368,15 @@ export default function FourWindsBoard({
   const handlePointerUp = (event: PointerEvent<HTMLDivElement>) => {
     const current = pointerState.current;
     if (current.pointerId !== event.pointerId) return;
-    if (current.startCell && current.button !== null && !current.moved) {
-      applyCellClick(current.startCell, current.button);
+    if (pendingTouchTimerRef.current !== null) {
+      window.clearTimeout(pendingTouchTimerRef.current);
+      pendingTouchTimerRef.current = null;
+    }
+    pendingTouchRightClickRef.current = null;
+    // The right button already applied its action on pointerdown; only the
+    // left button treats a stationary press as a click.
+    if (current.button === 0 && current.startCell && !current.moved) {
+      applyCellClick(current.startCell, 0);
     }
     pointerState.current = resetPointerState();
     finishBatch();
@@ -360,7 +419,7 @@ export default function FourWindsBoard({
                     }}
                   >
                     {clue !== null
-                      ? <span className={boardClassNames.cellTextTight} style={getBoardClueTextStyle(cellSize)}>{clue}</span>
+                      ? <span className={boardClassNames.cellTextTight} style={satisfiedClues[row][col] ? getBoardSatisfiedClueTextStyle(cellSize) : getBoardClueTextStyle(cellSize)}>{clue}</span>
                       : value === null
                         ? null
                         : <FourWindsMark value={value} cellSize={cellSize} />}

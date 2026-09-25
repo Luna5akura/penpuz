@@ -500,6 +500,19 @@ export function getBoardClueTextStyle(
   } as const;
 }
 
+/** Text style for a clue whose requirement is already satisfied. */
+export function getBoardSatisfiedClueTextStyle(
+  cellSize: number,
+  ratio = 0.68,
+  min = 22,
+  lineHeight = boardTypography.lineHeight
+) {
+  return {
+    ...getBoardClueTextStyle(cellSize, ratio, min, lineHeight),
+    color: woodBoardTheme.neutralSoft,
+  } as const;
+}
+
 export function getBoardInkStyle(color = woodBoardTheme.border) {
   return { color } as const;
 }
@@ -869,6 +882,9 @@ export function getBoardFrameStyle(borderWidth = commonBoardChrome.border) {
     // A fixed-cell board must keep its frame and contents at the same width.
     // Responsive sizing handles ordinary viewports; an enclosing scroll area
     // handles boards that intentionally retain a larger minimum cell size.
+    // flexShrink keeps the frame from being squeezed by a flex parent while
+    // its absolutely positioned contents keep the declared size.
+    flexShrink: 0,
     maxWidth: 'none',
   } as const;
 }

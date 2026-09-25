@@ -198,3 +198,68 @@ export function validateFourWinds(
     }),
   };
 }
+
+/**
+ * A clue cell is satisfied when the total length of the arrows that begin at
+ * its edge equals the clue value.  The accounting mirrors validateFourWinds:
+ * only runs whose first cell sits next to a numbered cell and points away
+ * from it count toward that clue.
+ */
+export function getSatisfiedFourWindsClues(
+  grid: FourWindsCellValue[][],
+  puzzle: FourWindsPuzzleData
+): boolean[][] {
+  const satisfied = Array.from({ length: puzzle.height }, () => Array<boolean>(puzzle.width).fill(false));
+  const totals = new Map<string, number>();
+
+  for (let row = 0; row < puzzle.height; row++) {
+    for (let col = 0; col < puzzle.width; col++) {
+      const clue = puzzle.clues[row][col];
+      const rawValue = grid[row]?.[col] ?? null;
+      if (clue !== null) continue;
+      if (rawValue === null || rawValue === 'cross') continue;
+      if (!Number.isInteger(rawValue) || rawValue < 1 || rawValue > 4) continue;
+
+      const [dr, dc] = DELTAS[rawValue as FourWindsDirection];
+      const prevRow = row - dr;
+      const prevCol = col - dc;
+      // Only the first cell of an arrow run counts.
+      if (
+        prevRow >= 0 && prevRow < puzzle.height && prevCol >= 0 && prevCol < puzzle.width &&
+        grid[prevRow]?.[prevCol] === rawValue
+      ) {
+        continue;
+      }
+      // The run must begin on the edge of a numbered cell.
+      if (
+        prevRow < 0 || prevRow >= puzzle.height || prevCol < 0 || prevCol >= puzzle.width ||
+        puzzle.clues[prevRow][prevCol] === null
+      ) {
+        continue;
+      }
+
+      let length = 0;
+      let r = row;
+      let c = col;
+      while (r >= 0 && r < puzzle.height && c >= 0 && c < puzzle.width && grid[r]?.[c] === rawValue) {
+        length++;
+        r += dr;
+        c += dc;
+      }
+      const key = getCellKey(prevRow, prevCol);
+      totals.set(key, (totals.get(key) ?? 0) + length);
+    }
+  }
+
+  for (let row = 0; row < puzzle.height; row++) {
+    for (let col = 0; col < puzzle.width; col++) {
+      const clue = puzzle.clues[row][col];
+      if (clue === null) continue;
+      if ((totals.get(getCellKey(row, col)) ?? 0) === clue) {
+        satisfied[row][col] = true;
+      }
+    }
+  }
+
+  return satisfied;
+}
