@@ -1,6 +1,13 @@
-import { parseFourWindsLink } from './src/utils.ts';
-const url = 'http://localhost:8080/p.html?fourwinds/10/10/b03a05b03g05d03f04a02c05n05b08n06c02a08f08d09g02b02a02b';
-const data = parseFourWindsLink(url);
-if (!data) { console.log('NULL'); } else {
-  for (const row of data.clues) console.log(row.map(v => (v === null ? '.' : String(v))).join(' '));
-}
+import { parseTapaLink, validateTapa } from './utils.ts';
+const puzzle = parseTapaLink('http://localhost:8080/p.html?tapa/5/5/j1hbqoabh.j');
+for (const row of puzzle.clues) console.log(row.map((c) => (c === null ? '.' : c.join(','))).join(' '));
+const solution = [
+  [1, 1, 1, 0, 0],
+  [1, 0, 0, 1, 0],
+  [1, 1, 0, 1, 1],
+  [0, 1, 0, 0, 1],
+  [0, 1, 1, 1, 1],
+];
+const grid = solution.map((row, r) => row.map((v, c) => (puzzle.clues[r][c] !== null ? 0 : v)));
+const result = validateTapa(grid, puzzle);
+console.log('valid:', result.valid, 'message:', result.message, 'bad:', result.badCells);
