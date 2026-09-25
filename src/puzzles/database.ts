@@ -721,19 +721,38 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    // WPF Puzzle GP 2016, Round 1 Competitive, puzzle 1 (10×10, 19 points).
-    puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/h3g5i3l5j3m42i5t5h8t6i2g8l8j9m2h2h2g',
+    puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/b03a05b03g05d03f04a02c05n05b08n06c02a08f08d09g02b02a02b',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/95g7i55f1g9i35g000000000000020000000606000//t',
     difficulty: '困难',
   },
   {
-    // WPF Puzzle GP 2016, Round 1 Competitive, puzzle 2 (9×9, 14 points).
-    puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/2g8h2h2g2h4h2u4i4i4i4i4u2h2h2g4h2h6g2',
+    puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/02a08b02b02a02b04b02o04c04c04c04c04o02b02b02a04b02b06a02',
     difficulty: '简单',
   },
-
-
-
-
+  {
+    puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/g86g4g86gcc668-10-1044g000000000000000000000606000//t',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/b01c03f09d03a05e01c03f07b00b05f03c03e05a01d07f03c05b',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/a01d03g05d05b03d05b03d03g05d03b05d05g05d05b03d05b03d03g03d07a',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?placebyproduct/12/12/g-151-24919bk4acc4-146ji000000000000006000000i2i20000060000000000000002//p',
+    difficulty: '极难',
+  },
+  // Masyu (pzprjs official sample)
+  {
+    puzzLink: 'http://localhost:8080/p.html?masyu/6/6/001000020010000000020001000000000000',
+    difficulty: '困难',
+  },
 ];
 
 /**
@@ -754,6 +773,30 @@ export function getDatabasePuzzleSamples(): DatabasePuzzleSample[] {
   return (Object.keys(puzzleRegistry) as PuzzleType[])
     .map((type) => samples.get(type))
     .filter((sample): sample is DatabasePuzzleSample => sample !== undefined);
+}
+
+export interface DatabasePuzzleListItem {
+  /** Zero-based position inside the raw database list. */
+  index: number;
+  type: PuzzleType;
+  entry: PuzzleEntry;
+  puzzle: PuzzleData;
+}
+
+/**
+ * Every parseable puzzle in the database, in database order.  Unlike the
+ * daily rotation this is not restricted by date: the hidden all-puzzles page
+ * uses it to let every stored puzzle be opened and played directly.
+ */
+export function getAllDatabasePuzzles(): DatabasePuzzleListItem[] {
+  const items: DatabasePuzzleListItem[] = [];
+  for (let index = 0; index < allPuzzles.length; index += 1) {
+    const entry = allPuzzles[index];
+    const puzzle = getPuzzleForDatabaseIndex(index);
+    if (!puzzle) continue;
+    items.push({ index, type: puzzle.type, entry, puzzle });
+  }
+  return items;
 }
 
 

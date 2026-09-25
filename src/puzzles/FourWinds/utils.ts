@@ -9,67 +9,93 @@ const DELTAS: Record<FourWindsDirection, [number, number]> = {
   4: [0, -1],
 };
 
-function readNumber16(encoded: string, index: number): { value: number | null; consumed: number } | null {
-  const char = encoded[index];
-  if (!char) return null;
+const HEX_NIBBLE = /^[0-9a-f]$/u;
 
-  if (char === '.') return { value: null, consumed: 1 };
-
-  if (/^[0-9a-f]$/u.test(char)) {
-    return { value: Number.parseInt(char, 16), consumed: 1 };
-  }
-
-  const prefixedLengths: Record<string, number> = {
-    '-': 2,
-    '+': 3,
-    '=': 3,
-    '%': 3,
-    '@': 3,
-    '*': 4,
-    '$': 5,
-  };
-  const digitCount = prefixedLengths[char];
-  if (digitCount === undefined) return null;
-
-  const digits = encoded.slice(index + 1, index + 1 + digitCount);
-  if (digits.length !== digitCount || !/^[0-9a-f]+$/u.test(digits)) return null;
-
-  let value = Number.parseInt(digits, 16);
-  if (char === '=') value += 4096;
-  else if (char === '%' || char === '@') value += 8192;
-  else if (char === '*') value += 12240;
-  else if (char === '$') value += 77776;
-  return { value, consumed: digitCount + 1 };
-}
-
-/** Decode the number16 clue stream used by Four Winds links. */
+/**
+ * Decode the pzprv3 "arrow number16" cell stream used by Four Winds links
+ * (the same format produced and consumed by the pzpr build at
+ * localhost:8080/p.html):
+ *
+ *   - 'a'–'z' encodes a run of empty cells ('a' = 1, …, 'z' = 26);
+ *   - '+' encodes a question-mark cell;
+ *   - a digit 0–4 followed by one hex digit is one cell: the first nibble
+ *     is the arrow direction and the second is the number;
+ *   - a digit 5–9 followed by two hex digits is one cell: the direction is
+ *     the first digit minus 5 (always an answer arrow, never a clue) and
+ *     the two hex digits are the number;
+ *   - '-' followed by one hex direction digit and three hex digits is one
+ *     cell with that direction and a three-hex-digit number (4095 marks an
+ *     answer arrow on an empty cell);
+ *   - a direction digit followed by '.' marks a non-number cell.
+ *
+ * Only cells whose direction is 0 carry a clue number.
+ */
 function decodeFourWindsClues(encoded: string, width: number, height: number) {
   const clues = Array.from({ length: height }, () => Array<number | null>(width).fill(null));
   const cellCount = width * height;
-  let cellIndex = 0;
-  let stringIndex = 0;
+  let cell = 0;
+  let index = 0;
 
-  while (stringIndex < encoded.length && cellIndex < cellCount) {
-    const char = encoded[stringIndex];
-    if (char >= 'g' && char <= 'z') {
-      const skipped = Number.parseInt(char, 36) - 15;
-      if (cellIndex + skipped > cellCount) return null;
-      cellIndex += skipped;
-      stringIndex += 1;
+  while (index < encoded.length && cell < cellCount) {
+    const char = encoded[index];
+
+    if (char >= 'a' && char <= 'z') {
+      cell += Number.parseInt(char, 36) - 9;
+      index += 1;
       continue;
     }
 
-    const decoded = readNumber16(encoded, stringIndex);
-    if (!decoded) return null;
-    if (decoded.value !== null) {
-      if (decoded.value < 1 || decoded.value > width + height) return null;
-      clues[Math.floor(cellIndex / width)][cellIndex % width] = decoded.value;
+    if (char === '+') {
+      cell += 1;
+      index += 1;
+      continue;
     }
-    cellIndex += 1;
-    stringIndex += decoded.consumed;
+
+    if (char >= '0' && char <= '4') {
+      const second = encoded[index + 1];
+      if (second === undefined) return null;
+      if (second === '.') {
+        // Direction digit followed by '.': a non-number cell.
+        cell += 1;
+        index += 2;
+        continue;
+      }
+      if (!HEX_NIBBLE.test(second)) return null;
+      if (char === '0') {
+        clues[Math.floor(cell / width)][cell % width] = Number.parseInt(second, 16);
+      }
+      cell += 1;
+      index += 2;
+      continue;
+    }
+
+    if (char >= '5' && char <= '9') {
+      // Direction (char − 5) is always 1–4: an answer arrow, not a clue.
+      if (!HEX_NIBBLE.test(encoded[index + 1] ?? '') || !HEX_NIBBLE.test(encoded[index + 2] ?? '')) return null;
+      cell += 1;
+      index += 3;
+      continue;
+    }
+
+    if (char === '-') {
+      const direction = encoded[index + 1];
+      const digits = encoded.slice(index + 2, index + 5);
+      if (direction === undefined || !HEX_NIBBLE.test(direction) || !/^[0-9a-f]{3}$/u.test(digits)) return null;
+      const value = Number.parseInt(digits, 16);
+      // 4095 with a drawn direction marks an answer arrow; only a
+      // direction-0 cell is a clue.
+      if (Number.parseInt(direction, 16) === 0) {
+        clues[Math.floor(cell / width)][cell % width] = value;
+      }
+      cell += 1;
+      index += 5;
+      continue;
+    }
+
+    return null;
   }
 
-  return cellIndex === cellCount && stringIndex === encoded.length ? clues : null;
+  return cell === cellCount && index === encoded.length ? clues : null;
 }
 
 export function parseFourWindsLink(link: string): FourWindsPuzzleData | null {
@@ -81,6 +107,7 @@ export function parseFourWindsLink(link: string): FourWindsPuzzleData | null {
     if (!isPositiveGridSize(width, height)) return null;
     const encoded = parts.slice(3).join('/').replace(/\/+$/u, '');
     if (!encoded) return null;
+
     const clues = decodeFourWindsClues(encoded, width, height);
     return clues ? { type: 'fourwinds', width, height, clues } : null;
   } catch {
