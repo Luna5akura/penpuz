@@ -551,6 +551,31 @@ export default function SlitherlinkBoard({
     });
   }, [applyChange, currentTrialLevel, height, trialActive, width]);
 
+  /** Mobile cell tap cycles the mark: empty → cross → circle → empty. */
+  const cycleCellCenterMark = useCallback((row: number, col: number) => {
+    applyChange((currentSnapshot) => {
+      const current = normalizeSlitherlinkSnapshot(currentSnapshot, width, height);
+      const key = getCellKey(row, col);
+      const nextMarks = { ...current.cellMarks };
+      const nextMarkLevels = { ...current.cellMarkLevels };
+      const currentMark = nextMarks[key];
+      const nextMark: SlitherlinkCellMark | undefined =
+        currentMark === undefined ? 'cross' : currentMark === 'cross' ? 'circle' : undefined;
+      if (nextMark === undefined) {
+        delete nextMarks[key];
+        delete nextMarkLevels[key];
+      } else {
+        nextMarks[key] = nextMark;
+        nextMarkLevels[key] = trialActive ? currentTrialLevel : 0;
+      }
+      return {
+        ...current,
+        cellMarks: nextMarks,
+        cellMarkLevels: nextMarkLevels,
+      };
+    });
+  }, [applyChange, currentTrialLevel, height, trialActive, width]);
+
   const applyEdgeDuringDrag = useCallback((key: string) => {
     const current = pointerState.current;
     if (!current.action) return;
@@ -590,7 +615,7 @@ export default function SlitherlinkBoard({
         window.clearTimeout(pendingTouchMarkTimerRef.current);
         pendingTouchMarkTimerRef.current = null;
       }
-      toggleCellCenterMark(pendingMark.row, pendingMark.col, 'circle');
+      cycleCellCenterMark(pendingMark.row, pendingMark.col);
       return;
     }
 
@@ -607,7 +632,7 @@ export default function SlitherlinkBoard({
       isTouch: false,
     };
     finishBatch();
-  }, [finishBatch, toggleCellCenterMark]);
+  }, [cycleCellCenterMark, finishBatch]);
 
   const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const rect = boardRef.current?.getBoundingClientRect();
@@ -628,11 +653,21 @@ export default function SlitherlinkBoard({
         }
       }
 
+      // Mobile: a tap on a boundary toggles its cross (drawing the loop
+      // line still works by dragging from a grid vertex).
+      if (isTouchPointer) {
+        const edgeKey = detectEdgeTarget(event.clientX, event.clientY, rect, width, height, cellSize);
+        if (edgeKey) {
+          event.preventDefault();
+          toggleEdgeCross(edgeKey);
+          return;
+        }
+      }
+
       const cell = detectCellCenterTarget(event.clientX, event.clientY, rect, width, height, cellSize);
       if (!cell) return;
 
       event.preventDefault();
-      // Touch: a quick tap places a circle mark, a long press places a cross.
       if (isTouchPointer) {
         pendingTouchMarkRef.current = {
           row: cell.row,
