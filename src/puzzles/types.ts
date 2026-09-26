@@ -533,8 +533,9 @@ export interface YinYangPuzzleData {
   givens: (0 | 1 | null)[][];
 }
 
-/** Dot between two adjacent Kropki cells. */
-export type KropkiDot = 'white' | 'black' | 'either';
+/** Dot between two adjacent Kropki cells.  A 1-2 pair may carry either
+ * a black or a white dot; the puzzle author picks one. */
+export type KropkiDot = 'white' | 'black';
 
 export interface KropkiPuzzleData {
   type: 'kropki';

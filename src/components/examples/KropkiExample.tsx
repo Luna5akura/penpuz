@@ -10,6 +10,7 @@ import {
   getCellDividerStyle,
 } from '@/puzzles/boardTheme';
 import KropkiDotMark from '@/puzzles/Kropki/KropkiDotMark';
+import type { KropkiDot } from '@/puzzles/types';
 
 interface Props {
   width: number;

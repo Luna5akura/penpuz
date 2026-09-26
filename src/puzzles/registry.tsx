@@ -235,7 +235,7 @@ const kropkiExamplePuzzle: KropkiPuzzleData = {
   ],
   verticalDots: [
     [null, 'white', 'white'],
-    ['white', 'either', null],
+    ['white', 'black', null],
     ['white', null, 'white'],
     ['white', 'white', 'white'],
   ],
@@ -3724,8 +3724,8 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
       return isTypedMatrix(value.givens, width, height, (cell) => cell === null || cell === 0 || cell === 1);
     case 'kropki':
       return isTypedMatrix(value.givens, width, height, (cell) => cell === null || isFiniteInteger(cell, 1)) &&
-        isTypedMatrix(value.verticalDots, height, Math.max(0, width - 1), (cell) => cell === null || cell === 'white' || cell === 'black' || cell === 'either') &&
-        isTypedMatrix(value.horizontalDots, Math.max(0, height - 1), width, (cell) => cell === null || cell === 'white' || cell === 'black' || cell === 'either');
+        isTypedMatrix(value.verticalDots, height, Math.max(0, width - 1), (cell) => cell === null || cell === 'white' || cell === 'black') &&
+        isTypedMatrix(value.horizontalDots, Math.max(0, height - 1), width, (cell) => cell === null || cell === 'white' || cell === 'black');
     case 'starbattle':
       return isFiniteInteger(value.starsPerUnit, 1) && isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, 0));
     case 'heyawake':

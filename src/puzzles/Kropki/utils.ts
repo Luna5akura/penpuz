@@ -3,7 +3,7 @@ import type { NumberPlacementValidationResult } from '../shared/NumberPlacementB
 import { isPositiveGridSize, parsePuzzLinkParts } from '../gridUtils';
 
 const GIVEN_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
-const DOT_CHARS: Record<string, KropkiDot> = { w: 'white', b: 'black', e: 'either' };
+const DOT_CHARS: Record<string, KropkiDot> = { w: 'white', b: 'black' };
 
 /**
  * App kropki URL: kropki/W/H/<givens>/<hDots>/<vDots>
@@ -136,8 +136,9 @@ function dotViolation(a: number, b: number, dot: KropkiDot | null): boolean {
   const difference = Math.abs(a - b);
   if (dot === 'white') return difference !== 1;
   if (dot === 'black') return a !== 2 * b && b !== 2 * a;
-  if (dot === 'either') return !((a === 1 && b === 2) || (a === 2 && b === 1));
-  // No dot means neither a white nor a black dot could go there.
+  // No dot means neither a white nor a black dot could go there.  A 1-2
+  // pair satisfies a white dot and a black dot alike, so the author just
+  // picks one of the two colours for such pairs.
   return difference === 1 || a === 2 * b || b === 2 * a;
 }
 
