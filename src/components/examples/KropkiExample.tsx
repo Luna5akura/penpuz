@@ -8,9 +8,8 @@ import {
   getBoardGridStyle,
   getBoardTextStyle,
   getCellDividerStyle,
-  woodBoardTheme,
 } from '@/puzzles/boardTheme';
-import type { KropkiDot } from '@/puzzles/types';
+import KropkiDotMark from '@/puzzles/Kropki/KropkiDotMark';
 
 interface Props {
   width: number;
@@ -19,28 +18,6 @@ interface Props {
   verticalDots: (KropkiDot | null)[][];
   horizontalDots: (KropkiDot | null)[][];
   correctSolution: number[][];
-}
-
-function ExampleDot({ dot, cellSize }: { dot: KropkiDot | null; cellSize: number }) {
-  if (dot === null) return null;
-  const radius = Math.max(3, cellSize * 0.09);
-  const center = cellSize / 2;
-  const strokeWidth = Math.max(1, radius * 0.28);
-  if (dot === 'black') {
-    return <circle cx={center} cy={center} r={radius} fill={woodBoardTheme.border} />;
-  }
-  const cross = radius * 0.55;
-  return (
-    <>
-      <circle cx={center} cy={center} r={radius} fill="#fffdf9" stroke={woodBoardTheme.border} strokeWidth={strokeWidth} />
-      {dot === 'either' ? (
-        <g stroke={woodBoardTheme.border} strokeWidth={strokeWidth} strokeLinecap="round">
-          <line x1={center - cross} y1={center - cross} x2={center + cross} y2={center + cross} />
-          <line x1={center - cross} y1={center + cross} x2={center + cross} y2={center - cross} />
-        </g>
-      ) : null}
-    </>
-  );
 }
 
 /** Static Kropki example diagram: givens, dots and the full answer. */
@@ -100,7 +77,7 @@ export default function KropkiExample({ width, height, givens, verticalDots, hor
                 height={CELL_SIZE}
                 viewBox={`0 0 ${CELL_SIZE} ${CELL_SIZE}`}
               >
-                <ExampleDot dot={dot} cellSize={CELL_SIZE} />
+                <KropkiDotMark dot={dot} cellSize={CELL_SIZE} />
               </svg>
             )
           )
@@ -116,7 +93,7 @@ export default function KropkiExample({ width, height, givens, verticalDots, hor
                 height={CELL_SIZE}
                 viewBox={`0 0 ${CELL_SIZE} ${CELL_SIZE}`}
               >
-                <ExampleDot dot={dot} cellSize={CELL_SIZE} />
+                <KropkiDotMark dot={dot} cellSize={CELL_SIZE} />
               </svg>
             )
           )

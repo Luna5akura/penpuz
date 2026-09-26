@@ -1,8 +1,8 @@
 import { useCallback } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import NumberPlacementBoard from '../shared/NumberPlacementBoard';
-import { woodBoardTheme } from '../boardTheme';
-import type { KropkiDot, KropkiPuzzleData } from '../types';
+import KropkiDotMark from './KropkiDotMark';
+import type { KropkiPuzzleData } from '../types';
 import { validateKropki } from './utils';
 
 interface Props {
@@ -14,30 +14,6 @@ interface Props {
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
   showValidationMessage?: boolean;
-}
-
-function KropkiDotMark({ dot, cellSize }: { dot: KropkiDot | null; cellSize: number }) {
-  if (dot === null) return null;
-  const radius = Math.max(3, cellSize * 0.09);
-  const center = cellSize / 2;
-  const strokeWidth = Math.max(1, radius * 0.28);
-  if (dot === 'black') {
-    return <circle cx={center} cy={center} r={radius} fill={woodBoardTheme.border} />;
-  }
-  // White dot: hollow circle.  Either: hollow circle with an × inside,
-  // meaning "this pair must be 1 and 2 and the dot could be either colour".
-  const cross = radius * 0.55;
-  return (
-    <>
-      <circle cx={center} cy={center} r={radius} fill="#fffdf9" stroke={woodBoardTheme.border} strokeWidth={strokeWidth} />
-      {dot === 'either' ? (
-        <g stroke={woodBoardTheme.border} strokeWidth={strokeWidth} strokeLinecap="round">
-          <line x1={center - cross} y1={center - cross} x2={center + cross} y2={center + cross} />
-          <line x1={center - cross} y1={center + cross} x2={center + cross} y2={center - cross} />
-        </g>
-      ) : null}
-    </>
-  );
 }
 
 export default function KropkiBoard({
