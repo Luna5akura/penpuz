@@ -123,7 +123,9 @@ function BattleshipDiagram({
                     <BattleshipSegmentSymbol
                       segment={inferBattleshipSegment(occupied, row, col)}
                       cellSize={CELL_SIZE}
-                      resolved
+                      // Single-cell ships stay diamond; only multi-cell
+                      // ships render their resolved round caps.
+                      resolved={Object.values(neighbors).some(Boolean)}
                       neighbors={neighbors}
                     />
                   ) : null}

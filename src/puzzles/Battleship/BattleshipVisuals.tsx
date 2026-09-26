@@ -181,6 +181,26 @@ export function BattleshipShapePreview({
   cellSize?: number;
   used?: boolean;
 }) {
+  // A single-cell ship previews as a diamond, matching the lone-cell mark
+  // drawn on the board.
+  if (shape.width === 1 && shape.height === 1) {
+    const center = cellSize / 2;
+    const radius = cellSize * 0.32;
+    return (
+      <svg
+        className="shrink-0"
+        width={cellSize}
+        height={cellSize}
+        viewBox={`0 0 ${cellSize} ${cellSize}`}
+        aria-hidden="true"
+      >
+        <polygon
+          points={`${center},${center - radius} ${center + radius},${center} ${center},${center + radius} ${center - radius},${center}`}
+          fill={used ? woodBoardTheme.neutralSoft : woodBoardTheme.battleshipShip}
+        />
+      </svg>
+    );
+  }
   return (
     <div
       className="grid shrink-0"
