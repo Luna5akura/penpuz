@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import { getBoardFrameDimensions, woodBoardTheme } from '../boardTheme';
 import type { PlaceByProductPuzzleData } from '../types';
-import { validatePlaceByProduct } from './utils';
+import { getPieceCanonicalKey, getPlacedPieceCounts, validatePlaceByProduct } from './utils';
 
 interface Props {
   puzzle: PlaceByProductPuzzleData;
@@ -18,10 +18,23 @@ interface Props {
 const LEGEND_CELL = 20;
 
 /** Mini diagram of one piece shape used in the legend below the board. */
-function PieceLegend({ puzzle }: { puzzle: PlaceByProductPuzzleData }) {
+function PieceLegend({
+  puzzle,
+  usedCounts,
+}: {
+  puzzle: PlaceByProductPuzzleData;
+  usedCounts?: ReadonlyMap<string, number>;
+}) {
+  // Gray one listed piece per completed shape on the board, so the
+  // remaining (ungrayed) entries show which pieces are left.
+  const remaining = new Map<string, number>();
+  for (const [key, count] of usedCounts ?? []) remaining.set(key, count);
   return (
     <div className="flex w-full flex-wrap items-center justify-center gap-3">
       {puzzle.pieces.map((piece, index) => {
+        const key = getPieceCanonicalKey(piece.cells);
+        const used = (remaining.get(key) ?? 0) > 0;
+        if (used) remaining.set(key, (remaining.get(key) ?? 0) - 1);
         let maxRow = 0;
         let maxCol = 0;
         for (const [row, col] of piece.cells) {
@@ -49,7 +62,7 @@ function PieceLegend({ puzzle }: { puzzle: PlaceByProductPuzzleData }) {
                   top: 2 + row * LEGEND_CELL,
                   width: LEGEND_CELL,
                   height: LEGEND_CELL,
-                  background: woodBoardTheme.deepLine,
+                  background: used ? woodBoardTheme.neutralSoft : woodBoardTheme.deepLine,
                   borderRadius: 2,
                 }}
               />
@@ -97,7 +110,9 @@ export default function PlaceByProductBoard({
         outsideClueCellTextSize
         isLockedCell={(row, col) => puzzle.givens[row][col]}
         getCellTone={(_row, _col, state) => (state === 1 ? 'shaded' : state === 2 ? 'marked' : 'cell')}
-        renderBoardAccessory={() => <PieceLegend puzzle={puzzle} />}
+        renderBoardAccessory={(_cellSize, grid) => (
+          <PieceLegend puzzle={puzzle} usedCounts={getPlacedPieceCounts(grid)} />
+        )}
       />
     </div>
   );

@@ -303,6 +303,47 @@ function getColProduct(col: number, height: number, filled: Set<string>) {
   return product;
 }
 
+/** Canonical key of a piece shape under all rotations and reflections. */
+export function getPieceCanonicalKey(cells: Array<[number, number]>): string {
+  const keys = getPieceOrientations(cells).map((orientation) => JSON.stringify(orientation));
+  return [...new Set(keys)].sort()[0] ?? '';
+}
+
+/**
+ * Counts of pieces the player has already drawn, keyed by the piece's
+ * canonical shape key.  Drawn components made of given cells and newly
+ * shaded cells alike count once the whole shape is on the board.
+ */
+export function getPlacedPieceCounts(grid: ShadingCellState[][]): Map<string, number> {
+  const height = grid.length;
+  const width = grid[0]?.length ?? 0;
+  const seen = Array.from({ length: height }, () => Array<boolean>(width).fill(false));
+  const counts = new Map<string, number>();
+  for (let row = 0; row < height; row++) {
+    for (let col = 0; col < width; col++) {
+      if (grid[row][col] !== 1 || seen[row][col]) continue;
+      const cells: Array<[number, number]> = [];
+      const stack: Array<[number, number]> = [[row, col]];
+      seen[row][col] = true;
+      while (stack.length > 0) {
+        const [currentRow, currentCol] = stack.pop()!;
+        cells.push([currentRow, currentCol]);
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          const nextRow = currentRow + dr;
+          const nextCol = currentCol + dc;
+          if (nextRow < 0 || nextRow >= height || nextCol < 0 || nextCol >= width) continue;
+          if (grid[nextRow][nextCol] !== 1 || seen[nextRow][nextCol]) continue;
+          seen[nextRow][nextCol] = true;
+          stack.push([nextRow, nextCol]);
+        }
+      }
+      const key = getPieceCanonicalKey(cells);
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
 export function validatePlaceByProduct(
   grid: ShadingCellState[][],
   puzzle: PlaceByProductPuzzleData
