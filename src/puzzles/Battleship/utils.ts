@@ -164,8 +164,9 @@ function parseFleet(parts: string[]): BattleshipShipShape[] | null {
 export function parseBattleshipLink(link: string): BattleshipPuzzleData | null {
   try {
     const parts = parsePuzzLinkParts(link);
-    if (parts[0] !== 'battleship' || parts.length < 5) return null;
-
+    // pzprv3 里标准战舰的 pid 是复数 'battleships'，单人战舰才是 'battleship'；
+    // 两者的数据格式一致（外部线索 + 格子 + 舰队），这里同时接受。
+    if ((parts[0] !== 'battleship' && parts[0] !== 'battleships') || parts.length < 5) return null;
     const width = Number(parts[1]);
     const height = Number(parts[2]);
     if (!isPositiveGridSize(width, height)) return null;

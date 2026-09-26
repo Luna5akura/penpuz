@@ -922,3 +922,10 @@ export type HistoryPuzzleData = {
   dateStr: string;
   daysSinceStart: number;
 };
+export type KropkiDot = 'white' | 'black' | 'either';
+export interface KropkiPuzzleData {
+  type: 'kropki'; width: number; height: number;
+  givens: (number | null)[][];
+  verticalDots: (KropkiDot | null)[][];
+  horizontalDots: (KropkiDot | null)[][];
+}

@@ -8,22 +8,62 @@ export interface MasyuValidationResult {
 }
 
 /**
- * pzpr link format: masyu/<w>/<h>/<number16 stream>.
- * Cell values 0 (empty), 1 (white circle), 2 (black circle); 'g'-'z' skip
- * empty cells (g = 1, …, z = 21), '.' marks an empty cell explicitly.
+ * pzpr link format: masyu/<w>/<h>/<data>.
+ *
+ * Two encodings are accepted.
+ * - pzprjs vroom / pzprv3 (current): one base-27 character per 3 cells.
+ *   Each character c holds three base-3 cell values (0 empty, 1 white,
+ *   2 black) as floor(c/9)%3, floor(c/3)%3, c%3, and the data has exactly
+ *   ceil(w*h/3) characters.
+ * - legacy number16: '0'-'2' set a cell (0 empty, 1 white, 2 black),
+ *   'g'-'z' skip empty cells (g = 1, …, z = 21), '.' marks an empty cell
+ *   explicitly.
  */
 export function parseMasyuLink(link: string): MasyuPuzzleData | null {
   try {
     const parts = parsePuzzLinkParts(link);
-    if (parts[0]?.toLowerCase() !== 'masyu' || parts.length < 4) return null;
+    // pzprjs 的 pid 拼写是 'mashu'（ましゅ），应用内类型叫 'masyu'，两者都接受。
+    const pid = parts[0]?.toLowerCase();
+    if ((pid !== 'masyu' && pid !== 'mashu') || parts.length < 4) return null;
     const width = Number(parts[1]);
     const height = Number(parts[2]);
     if (!isPositiveGridSize(width, height) || width > 40 || height > 40) return null;
     const encoded = parts.slice(3).join('/').replace(/\/+$/u, '');
     if (!encoded) return null;
 
-    const cells: MasyuCell[][] = Array.from({ length: height }, () => Array<MasyuCell>(width).fill(0));
     const cellCount = width * height;
+
+    // pzprjs vroom / pzprv3 base-27 triple encoding.  It has a fixed length
+    // and, because cell values are 0/1/2, it regularly produces the base-27
+    // digits '3'-'9'/'a'-'f', which the legacy number16 format can never
+    // contain — that marker disambiguates the two formats.
+    const isBase27Triple =
+      encoded.length === Math.ceil(cellCount / 3) &&
+      Array.from(encoded).every((char) => {
+        const value = Number.parseInt(char, 27);
+        return Number.isInteger(value) && value >= 0 && value <= 26;
+      }) &&
+      Array.from(encoded).some((char) => {
+        const value = Number.parseInt(char, 27);
+        return value >= 3 && value <= 15;
+      });
+
+    if (isBase27Triple) {
+      const cells: MasyuCell[][] = Array.from({ length: height }, () => Array<MasyuCell>(width).fill(0));
+      let cell = 0;
+      for (const char of encoded) {
+        const value = Number.parseInt(char, 27);
+        for (const divisor of [9, 3, 1]) {
+          if (cell >= cellCount) break;
+          cells[Math.floor(cell / width)][cell % width] = (Math.floor(value / divisor) % 3) as MasyuCell;
+          cell += 1;
+        }
+      }
+      return { type: 'masyu', width, height, cells };
+    }
+
+    // Legacy number16 format.
+    const cells: MasyuCell[][] = Array.from({ length: height }, () => Array<MasyuCell>(width).fill(0));
     let cell = 0;
     let index = 0;
 

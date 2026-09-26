@@ -733,6 +733,10 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
+    puzzLink: 'https://pzprxs.vercel.app/p?kropki/6/6/39039c03a3044009a00a',
+    difficulty: '困难',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/02a08b02b02a02b04b02o04c04c04c04c04o02b02b02a04b02b06a02',
     difficulty: '简单',
   },
@@ -741,7 +745,15 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'https://pzprxs.vercel.app/p?kropki/7/7/c314900la0001092091913j39300',
+    difficulty: '困难',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?mashu/8/8/0003011i0g07i0f3010000',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/0000i0160022606ij02ci610000',
     difficulty: '简单',
   },
   {
@@ -751,6 +763,14 @@ const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'http://localhost:8080/p.html?placebyproduct/12/12/g-151-24919bk4acc4-146ji000000000000006000000i2i20000060000000000000002//p',
     difficulty: '极难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kropki/7/7/0000000i0cc30000000001j92400',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/900090ii400f0606i0002020000',
+    difficulty: '简单',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?battleship/10/10/2h4h6h4h1g35g3hi0n0g0n0g0h0n0j0i0g0h0g0i0j0n0h0g0n0g0n0i//d',
@@ -771,6 +791,22 @@ const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'http://localhost:8080/p.html?battleships/9/9/513i155h4g4g4hh0n0n0n0n0g0g0n0n0n0n0h/9/41u/41u/41u/21o/21o/21o/21o/21o/21o',
     difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kropki/10/10/ddd06000033cl01120i039l73349ad00000000o02096i9a0jal09909332m',
+    difficulty: '极难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/00016009b6090p720020i069230',
+    difficulty: '简单',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?kropki/6/6/1il0906369i2206i0226',
+    difficulty: '困难',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/000630k036300a0003399030000',
+    difficulty: '简单',
   },
 
 

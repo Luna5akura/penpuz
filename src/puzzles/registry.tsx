@@ -3810,6 +3810,7 @@ export function getPuzzleTypeFromLink(link: string | undefined | null): PuzzleTy
 
   const aliases: Record<string, PuzzleType> = {
     slitherlink: 'slither',
+    battleships: 'battleship',
     'magic-snail': 'snail',
     magic: 'magic-summer',
     slovaksums: 'slovak-sums',
