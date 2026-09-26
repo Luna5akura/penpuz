@@ -181,24 +181,19 @@ export function BattleshipShapePreview({
   cellSize?: number;
   used?: boolean;
 }) {
-  // A single-cell ship previews as a diamond, matching the lone-cell mark
-  // drawn on the board.
+  // The bank shows the ship shapes themselves, so a single-cell ship
+  // previews as a small round dot (the board still draws lone cells as
+  // diamonds until their sides are blocked).
   if (shape.width === 1 && shape.height === 1) {
-    const center = cellSize / 2;
-    const radius = cellSize * 0.32;
     return (
-      <svg
-        className="shrink-0"
-        width={cellSize}
-        height={cellSize}
-        viewBox={`0 0 ${cellSize} ${cellSize}`}
-        aria-hidden="true"
-      >
-        <polygon
-          points={`${center},${center - radius} ${center + radius},${center} ${center},${center + radius} ${center - radius},${center}`}
-          fill={used ? woodBoardTheme.neutralSoft : woodBoardTheme.battleshipShip}
-        />
-      </svg>
+      <span
+        className="shrink-0 rounded-full"
+        style={{
+          width: `${cellSize}px`,
+          height: `${cellSize}px`,
+          background: used ? woodBoardTheme.neutralSoft : woodBoardTheme.battleshipShip,
+        }}
+      />
     );
   }
   return (
