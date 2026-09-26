@@ -1,5 +1,5 @@
-import type { DailyPuzzleData, HistoryPuzzleData, PuzzleData, PuzzleEntry, PuzzleType } from './types';
-import { getPuzzleTemplate, puzzleRegistry, resolvePuzzleEntry } from './registry';
+import type { DailyPuzzleData, HistoryPuzzleData, PuzzleData, PuzzleEntry, PuzzleType } from './types.ts';
+import { getPuzzleTemplate, puzzleRegistry, resolvePuzzleEntry } from './registry-stub.ts';
 
 export interface DatabasePuzzleSample {
   type: PuzzleType;
@@ -725,7 +725,7 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/95g7i55f1g9i35000000000000060000000606000//t',
+    puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/95g7i55f1g9i35g000000000000020000000606000//t',
     difficulty: '困难',
   },
   {
