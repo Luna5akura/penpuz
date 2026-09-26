@@ -761,6 +761,10 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'http://localhost:8080/p.html?mashu/10/10/000190c2j0009000iic66000019c000800',
+    difficulty: '简单',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?battleships/8/8/2g4222g61g1h5g5p00g00h0i00h0g0g0j00g0zl/12/11g/11g/11g/11g/11g/11g/11g/11g/31s/31s/31s/31s',
     difficulty: '困难',
   },
