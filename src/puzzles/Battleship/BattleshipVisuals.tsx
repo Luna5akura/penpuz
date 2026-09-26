@@ -39,8 +39,10 @@ export function BattleshipSegmentSymbol({
   const connectionCount = Object.values(connections).filter(Boolean).length;
   // A given clue's own caps stay round, but once the player extends it the
   // open directions become ordinary endpoints: round only when blocked,
-  // otherwise a diamond head that shows the ship may still continue.
-  const rounded = resolved || (given && !extended);
+  // otherwise a diamond head that shows the ship may still continue.  A
+  // given single cell follows the same rule from the start (diamond while
+  // its sides are unblocked, round once they are all closed).
+  const rounded = resolved || (given && !extended && segment !== 'single');
 
   const renderEndpoint = () => {
     const capCenter = center;
