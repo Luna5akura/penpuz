@@ -18,6 +18,7 @@ import LitsBoard from './Lits/Lits';
 import LakesBoard from './Lakes/Lakes';
 import TapaBoard from './Tapa/Tapa';
 import YinYangBoard from './YinYang/YinYang';
+import KropkiBoard from './Kropki/Kropki';
 import MagicSummerBoard from './MagicSummer/MagicSummer';
 import SkyscrapersBoard from './Skyscrapers/Skyscrapers';
 import BattleshipBoard from './Battleship/Battleship';
@@ -75,6 +76,7 @@ import { parseLitsLink } from './Lits/utils';
 import { parseLakesLink } from './Lakes/utils';
 import { parseTapaLink } from './Tapa/utils';
 import { parseYinYangLink } from './YinYang/utils';
+import { parseKropkiLink } from './Kropki/utils';
 import { parseMagicSummerLink } from './MagicSummer/utils';
 import { parseSkyscrapersLink } from './Skyscrapers/utils';
 import { parseBattleshipLink } from './Battleship/utils';
@@ -129,10 +131,12 @@ import type {
   PlaceByProductPuzzleData,
   MasyuPuzzleData,
   YinYangPuzzleData,
+  KropkiPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
 import TapaExample from '../components/examples/TapaExample';
 import YinYangExample from '../components/examples/YinYangExample';
+import KropkiExample from '../components/examples/KropkiExample';
 import MagicSummerExample from '../components/examples/MagicSummerExample';
 import KakuroExample from '../components/examples/KakuroExample';
 import ShadingPuzzleExample from '../components/examples/ShadingPuzzleExample';
@@ -217,6 +221,36 @@ const yinYangExampleCorrectSolution: (0 | 1)[][] = [
   [0, 1, 0, 1, 0, 1, 0],
   [0, 1, 1, 1, 1, 1, 0],
   [0, 0, 0, 0, 0, 0, 0],
+];
+
+const kropkiExamplePuzzle: KropkiPuzzleData = {
+  type: 'kropki',
+  width: 4,
+  height: 4,
+  givens: [
+    [1, null, null, null],
+    [null, 2, null, null],
+    [null, null, null, 3],
+    [null, null, 2, null],
+  ],
+  verticalDots: [
+    [null, 'white', 'white'],
+    ['white', 'either', null],
+    ['white', null, 'white'],
+    ['white', 'white', 'white'],
+  ],
+  horizontalDots: [
+    [null, 'black', null, 'black'],
+    ['white', 'white', null, 'white'],
+    ['black', null, 'black', null],
+  ],
+};
+
+const kropkiExampleCorrectSolution: number[][] = [
+  [1, 4, 3, 2],
+  [3, 2, 1, 4],
+  [2, 1, 4, 3],
+  [4, 3, 2, 1],
 ];
 
 const MAGIC_SUMMER_EXAMPLE_LINK =
@@ -518,6 +552,7 @@ type PuzzleRegistry = {
   'place-by-product': PuzzleRegistryEntry<PlaceByProductPuzzleData>;
   masyu: PuzzleRegistryEntry<MasyuPuzzleData>;
   yinyang: PuzzleRegistryEntry<YinYangPuzzleData>;
+  kropki: PuzzleRegistryEntry<KropkiPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -3351,6 +3386,56 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  kropki: {
+    parsePuzzLink: parseKropkiLink,
+    template: {
+      type: 'kropki', name: { 'zh-CN': '黑白点', en: 'Kropki' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '在每个格子中填入一个从1到N的数字（N为每行的格子数），使得每个数字在每行和每列都恰好出现一次。',
+          '两个格子之间的白点表示这两个格子中的数字是连续数字。',
+          '两个格子之间的黑点表示其中一个格子中的数字是另一个格子数字的两倍。',
+          '如果1和2在相邻的格子中，它们之间的点可以是任意颜色。',
+          '如果两个格子之间没有点，表示那里既不能是白点也不能是黑点。',
+        ],
+        en: [
+          'Place a number from 1 to N (N is the number of cells in each row) into each cell so that each number appears exactly once in each row and column.',
+          'A white dot on the edge of two cells indicates that those two cells must contain consecutive numbers.',
+          'A black dot on the edge of two cells indicates that a number in one of those cells is double the value of the number in the other cell.',
+          'If 1 and 2 are in adjacent cells, then the dot between them could be either colour.',
+          'If there is no dot on the edge of two cells, it means neither a black nor a white dot could go there.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题（4×4）', en: 'Example (4×4)' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '正确答案', en: 'Answer' },
+      // WPF Puzzle GP 2016 Round 2 example: designated rows 4321 and 1432.
+      example: {
+        puzzleType: 'kropki',
+        width: kropkiExamplePuzzle.width,
+        height: kropkiExamplePuzzle.height,
+        givens: kropkiExamplePuzzle.givens,
+        verticalDots: kropkiExamplePuzzle.verticalDots,
+        horizontalDots: kropkiExamplePuzzle.horizontalDots,
+        correctSolution: kropkiExampleCorrectSolution,
+      },
+    },
+    renderBoard: (props) => <KropkiBoard {...props} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'kropki') throw new Error('Kropki template example type mismatch.');
+      return (
+        <PlayableExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<KropkiExample width={example.width} height={example.height} givens={example.givens} verticalDots={example.verticalDots} horizontalDots={example.horizontalDots} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <KropkiBoard puzzle={puzzle as KropkiPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
+        />
+      );
+    },
+  },
   yinyang: {
     parsePuzzLink: parseYinYangLink,
     template: {
@@ -3637,6 +3722,10 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
       );
     case 'yinyang':
       return isTypedMatrix(value.givens, width, height, (cell) => cell === null || cell === 0 || cell === 1);
+    case 'kropki':
+      return isTypedMatrix(value.givens, width, height, (cell) => cell === null || isFiniteInteger(cell, 1)) &&
+        isTypedMatrix(value.verticalDots, height, Math.max(0, width - 1), (cell) => cell === null || cell === 'white' || cell === 'black' || cell === 'either') &&
+        isTypedMatrix(value.horizontalDots, Math.max(0, height - 1), width, (cell) => cell === null || cell === 'white' || cell === 'black' || cell === 'either');
     case 'starbattle':
       return isFiniteInteger(value.starsPerUnit, 1) && isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, 0));
     case 'heyawake':

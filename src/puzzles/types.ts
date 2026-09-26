@@ -533,6 +533,21 @@ export interface YinYangPuzzleData {
   givens: (0 | 1 | null)[][];
 }
 
+/** Dot between two adjacent Kropki cells. */
+export type KropkiDot = 'white' | 'black' | 'either';
+
+export interface KropkiPuzzleData {
+  type: 'kropki';
+  width: number;
+  height: number;
+  /** null = empty cell; numbers count from 1. */
+  givens: (number | null)[][];
+  /** Dots on horizontal edges between (r,c) and (r,c+1); size (H) x (W-1). */
+  verticalDots: (KropkiDot | null)[][];
+  /** Dots on vertical edges between (r,c) and (r+1,c); size (H-1) x (W). */
+  horizontalDots: (KropkiDot | null)[][];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -572,7 +587,8 @@ export type PuzzleData =
   | PillsPuzzleData
   | PlaceByProductPuzzleData
   | MasyuPuzzleData
-  | YinYangPuzzleData;
+  | YinYangPuzzleData
+  | KropkiPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -746,6 +762,15 @@ export type PuzzleExample =
       height: number;
       givens: (0 | 1 | null)[][];
       correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'kropki';
+      width: number;
+      height: number;
+      givens: (number | null)[][];
+      verticalDots: (KropkiDot | null)[][];
+      horizontalDots: (KropkiDot | null)[][];
+      correctSolution: number[][];
     }
   | {
       puzzleType: 'magic-summer';

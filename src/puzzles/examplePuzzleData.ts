@@ -53,6 +53,15 @@ export function buildExamplePuzzleData(example: PuzzleExample): PuzzleData {
       return { type: 'tapa', width: example.width, height: example.height, clues: example.clues };
     case 'yinyang':
       return { type: 'yinyang', width: example.width, height: example.height, givens: example.givens };
+    case 'kropki':
+      return {
+        type: 'kropki',
+        width: example.width,
+        height: example.height,
+        givens: example.givens,
+        verticalDots: example.verticalDots,
+        horizontalDots: example.horizontalDots,
+      };
     case 'magic-summer':
       return {
         type: 'magic-summer',
