@@ -525,6 +525,14 @@ export interface PlaceByProductPuzzleData {
   givens: boolean[][];
 }
 
+export interface YinYangPuzzleData {
+  type: 'yinyang';
+  width: number;
+  height: number;
+  /** null = empty cell, 1 = given black circle, 0 = given white circle. */
+  givens: (0 | 1 | null)[][];
+}
+
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
@@ -563,7 +571,8 @@ export type PuzzleData =
   | MagnetsPuzzleData
   | PillsPuzzleData
   | PlaceByProductPuzzleData
-  | MasyuPuzzleData;
+  | MasyuPuzzleData
+  | YinYangPuzzleData;
 export type PuzzleType = PuzzleData['type'];
 export type PuzzleDifficulty = '简单' | '困难' | '极难';
 
@@ -729,6 +738,13 @@ export type PuzzleExample =
       width: number;
       height: number;
       clues: (TapaClue | null)[][];
+      correctSolution: (0 | 1)[][];
+    }
+  | {
+      puzzleType: 'yinyang';
+      width: number;
+      height: number;
+      givens: (0 | 1 | null)[][];
       correctSolution: (0 | 1)[][];
     }
   | {

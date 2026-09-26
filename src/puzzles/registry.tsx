@@ -17,6 +17,7 @@ import SlitherlinkBoard from './Slitherlink/Slitherlink';
 import LitsBoard from './Lits/Lits';
 import LakesBoard from './Lakes/Lakes';
 import TapaBoard from './Tapa/Tapa';
+import YinYangBoard from './YinYang/YinYang';
 import MagicSummerBoard from './MagicSummer/MagicSummer';
 import SkyscrapersBoard from './Skyscrapers/Skyscrapers';
 import BattleshipBoard from './Battleship/Battleship';
@@ -73,6 +74,7 @@ import { parseSlitherlinkLink } from './Slitherlink/utils';
 import { parseLitsLink } from './Lits/utils';
 import { parseLakesLink } from './Lakes/utils';
 import { parseTapaLink } from './Tapa/utils';
+import { parseYinYangLink } from './YinYang/utils';
 import { parseMagicSummerLink } from './MagicSummer/utils';
 import { parseSkyscrapersLink } from './Skyscrapers/utils';
 import { parseBattleshipLink } from './Battleship/utils';
@@ -126,9 +128,11 @@ import type {
   PillsPuzzleData,
   PlaceByProductPuzzleData,
   MasyuPuzzleData,
+  YinYangPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
 import TapaExample from '../components/examples/TapaExample';
+import YinYangExample from '../components/examples/YinYangExample';
 import MagicSummerExample from '../components/examples/MagicSummerExample';
 import KakuroExample from '../components/examples/KakuroExample';
 import ShadingPuzzleExample from '../components/examples/ShadingPuzzleExample';
@@ -188,6 +192,31 @@ const tapaExampleCorrectSolution: (0 | 1)[][] = [
   [1, 1, 0, 1, 1],
   [0, 1, 0, 0, 1],
   [0, 1, 1, 1, 1],
+];
+
+const yinYangExamplePuzzle: YinYangPuzzleData = {
+  type: 'yinyang',
+  width: 7,
+  height: 7,
+  givens: [
+    [null, null, null, null, 1, null, null],
+    [null, 1, null, 1, null, null, null],
+    [null, null, null, null, null, null, null],
+    [null, null, null, null, null, 1, null],
+    [null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null],
+    [null, null, null, null, null, null, null],
+  ],
+};
+
+const yinYangExampleCorrectSolution: (0 | 1)[][] = [
+  [0, 0, 0, 0, 1, 0, 0],
+  [0, 1, 0, 1, 1, 1, 0],
+  [0, 1, 0, 0, 0, 1, 0],
+  [0, 1, 0, 1, 0, 1, 0],
+  [0, 1, 0, 1, 0, 1, 0],
+  [0, 1, 1, 1, 1, 1, 0],
+  [0, 0, 0, 0, 0, 0, 0],
 ];
 
 const MAGIC_SUMMER_EXAMPLE_LINK =
@@ -488,6 +517,7 @@ type PuzzleRegistry = {
   pills: PuzzleRegistryEntry<PillsPuzzleData>;
   'place-by-product': PuzzleRegistryEntry<PlaceByProductPuzzleData>;
   masyu: PuzzleRegistryEntry<MasyuPuzzleData>;
+  yinyang: PuzzleRegistryEntry<YinYangPuzzleData>;
 };
 
 export const puzzleRegistry: PuzzleRegistry = {
@@ -3321,6 +3351,52 @@ export const puzzleRegistry: PuzzleRegistry = {
       );
     },
   },
+  yinyang: {
+    parsePuzzLink: parseYinYangLink,
+    template: {
+      type: 'yinyang', name: { 'zh-CN': '阴阳', en: 'Yin-Yang' }, rulesTitle: { 'zh-CN': '规则', en: 'Rules' },
+      rules: {
+        'zh-CN': [
+          '每个格子都画一个黑色或白色的圆圈。',
+          '所有黑色圆圈必须正交连通成一个整体，所有白色圆圈也必须正交连通成一个整体。',
+          '任意2×2的区域必须同时包含至少一个黑色圆圈和至少一个白色圆圈。',
+          '部分格子已经给出。',
+        ],
+        en: [
+          'Draw a black or white circle in every cell.',
+          'All black circles must be connected orthogonally, and all white circles must be connected orthogonally.',
+          'Every 2×2 block of cells must contain at least one black circle and at least one white circle.',
+          'Some cells are already filled in for you.',
+        ],
+      },
+      exampleTitle: { 'zh-CN': '例题（7×7）', en: 'Example (7×7)' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '正确答案', en: 'Answer' },
+      // WPF Puzzle GP 2016 Round 2 (Competitive) puzzle 29a.
+      example: {
+        puzzleType: 'yinyang',
+        width: yinYangExamplePuzzle.width,
+        height: yinYangExamplePuzzle.height,
+        givens: yinYangExamplePuzzle.givens,
+        correctSolution: yinYangExampleCorrectSolution,
+      },
+    },
+    renderBoard: (props) => <YinYangBoard {...props} />,
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'yinyang') throw new Error('Yin-Yang template example type mismatch.');
+      return (
+        <PlayableExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<YinYangExample width={example.width} height={example.height} givens={example.givens} correctSolution={example.correctSolution} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <YinYangBoard puzzle={puzzle as YinYangPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} showValidationMessage />
+          )}
+        />
+      );
+    },
+  },
 };
 
 export function getPuzzleTemplate(type: PuzzleType): PuzzleTemplate {
@@ -3559,6 +3635,8 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
       return isTypedMatrix(value.clues, width, height, (cell) =>
         cell === null || (Array.isArray(cell) && cell.every((item) => item === '?' || (isFiniteInteger(item, 0) && item <= 8)))
       );
+    case 'yinyang':
+      return isTypedMatrix(value.givens, width, height, (cell) => cell === null || cell === 0 || cell === 1);
     case 'starbattle':
       return isFiniteInteger(value.starsPerUnit, 1) && isTypedMatrix(value.regionIds, width, height, (cell) => isFiniteInteger(cell, 0));
     case 'heyawake':

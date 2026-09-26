@@ -786,6 +786,10 @@ function getSnapshotCellView(
     return null;
   }
 
+  if (puzzleType === 'yinyang' && value === 2) {
+    return { tone: 'cell', content: <BoardCellMark kind="circle" cellSize={cellSize} /> };
+  }
+
   if (value === 1) return { tone: 'playerShaded' };
   if (value === 2) return { tone: 'marked', content: <BoardCellMark kind="cross" cellSize={cellSize} /> };
   return null;

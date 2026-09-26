@@ -51,6 +51,8 @@ export function buildExamplePuzzleData(example: PuzzleExample): PuzzleData {
       return { type: 'lakes', width: example.width, height: example.height, clues: example.clues };
     case 'tapa':
       return { type: 'tapa', width: example.width, height: example.height, clues: example.clues };
+    case 'yinyang':
+      return { type: 'yinyang', width: example.width, height: example.height, givens: example.givens };
     case 'magic-summer':
       return {
         type: 'magic-summer',
