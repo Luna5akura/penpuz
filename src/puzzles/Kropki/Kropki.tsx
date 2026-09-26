@@ -85,6 +85,7 @@ export default function KropkiBoard({
         onComplete={onComplete}
         validate={validateKropki}
         getFixedValue={getFixedValue}
+        renderCellValue={(value) => (typeof value === 'number' ? value : null)}
         renderOverlay={renderOverlay}
         getCellTone={(row, col) => (puzzle.givens[row][col] !== null ? 'clue' : 'cell')}
         cellInputMode="cycle"
