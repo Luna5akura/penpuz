@@ -3846,7 +3846,10 @@ export function getPuzzleTypeFromLink(link: string | undefined | null): PuzzleTy
 }
 
 export function resolvePuzzleEntry(entry: PuzzleEntry): PuzzleData | null {
-  return parsePuzzleLink(entry.puzzLink);
+  // Accept the lower-case 'puzzlink' spelling too, since hand-edited
+  // database entries sometimes use it.
+  const link = entry.puzzLink ?? (entry as PuzzleEntry & { puzzlink?: string }).puzzlink;
+  return parsePuzzleLink(link);
 }
 
 export function parsePuzzleLink(link: string | undefined | null): PuzzleData | null {
