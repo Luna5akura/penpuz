@@ -108,7 +108,6 @@ function MagicSummerDiagram({
               style={{
                 left: `${commonBoardChrome.padding + CLUE_GUTTER + (col + 0.5) * CELL_SIZE}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
-                color: woodBoardTheme.border,
                 ...getBoardOutsideClueTextStyle(CELL_SIZE, CELL_SIZE, value),
               }}
             >
@@ -124,7 +123,6 @@ function MagicSummerDiagram({
               style={{
                 left: `${commonBoardChrome.padding + CLUE_GUTTER / 2}px`,
                 top: `${commonBoardChrome.padding + CLUE_GUTTER + (row + 0.5) * CELL_SIZE}px`,
-                color: woodBoardTheme.border,
                 ...getBoardOutsideClueTextStyle(CELL_SIZE, CLUE_GUTTER, value),
               }}
             >

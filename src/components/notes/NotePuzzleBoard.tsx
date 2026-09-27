@@ -1847,7 +1847,6 @@ export default function NotePuzzleBoard({
                     style={{
                       left: `${gridLeft + (col + 0.5) * cellSize}px`,
                       top: `${BOARD_PADDING + outsideTop / 2}px`,
-                      color: woodBoardTheme.border,
                       ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
                     }}
                   >
@@ -1863,7 +1862,6 @@ export default function NotePuzzleBoard({
                     style={{
                       left: `${gridLeft + (col + 0.5) * cellSize}px`,
                       top: `${gridTop + height * cellSize + outsideBottom / 2}px`,
-                      color: woodBoardTheme.border,
                       ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
                     }}
                   >
@@ -1879,7 +1877,6 @@ export default function NotePuzzleBoard({
                     style={{
                       left: `${BOARD_PADDING + outsideLeft / 2}px`,
                       top: `${gridTop + (row + 0.5) * cellSize}px`,
-                      color: woodBoardTheme.border,
                       ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
                     }}
                   >
@@ -1895,7 +1892,6 @@ export default function NotePuzzleBoard({
                     style={{
                       left: `${gridLeft + width * cellSize + outsideRight / 2}px`,
                       top: `${gridTop + (row + 0.5) * cellSize}px`,
-                      color: woodBoardTheme.border,
                       ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
                     }}
                   >

@@ -223,34 +223,20 @@ const yinYangExampleCorrectSolution: (0 | 1)[][] = [
   [0, 0, 0, 0, 0, 0, 0],
 ];
 
-const kropkiExamplePuzzle: KropkiPuzzleData = {
-  type: 'kropki',
-  width: 4,
-  height: 4,
-  givens: [
-    [1, null, null, null],
-    [null, 2, null, null],
-    [null, null, null, 3],
-    [null, null, 2, null],
-  ],
-  verticalDots: [
-    [null, 'white', 'white'],
-    ['white', 'black', null],
-    ['white', null, 'white'],
-    ['white', 'white', 'white'],
-  ],
-  horizontalDots: [
-    [null, 'black', null, 'black'],
-    ['white', 'white', null, 'white'],
-    ['black', null, 'black', null],
-  ],
-};
+const KROPKI_EXAMPLE_LINK =
+  'http://localhost:8080/p.html?kropki/5/5/0j99430b09k160';
+const kropkiExamplePuzzle = parseKropkiLink(KROPKI_EXAMPLE_LINK);
+
+if (!kropkiExamplePuzzle) {
+  throw new Error('Failed to parse the built-in Kropki example puzzle.');
+}
 
 const kropkiExampleCorrectSolution: number[][] = [
-  [1, 4, 3, 2],
-  [3, 2, 1, 4],
-  [2, 1, 4, 3],
-  [4, 3, 2, 1],
+  [1, 3, 5, 2, 4],
+  [5, 2, 3, 4, 1],
+  [2, 5, 4, 1, 3],
+  [4, 1, 2, 3, 5],
+  [3, 4, 1, 5, 2],
 ];
 
 const MAGIC_SUMMER_EXAMPLE_LINK =
@@ -3406,8 +3392,8 @@ export const puzzleRegistry: PuzzleRegistry = {
           'If there is no dot on the edge of two cells, it means neither a black nor a white dot could go there.',
         ],
       },
-      exampleTitle: { 'zh-CN': '例题（4×4）', en: 'Example (4×4)' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '正确答案', en: 'Answer' },
-      // WPF Puzzle GP 2016 Round 2 example: designated rows 4321 and 1432.
+      exampleTitle: { 'zh-CN': '例题（5×5）', en: 'Example (5×5)' }, playableLabel: { 'zh-CN': '题面', en: 'Puzzle' }, answerLabel: { 'zh-CN': '正确答案', en: 'Answer' },
+      // 5×5 Kropki example parsed from the pzpr link above.
       example: {
         puzzleType: 'kropki',
         width: kropkiExamplePuzzle.width,
@@ -3688,7 +3674,7 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
         isTypedMatrix(value.verticalBars, Math.max(0, height - 1), width, (cell) => typeof cell === 'boolean') &&
         isNullableNumberArray(value.topClues, width, 0) && isNullableNumberArray(value.leftClues, height, 0);
     case 'japanese-sums-with-zeroes':
-      return isFiniteInteger(value.maxDigit, 1, 9) && isRecord(value.clues) && ['top','right','bottom','left'].every((side) => Array.isArray(value.clues[side])) &&
+      return isFiniteInteger(value.maxDigit, 1) && value.maxDigit <= 9 && isRecord(value.clues) && ['top','right','bottom','left'].every((side) => Array.isArray((value.clues as Record<string, unknown>)[side])) &&
         (value.clues.top as unknown[]).length === width && (value.clues.bottom as unknown[]).length === width &&
         (value.clues.left as unknown[]).length === height && (value.clues.right as unknown[]).length === height;
     case 'abc-box':

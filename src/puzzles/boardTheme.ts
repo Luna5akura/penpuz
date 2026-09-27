@@ -514,7 +514,7 @@ export function getBoardSatisfiedClueTextStyle(
   } as const;
 }
 
-export function getBoardInkStyle(color = woodBoardTheme.border) {
+export function getBoardInkStyle(color: string = woodBoardTheme.border) {
   return { color } as const;
 }
 
@@ -650,7 +650,7 @@ export function getBoardGridOutlineRect(
 /** Stroke used by a prominent region/deep separator. */
 export function getBoardRegionStrokeWidth(
   cellSize: number,
-  ratio = boardGeometry.regionRatio,
+  ratio: number = boardGeometry.regionRatio,
   min = boardGeometry.regionMin
 ) {
   return Math.max(min, Math.floor(cellSize * ratio));
@@ -659,7 +659,7 @@ export function getBoardRegionStrokeWidth(
 /** Stroke used by secondary (thin) region separators. */
 export function getBoardThinStrokeWidth(
   cellSize: number,
-  ratio = boardGeometry.thinRatio,
+  ratio: number = boardGeometry.thinRatio,
   min = boardGeometry.thinMin
 ) {
   return Math.max(min, Math.floor(cellSize * ratio));

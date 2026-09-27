@@ -126,7 +126,7 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   /** Render stack clues at the same size as in-cell clues instead of the compact gutter size (e.g. Magnets). */
   outsideClueStackCellTextSize?: boolean;
   /** Style override for stacked outside clue values (e.g. to match in-cell text). */
-  outsideClueStackTextStyle?: (cellSize: number, value: NumberPlacementCellValue) => CSSProperties;
+  outsideClueStackTextStyle?: (cellSize: number, value: number | string | null) => CSSProperties;
   /** Keyboard digits go to the hovered cell, and the S key toggles the input mode (e.g. Skyscrapers). */
   hoverKeyboardEntry?: boolean;
   /** Render single-value outside clues at the same size as in-cell clues (e.g. Skyscrapers). */

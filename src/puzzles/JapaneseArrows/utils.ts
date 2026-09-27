@@ -42,7 +42,7 @@ export function validateJapaneseArrows(
   const setMessage = (value: string) => { if (!message) message = value; };
   for (let row = 0; row < puzzle.height; row++) for (let col = 0; col < puzzle.width; col++) {
     const value = grid[row]?.[col] ?? null;
-    if (!Number.isInteger(value) || value < 1 || value > 9) {
+    if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 9) {
       bad.add(getCellKey(row, col)); setMessage('每个格子都必须填入正整数'); continue;
     }
     const [dr, dc] = DIRECTIONS[puzzle.arrows[row][col]];

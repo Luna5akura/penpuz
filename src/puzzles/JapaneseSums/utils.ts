@@ -49,7 +49,7 @@ export function validateJapaneseSums(grid: (number | null)[][], puzzle: Japanese
     const v = grid[r]?.[c];
     if (v !== null && (!Number.isInteger(v) || v < 0 || v > puzzle.maxDigit)) { bad.add(getCellKey(r, c)); fail(`只能填入 0 到 ${puzzle.maxDigit}`); }
   }
-  const checkLine = (cells: number[], expected: number[]) => {
+  const checkLine = (cells: (number | null)[], expected: number[]) => {
     const sums: number[] = []; let sum = 0; let active = false;
     for (const value of cells) { if (value === null) { if (active) sums.push(sum); sum = 0; active = false; } else { sum += value; active = true; } }
     if (active) sums.push(sum);

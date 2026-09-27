@@ -1,6 +1,7 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import NumberPlacementBoard from '../shared/NumberPlacementBoard';
+import { boardClassNames, getBoardTextStyle } from '../boardTheme';
 import KropkiDotMark from './KropkiDotMark';
 import type { KropkiPuzzleData } from '../types';
 import { validateKropki } from './utils';
@@ -31,6 +32,31 @@ export default function KropkiBoard({
     (row: number, col: number) => puzzle.givens[row][col],
     [puzzle.givens]
   );
+
+  const inputModeOptions = useMemo(
+    () => [
+      { mode: 'cycle' as const, label: copy.shared.numberInputModes.normal },
+      { mode: 'candidates' as const, label: copy.shared.numberInputModes.candidates },
+    ],
+    [copy.shared.numberInputModes.candidates, copy.shared.numberInputModes.normal]
+  );
+
+  const renderCandidates = useCallback((values: number[], cellSize: number) => {
+    const columns = values.length <= 6
+      ? Math.min(3, Math.max(values.length, 1))
+      : Math.ceil(values.length / 2);
+    return (
+      <span
+        className={`grid w-[82%] min-w-0 place-items-center text-center ${boardClassNames.cellTextTight}`}
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+          ...getBoardTextStyle(cellSize, 0.22, 9, 1),
+        }}
+      >
+        {values.map((value) => <span key={value}>{value}</span>)}
+      </span>
+    );
+  }, []);
 
   const renderOverlay = useCallback(
     (cellSize: number, boardWidthPx: number, boardHeightPx: number) => (
@@ -86,10 +112,12 @@ export default function KropkiBoard({
         validate={validateKropki}
         getFixedValue={getFixedValue}
         renderCellValue={(value) => (typeof value === 'number' ? value : null)}
+        renderCandidates={renderCandidates}
         renderOverlay={renderOverlay}
         getCellTone={(row, col) => (puzzle.givens[row][col] !== null ? 'clue' : 'cell')}
         cellInputMode="cycle"
         cycleValues={[null, ...Array.from({ length: puzzle.width }, (_, index) => index + 1)]}
+        inputModeOptions={inputModeOptions}
         showValueButtons
         initialSnapshot={initialSnapshot}
         onSnapshotChange={onSnapshotChange}

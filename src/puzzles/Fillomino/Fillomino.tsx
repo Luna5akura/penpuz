@@ -744,8 +744,6 @@ export default function FillominoBoard({
                   }}
                   className={`flex items-center justify-center cursor-pointer border-0 relative ${boardClassNames.cellText}`}
                   style={{
-                    width: `${cellSize}px`,
-                    height: `${cellSize}px`,
                     ...getBoardTextStyle(cellSize),
                     ...getBoardCellStyle(cellSize, isClue ? 'clue' : 'cell'),
                     ...(trialColors && !isClue ? getBoardTrialCellStyle(trialColors, 'soft') : {}),

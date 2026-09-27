@@ -1,4 +1,4 @@
-import { boardTypography, getDirectionalClueArrowStrokeWidth, woodBoardTheme } from '../boardTheme';
+import { getBoardSvgTextProps, getDirectionalClueArrowStrokeWidth, woodBoardTheme } from '../boardTheme';
 
 const DIRECTION_ROTATIONS: Record<1 | 2 | 3 | 4, number> = {
   1: 0,
@@ -76,7 +76,7 @@ export default function DirectionalArrowMark({
 function ArrowRunLengthBadge({ length, cellSize }: { length: number; cellSize: number }) {
   const center = cellSize / 2;
   const radius = Math.max(9, cellSize * 0.26);
-  const fontSize = Math.max(11, Math.round(cellSize * 0.3));
+  const textProps = getBoardSvgTextProps(cellSize, 0.3, 11);
   return (
     <svg
       className="pointer-events-none absolute inset-0"
@@ -93,8 +93,7 @@ function ArrowRunLengthBadge({ length, cellSize }: { length: number; cellSize: n
         textAnchor="middle"
         dominantBaseline="central"
         fill="currentColor"
-        fontSize={fontSize}
-        fontWeight={boardTypography.textWeight}
+        {...textProps}
       >
         {length}
       </text>
