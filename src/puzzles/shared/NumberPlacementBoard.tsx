@@ -927,7 +927,6 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
           const nextIndex = (modes.indexOf(activeCellInputMode) + 1) % modes.length;
           event.preventDefault();
           setActiveCellInputMode(modes[nextIndex]);
-          setSelectedCell(null);
           keyboardEntryRef.current = null;
         }
         return;
@@ -1034,7 +1033,14 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
       if (!isPositionEditable(row, col)) return;
       if (event.button !== 0 && event.button !== 2) return;
 
+      const alreadySelected = selectedCell?.row === row && selectedCell?.col === col;
       const applyCycle = (backward: boolean) => {
+        // The first tap only moves the selection; a second tap on the
+        // selected cell performs the modification.
+        if (!alreadySelected) {
+          setSelectedCell({ row, col });
+          return;
+        }
         if (getGroupCells && getGroupStates) {
           cycleGroupValue(row, col, backward ? 2 : 0);
         } else {
@@ -1043,7 +1049,8 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         setSelectedCell({ row, col });
       };
 
-      // Touch: a quick tap cycles forward, a long press cycles backward.
+      // Touch: a quick tap selects, then cycles forward; a long press
+      // selects, then cycles backward.
       if (event.pointerType === 'touch') {
         pendingCycleRef.current = {
           row,
@@ -1092,12 +1099,20 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     if (activeCellInputMode === 'cycle') {
       if (event.button !== 0 && event.button !== 2) return;
 
+      const alreadySelected = selectedCell?.row === row && selectedCell?.col === col;
       const applyCycle = (backward: boolean) => {
+        // The first tap only moves the selection; a second tap on the
+        // selected cell performs the modification.
+        if (!alreadySelected) {
+          setSelectedCell({ row, col });
+          return;
+        }
         cyclePositionValue(row, col, backward ? -1 : 1);
         setSelectedCell({ row, col });
       };
 
-      // Touch: a quick tap cycles forward, a long press cycles backward.
+      // Touch: a quick tap selects, then cycles forward; a long press
+      // selects, then cycles backward.
       if (event.pointerType === 'touch') {
         pendingCycleRef.current = {
           row,
@@ -1143,8 +1158,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
     const value = getOutsideValue(side, index);
     const fixedValue = getOutsideFixedValue(side, index);
     const editable = fixedValue === null;
-    const selected = activeCellInputMode !== 'cycle' &&
-      selectedCell?.row === coordinate.row && selectedCell?.col === coordinate.col;
+    const selected = selectedCell?.row === coordinate.row && selectedCell?.col === coordinate.col;
     const level = normalizedSnapshot.outsideLevels?.[side]?.[index] ?? 0;
     const trialColors = getTrialLevelColors(level);
     const tone = outsideInput.getCellTone?.(side, index, value) ??
@@ -1233,7 +1247,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               const fixedValue = getFixedValue(row, col);
               const blocked = isBlockedCell(row, col);
               const editable = !blocked && fixedValue === null;
-              const selected = activeCellInputMode !== 'cycle' && selectedCell?.row === row && selectedCell?.col === col;
+              const selected = selectedCell?.row === row && selectedCell?.col === col;
               const hovered = hoverKeyboardEntry && editable && hoveredCell?.row === row && hoveredCell?.col === col;
               const trialColors = getTrialLevelColors(levels[row][col]);
               const tone = getCellTone?.(row, col, value) ?? (
@@ -1374,7 +1388,6 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
               size="sm"
               onClick={() => {
                 setActiveCellInputMode(option.mode);
-                setSelectedCell(null);
                 keyboardEntryRef.current = null;
               }}
             >
