@@ -78,7 +78,7 @@ export const boardGeometry = {
   /** Small inset used for secondary marks in a clue cell. */
   clueInsetRatio: 0.08,
   /** Radius used by compact circular clues. */
-  clueRadiusRatio: 0.19,
+  clueRadiusRatio: 0.13,
   /** Relative size of a bulb/center symbol. */
   symbolRatio: 0.8,
   boundaryRatio: 0.08,
@@ -746,10 +746,11 @@ export function getBoardSymbolDiameter(cellSize: number, ratio = boardGeometry.s
 export function getBoardClueCircleMetrics(cellSize: number) {
   // Scale proportionally with the cell so clue dots stay in step with a
   // board that shrinks on narrow screens; the small floors only guard
-  // against rounding to zero on tiny cells.
+  // against rounding to zero on tiny cells.  The stroke ratio tracks the
+  // radius ratio so smaller dots keep the same thin-outline look.
   return {
     radius: Math.max(4, Math.round(cellSize * boardGeometry.clueRadiusRatio)),
-    strokeWidth: Math.max(1, Math.round(cellSize * 0.05)),
+    strokeWidth: Math.max(1, Math.round(cellSize * 0.035)),
     outerRadiusOffset: Math.max(1, Math.round(cellSize * 0.03)),
   } as const;
 }
