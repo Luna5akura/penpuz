@@ -11,9 +11,8 @@ const MINUS = 2;
  *
  * The pzpr board stores two excell rows above every column (by=-1 holds the
  * '−' counts, by=-3 the '+' counts) and two excell columns left of every row
- * (bx=-1 '−', bx=-3 '+'), interleaved per column/row in that order.  This
- * app's rule set only defines the '+' counts above and the '−' counts to the
- * left, so the other two strips are read and skipped.
+ * (bx=-1 '−', bx=-3 '+'), interleaved per column/row in that order.  All four
+ * strips are shown on the board and checked by the validator.
  */
 export function parseMagnetsLink(link: string): MagnetsPuzzleData | null {
   try {

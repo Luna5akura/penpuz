@@ -116,7 +116,7 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   /** Ordered cells of the group containing a cell, for group-wide cycling (e.g. Magnets). */
   getGroupCells?: (row: number, col: number) => Array<CellCoord> | null;
   /** State sequence cycled by a group click; each state's values align with getGroupCells order. */
-  getGroupStates?: (cells: CellCoord[]) => NumberPlacementCellValue[][];
+  getGroupStates?: (cells: CellCoord[], clicked: CellCoord) => NumberPlacementCellValue[][];
   inputModeOptions?: Array<{ mode: NumberPlacementInputMode; label: string }>;
   showValueButtons?: boolean;
   /** Static outside clues, or a resolver used for answer cells derived from the grid. */
@@ -847,7 +847,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
    */
   const cycleGroupValue = useCallback((row: number, col: number, button: number) => {
     const cells = getGroupCells?.(row, col) ?? null;
-    const states = cells ? getGroupStates?.(cells) ?? [] : [];
+    const states = cells ? getGroupStates?.(cells, { row, col }) ?? [] : [];
     if (!cells || cells.length === 0 || states.length === 0) return;
 
     applyChange((currentSnapshot) => {

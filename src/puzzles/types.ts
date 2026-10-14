@@ -611,6 +611,8 @@ export const puzzleDifficultyLabels: Record<PuzzleDifficulty, LocalizedText> = {
 export interface PuzzleEntry {
   puzzLink: string;
   difficulty: PuzzleDifficulty;
+  /** Optional author attribution; falls back to DEFAULT_PUZZLE_AUTHOR when absent. */
+  author?: string;
 }
 
 export type PuzzleExample =
@@ -933,6 +935,8 @@ export type DailyPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
   difficulty: PuzzleDifficulty;
+  /** Puzzle author shown on the main page; defaults to DEFAULT_PUZZLE_AUTHOR. */
+  author: string;
   /** Continuous zero-based public puzzle number (parseable entries only). */
   index: number;
   daysSinceStart: number;
@@ -943,6 +947,7 @@ export type HistoryPuzzleData = {
   puzzle: PuzzleData;
   template: PuzzleTemplate;
   difficulty: PuzzleDifficulty;
+  author: string;
   /** Continuous zero-based public puzzle number (parseable entries only). */
   index: number;
   dateStr: string;

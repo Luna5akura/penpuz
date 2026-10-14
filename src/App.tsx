@@ -431,6 +431,7 @@ function App() {
   const activeElapsedTime = isDirectPuzzle ? directElapsedTime : elapsedTime;
   const puzzleName = template.name[locale];
   const difficultyText = isDirectPuzzle ? null : puzzleDifficultyLabels[daily.difficulty][locale];
+  const authorText = isDirectPuzzle ? null : daily.author;
   const isPuzzlePage = activePage === 'puzzle';
 
   return (
@@ -517,6 +518,14 @@ function App() {
                         {difficultyText}
                       </Badge>
                     )}
+                    {authorText && (
+                      <Badge
+                        variant="outline"
+                        className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
+                      >
+                        {copy.app.puzzleAuthor(authorText)}
+                      </Badge>
+                    )}
                     <span className="text-sm font-medium text-muted-foreground">
                       {copy.app.puzzleNumber(daily.index + 1)}
                     </span>
@@ -538,6 +547,14 @@ function App() {
                     {isDirectPuzzle ? metadata.title : copy.app.puzzleSummary(puzzleName, daily.index + 1)}
                   </div>
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    {!isDirectPuzzle && authorText && (
+                      <Badge
+                        variant="outline"
+                        className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
+                      >
+                        {copy.app.puzzleAuthor(authorText)}
+                      </Badge>
+                    )}
                     {!isDirectPuzzle && hasResult && (
                       <Button onClick={handleViewResult} variant="ghost" size="sm">
                         {copy.app.viewResults}

@@ -86,6 +86,7 @@ function buildDailyFromSelectable(item: SelectablePuzzleData): DailyPuzzleData {
     puzzle: item.puzzle,
     template: item.template,
     difficulty: item.difficulty,
+    author: item.author,
     index: item.index,
     daysSinceStart: item.daysSinceStart,
     dateStr: item.dateStr,

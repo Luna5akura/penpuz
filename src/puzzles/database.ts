@@ -7,6 +7,13 @@ export interface DatabasePuzzleSample {
   puzzle: PuzzleData;
 }
 
+/** Author shown on the main page when a database entry does not declare one. */
+export const DEFAULT_PUZZLE_AUTHOR = 'penpuz';
+
+function getEntryAuthor(entry: PuzzleEntry): string {
+  return entry.author?.trim() || DEFAULT_PUZZLE_AUTHOR;
+}
+
 // ==================== 统一获取北京时间日期字符串 ====================
 /**
  * 返回当前北京时间（Asia/Shanghai）的 YYYY-MM-DD 字符串
@@ -805,10 +812,61 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
+    puzzLink: 'http://localhost:8080/p.html?starbattle/9/9/2/198mdbkbmlllaa0744pc356kak6gq8',
+    difficulty: '简单',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?mashu/10/10/l230l000570i0030ai760000li00372900',
+    difficulty: '困难',
+  },
+  {
     puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/000630k036300a0003399030000',
     difficulty: '简单',
   },
+  {
+    puzzLink: 'http://localhost:8080/p.html?starbattle/10/10/2/1850i4e7llivkt8c281820f8ah98p84m2930',
+    difficulty: '简单',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?yajilin/7/7/n21a42g21d41h12i32',
+    difficulty: '简单',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?magnets/6/6/12h13h223223h32h21hevrttapj7sdv',
+    difficulty: '简单',
+    author: 'PGP2016R3',
+  },
 
+
+
+  {
+    puzzLink: 'http://localhost:8080/p.html?starbattle/11/11/2/6090iuqc6m554attsq414050bd1sdmo2q0qkagomh401',
+    difficulty: '困难',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?yajilin/8/8/g31b21a41q11a11b11a11i31b41i31c',
+    difficulty: '简单',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?starbattle/12/12/2/504jt0vgntl75l5rttp79lf800042l70fs0vh2k4q8l02s4rhm6qo0',
+    difficulty: '极难',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?yajilin/9/9/m31f41a31a21d41c21p32f40a31f41n',
+    difficulty: '困难',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8080/p.html?yajilin/10/10/f31e41a21k31a21c21n11b21b41a11k31e31a11k31l',
+    difficulty: '困难',
+    author: 'PGP2016R3',
+  },
 
 ];
 
@@ -929,6 +987,7 @@ export function getPuzzleByDateStr(dateStr: string): DailyPuzzleData | null {
     puzzle,
     template: getPuzzleTemplate(puzzle.type),
     difficulty: entry.difficulty,
+    author: getEntryAuthor(entry),
     index: publicIndex,
     daysSinceStart,
     dateStr,
@@ -956,6 +1015,7 @@ export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {
       puzzle,
       template: getPuzzleTemplate(puzzle.type),
       difficulty: entry.difficulty,
+      author: getEntryAuthor(entry),
       // Keep history numbers continuous.  The database index above is only an
       // implementation detail used to select the rotating entry.
       index: publicIndex,

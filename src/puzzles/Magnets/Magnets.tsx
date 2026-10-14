@@ -40,10 +40,12 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
   /**
    * Desktop left click cycles a region forward through
    * (+|−) → (−|+) → 涂黑 → 画圈 → 空白, and right click cycles backward.
+   * The first two states are oriented around the clicked cell: the clicked
+   * cell gets '+' first and '−' second, its partner cell the opposite pole.
    * A region containing a given pole keeps the pole and cycles the first
    * free cell through opposite → 涂黑 → 画圈 → 空白.
    */
-  const getGroupStates = (cells: Array<{ row: number; col: number }>): NumberPlacementCellValue[][] => {
+  const getGroupStates = (cells: Array<{ row: number; col: number }>, clicked: { row: number; col: number }): NumberPlacementCellValue[][] => {
     const fixed = cells.map(({ row, col }) => getFixedValue(row, col));
     const freeIndexes = fixed.flatMap((value, index) => (value === null ? [index] : []));
     const emptyState = fixed.map((value) => value);
@@ -51,14 +53,16 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
     const circleState = fixed.map((value, index) => (freeIndexes.length === 0 || index === freeIndexes[0] ? CIRCLE : value));
     if (fixed.length === freeIndexes.length) {
       if (cells.length < 2) return [emptyState, shadedState, circleState];
-      const plusMinus = fixed.map(() => null as NumberPlacementCellValue);
-      plusMinus[0] = PLUS;
-      plusMinus[1] = MINUS;
-      const minusPlus = fixed.map(() => null as NumberPlacementCellValue);
-      minusPlus[0] = MINUS;
-      minusPlus[1] = PLUS;
+      const clickedIndex = Math.max(0, cells.findIndex(({ row, col }) => row === clicked.row && col === clicked.col));
+      const otherIndex = clickedIndex === 0 ? 1 : 0;
+      const plusOnClicked = fixed.map(() => null as NumberPlacementCellValue);
+      plusOnClicked[clickedIndex] = PLUS;
+      plusOnClicked[otherIndex] = MINUS;
+      const minusOnClicked = fixed.map(() => null as NumberPlacementCellValue);
+      minusOnClicked[clickedIndex] = MINUS;
+      minusOnClicked[otherIndex] = PLUS;
       // (+|−) → (−|+) → 涂黑 → 画圈 → 空白
-      return [plusMinus, minusPlus, fixed.map(() => SHADED), fixed.map(() => CIRCLE), emptyState];
+      return [plusOnClicked, minusOnClicked, fixed.map(() => SHADED), fixed.map(() => CIRCLE), emptyState];
     }
     if (freeIndexes.length === 0) return [emptyState];
     const opposite = fixed.includes(PLUS) ? MINUS : PLUS;
