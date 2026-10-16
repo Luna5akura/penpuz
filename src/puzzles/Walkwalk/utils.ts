@@ -3,7 +3,7 @@ import type {
   WalkwalkPuzzleData,
   YajilinSolutionEdge,
 } from '../types';
-import { isValidCellEdgeKey } from '../gridUtils';
+import { decodePzprRegionIds, getPzprRegionBorderCharCount, isValidCellEdgeKey } from '../gridUtils';
 
 export interface WalkwalkValidationResult {
   valid: boolean;
@@ -36,93 +36,6 @@ function readNumber16(source: string, index: number): [number, number] {
   if (ch === '*') return index + 5 <= source.length ? [parseInt(source.slice(index + 1, index + 5), 16) + 12240, 5] : [-1, 0];
   if (ch === '$') return index + 6 <= source.length ? [parseInt(source.slice(index + 1, index + 6), 16) + 77776, 6] : [-1, 0];
   return [-1, 0];
-}
-
-function decodeRegionIds(width: number, height: number, encodedBorders: string): number[][] | null {
-  const expectedBitCount = height * (width - 1) + (height - 1) * width;
-  const expectedCharCount = Math.ceil(expectedBitCount / 5);
-  if (encodedBorders.length < expectedCharCount) return null;
-
-  const bits: number[] = [];
-  for (const char of encodedBorders.slice(0, expectedCharCount)) {
-    const value = parseInt(char, 32);
-    if (!Number.isFinite(value)) return null;
-    for (let bit = 4; bit >= 0; bit -= 1) {
-      bits.push((value >> bit) & 1);
-    }
-  }
-
-  let bitIndex = 0;
-  const verticalBorders = Array.from({ length: height }, () => Array(width - 1).fill(0));
-  const horizontalBorders = Array.from({ length: height - 1 }, () => Array(width).fill(0));
-
-  for (let row = 0; row < height; row += 1) {
-    for (let col = 0; col < width - 1; col += 1) {
-      verticalBorders[row][col] = bits[bitIndex++] ?? 0;
-    }
-  }
-
-  for (let row = 0; row < height - 1; row += 1) {
-    for (let col = 0; col < width; col += 1) {
-      horizontalBorders[row][col] = bits[bitIndex++] ?? 0;
-    }
-  }
-
-  const regionIds = Array.from({ length: height }, () => Array(width).fill(-1));
-  let regionId = 0;
-
-  for (let row = 0; row < height; row += 1) {
-    for (let col = 0; col < width; col += 1) {
-      if (regionIds[row][col] !== -1) continue;
-
-      const queue = [{ row, col }];
-      regionIds[row][col] = regionId;
-
-      for (let index = 0; index < queue.length; index += 1) {
-        const current = queue[index];
-
-        if (
-          current.row > 0 &&
-          horizontalBorders[current.row - 1][current.col] === 0 &&
-          regionIds[current.row - 1][current.col] === -1
-        ) {
-          regionIds[current.row - 1][current.col] = regionId;
-          queue.push({ row: current.row - 1, col: current.col });
-        }
-
-        if (
-          current.row + 1 < height &&
-          horizontalBorders[current.row][current.col] === 0 &&
-          regionIds[current.row + 1][current.col] === -1
-        ) {
-          regionIds[current.row + 1][current.col] = regionId;
-          queue.push({ row: current.row + 1, col: current.col });
-        }
-
-        if (
-          current.col > 0 &&
-          verticalBorders[current.row][current.col - 1] === 0 &&
-          regionIds[current.row][current.col - 1] === -1
-        ) {
-          regionIds[current.row][current.col - 1] = regionId;
-          queue.push({ row: current.row, col: current.col - 1 });
-        }
-
-        if (
-          current.col + 1 < width &&
-          verticalBorders[current.row][current.col] === 0 &&
-          regionIds[current.row][current.col + 1] === -1
-        ) {
-          regionIds[current.row][current.col + 1] = regionId;
-          queue.push({ row: current.row, col: current.col + 1 });
-        }
-      }
-
-      regionId += 1;
-    }
-  }
-
-  return regionIds;
 }
 
 function parseWalkwalkClues(clueData: string, width: number, height: number) {
@@ -170,11 +83,10 @@ export function parseWalkwalkLink(link: string): WalkwalkPuzzleData | null {
       return null;
     }
 
-    const expectedBitCount = height * (width - 1) + (height - 1) * width;
-    const expectedCharCount = Math.ceil(expectedBitCount / 5);
+    const expectedCharCount = getPzprRegionBorderCharCount(width, height);
     if (!encodedData || encodedData.length < expectedCharCount) return null;
 
-    const regionIds = decodeRegionIds(width, height, encodedData.slice(0, expectedCharCount));
+    const regionIds = decodePzprRegionIds(width, height, encodedData.slice(0, expectedCharCount));
     if (!regionIds) return null;
 
     return {
