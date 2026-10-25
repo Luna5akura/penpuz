@@ -530,8 +530,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
-    // PuzzLink's canonical Cave example (the same 6×6 instance used by
-    // pzprjs), encoded with number16 clues.
     puzzLink: 'http://localhost:8080/p.html?cave/6/6/g3q2h3jbj3i3i2g',
     difficulty: '简单',
   },
@@ -814,7 +812,7 @@ const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'http://localhost:8080/p.html?starbattle/9/9/2/198mdbkbmlllaa0744pc356kak6gq8',
     difficulty: '简单',
-    author: 'PGP2016R3',
+    author: 'PGP2016R4',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?mashu/10/10/l230l000570i0030ai760000li00372900',
@@ -839,9 +837,6 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
     author: 'PGP2016R3',
   },
-
-
-
   {
     puzzLink: 'http://localhost:8080/p.html?starbattle/11/11/2/6090iuqc6m554attsq414050bd1sdmo2q0qkagomh401',
     difficulty: '困难',
@@ -851,6 +846,37 @@ const allPuzzles: PuzzleEntry[] = [
     puzzLink: 'http://localhost:8080/p.html?yajilin/8/8/g31b21a41q11a11b11a11i31b41i31c',
     difficulty: '简单',
     author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?magnets/12/12/64h53h44j26534g323564223i3364456545h4633aqquuvfvbvarqquqnenfnfreqmgvnjqrdf4nurvf7nurvf7n6rmfro',
+    difficulty: '极难',
+    author: 'PGP2016R3',
+  },
+
+  {
+    puzzLink: 'http://localhost:8642/p.html?cave/8/8/n43o32o4954o55o39n',
+    difficulty: '困难',
+    author: 'PGP2016R4',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?starbattle/9/9/2/2b1a4914cp1l660e082fo0243ic33g',
+    difficulty: '困难',
+    author: 'PGP2016R4',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?mashu/10/10/0030i300i2310062062003230902091000',
+    difficulty: '简单',
+    author: 'PGP2016R4',
+  },
+  {
+    puzzLink: 'https://pzprxs.vercel.app/p?heyawake/16/16/28i28i8a28a28a28a28a28a28a28a28a28a28a28a2948948000fvv0000007g000003vv000fvvo000001s000000vvu0000221311411242421141131130',
+    difficulty: '困难',
+    author: 'penpuz',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?cave/9/9/aj8j4j4k4i3i2h7m4m4h5i4i7k4j3j8jd',
+    difficulty: '困难',
+    author: 'PGP2016R4',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?starbattle/12/12/2/504jt0vgntl75l5rttp79lf800042l70fs0vh2k4q8l02s4rhm6qo0',
@@ -863,11 +889,40 @@ const allPuzzles: PuzzleEntry[] = [
     author: 'PGP2016R3',
   },
   {
+    puzzLink: 'http://localhost:8642/p.html?mashu/10/10/2100311061232000000062661033100330',
+    difficulty: '简单',
+    author: 'PGP2016R4',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?magnets/10/10/g42g45h32h25h23h53h3354g533h44g424ldlrnftvntvnutrlmlfr7nbe4tbq75eqttru',
+    difficulty: '困难',
+    author: 'PGP2016R3',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?cave/10/10/j24k36j53h7aj64q6i44i76i44i6q56j48h45j6ak34j',
+    difficulty: '困难',
+    author: 'PGP2016R4',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?starbattle/10/10/2/40a1ad8l4h9knac518305hqgd6eo77089iec',
+    difficulty: '极难',
+    author: 'PGP2016R4',
+  },
+  {
+    puzzLink: 'http://localhost:8642/p.html?mashu/10/10/0i200i2000000i660i0i00i0i0020000i0',
+    difficulty: '简单',
+    author: 'PGP2016R4',
+  },
+  {
     puzzLink: 'http://localhost:8080/p.html?yajilin/10/10/f31e41a21k31a21c21n11b21b41a11k31e31a11k31l',
     difficulty: '困难',
     author: 'PGP2016R3',
   },
-
+  {
+    puzzLink: 'http://localhost:8642/p.html?magnets/8/8/h14h134h4h3444g124h43k4dbnftvrvetb0rrmn5faemttg',
+    difficulty: '困难',
+    author: 'PGP2016R3',
+  },
 ];
 
 /**
