@@ -1,5 +1,6 @@
 // src/components/CompletionModal.tsx
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { Check, Copy } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { getPuzzleTemplate } from '@/puzzles/registry';
 import type { PuzzleType } from '@/puzzles/types';
@@ -134,6 +135,7 @@ export default function CompletionModal({
 
         {/* 复制按钮 */}
         <Button onClick={copyToClipboard} className="w-full" disabled={copied}>
+          {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
           {copied ? copy.completionModal.copied : copy.completionModal.copyShare}
         </Button>
 

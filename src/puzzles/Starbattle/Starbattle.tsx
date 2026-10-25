@@ -707,14 +707,6 @@ export default function StarbattleBoard({
         onCommitTrial={commitTrial}
       />
 
-      <button
-        type="button"
-        onClick={resetBoard}
-        className="px-4 py-2 rounded-md border bg-white/80 hover:bg-white text-sm dark:bg-gray-800 dark:hover:bg-gray-700"
-      >
-        {copy.shared.resetPuzzle}
-      </button>
-
       {showValidationMessage ? <ValidationMessage message={validation?.message} /> : null}
     </div>
   );

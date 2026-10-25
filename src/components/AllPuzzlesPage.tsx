@@ -1,13 +1,12 @@
 import { useMemo, useState } from 'react';
-import { ExternalLink, Play } from 'lucide-react';
-import { Badge } from './ui/badge';
+import { ChevronUp, ExternalLink, House, Play, RotateCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useI18n } from '@/i18n/useI18n';
 import { getAllDatabasePuzzles, getPuzzleDateStr } from '@/puzzles/database';
 import { normalizePuzzLinkDataPart } from '@/puzzles/gridUtils';
 import { getPuzzleTemplate, renderPuzzleBoard } from '@/puzzles/registry';
-import { puzzleDifficultyLabels } from '@/puzzles/types';
+import DifficultyBadge from './DifficultyBadge';
 
 /**
  * Hidden link-only page: every parseable database puzzle, sorted by the date
@@ -50,12 +49,25 @@ export default function AllPuzzlesPage() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button type="button" variant="outline" onClick={() => setResetToken((value) => value + 1)}>
-                {locale === 'zh-CN' ? '全部重置' : 'Reset all'}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setResetToken((value) => value + 1)}
+                aria-label={locale === 'zh-CN' ? '全部重置' : 'Reset all'}
+                title={locale === 'zh-CN' ? '全部重置' : 'Reset all'}
+              >
+                <RotateCcw />
               </Button>
-              <Button asChild variant="outline">
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                aria-label={locale === 'zh-CN' ? '返回主页' : 'Back to home'}
+                title={locale === 'zh-CN' ? '返回主页' : 'Back to home'}
+              >
                 <a href="/">
-                  {locale === 'zh-CN' ? '返回主页' : 'Back to home'}
+                  <House />
                 </a>
               </Button>
             </div>
@@ -75,7 +87,7 @@ export default function AllPuzzlesPage() {
                     <CardTitle className="text-base">
                       {template.name[locale]} #{item.index + 1}
                     </CardTitle>
-                    <Badge variant="outline">{puzzleDifficultyLabels[item.entry.difficulty][locale]}</Badge>
+                    <DifficultyBadge difficulty={item.entry.difficulty} />
                   </div>
                   <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                     <span>{dateStr}</span>
@@ -97,16 +109,22 @@ export default function AllPuzzlesPage() {
                     <Button
                       type="button"
                       variant={open ? 'default' : 'outline'}
-                      size="sm"
+                      size="icon-sm"
                       onClick={() => togglePlay(item.index)}
+                      aria-label={locale === 'zh-CN' ? (open ? '收起' : '在此游玩') : (open ? 'Collapse' : 'Play here')}
+                      title={locale === 'zh-CN' ? (open ? '收起' : '在此游玩') : (open ? 'Collapse' : 'Play here')}
                     >
-                      <Play />
-                      {locale === 'zh-CN' ? (open ? '收起' : '在此游玩') : (open ? 'Collapse' : 'Play here')}
+                      {open ? <ChevronUp /> : <Play />}
                     </Button>
-                    <Button asChild variant="outline" size="sm">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={locale === 'zh-CN' ? '独立页面打开' : 'Open standalone'}
+                      title={locale === 'zh-CN' ? '独立页面打开' : 'Open standalone'}
+                    >
                       <a href={`/?${dataPath}`} target="_blank" rel="noreferrer">
                         <ExternalLink />
-                        {locale === 'zh-CN' ? '独立页面打开' : 'Open standalone'}
                       </a>
                     </Button>
                   </div>

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useI18n } from '@/i18n/useI18n';
 import type { KurarinPuzzleData } from '../types';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
@@ -102,7 +101,6 @@ export default function KurarinBoard({
   onSnapshotChange,
   fixedCellSize,
 }: Props) {
-  const { copy } = useI18n();
   const { width, height, clues } = puzzle;
   const [containerRef, viewportWidth] = useBoardContainerWidth();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -722,14 +720,6 @@ export default function KurarinBoard({
         onDiscardTrial={discardTrial}
         onCommitTrial={commitTrial}
       />
-
-      <button
-        type="button"
-        onClick={resetBoard}
-        className="px-4 py-2 rounded-md border bg-white/80 hover:bg-white text-sm dark:bg-gray-800 dark:hover:bg-gray-700"
-      >
-        {copy.shared.resetPuzzle}
-      </button>
     </div>
   );
 }

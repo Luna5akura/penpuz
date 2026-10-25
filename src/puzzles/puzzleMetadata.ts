@@ -27,6 +27,7 @@ function getPuzzleFactTexts(puzzle: PuzzleData, locale: Locale) {
     case 'nurikabe':
       return [isZh ? `${puzzle.clues.length} 个数字线索` : `${puzzle.clues.length} clues`];
     case 'fillomino':
+    case 'fillomino-checkerboard':
       return [isZh
         ? `${matrixCount(puzzle.clues, (value) => value !== null)} 个给定数字`
         : `${matrixCount(puzzle.clues, (value) => value !== null)} givens`];

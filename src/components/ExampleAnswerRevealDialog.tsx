@@ -32,7 +32,6 @@ export default function ExampleAnswerRevealDialog({ open, onCancel, onConfirm }:
       }}
     >
       <DialogContent
-        showCloseButton={false}
         className="max-w-md border-border bg-card p-6 text-card-foreground"
       >
         <DialogHeader>
@@ -41,9 +40,6 @@ export default function ExampleAnswerRevealDialog({ open, onCancel, onConfirm }:
           </DialogTitle>
         </DialogHeader>
         <DialogFooter className="-mx-6 -mb-6 flex-row gap-3 border-t-0 bg-transparent p-6 pt-0 sm:justify-stretch">
-          <Button type="button" variant="outline" onClick={onCancel} className="flex-1">
-            {copy.shared.cancel}
-          </Button>
           <Button type="button" onClick={onConfirm} className="flex-1">
             {copy.shared.confirmView}
           </Button>

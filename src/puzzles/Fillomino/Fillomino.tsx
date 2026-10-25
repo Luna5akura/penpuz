@@ -1,8 +1,8 @@
 // src/puzzles/Fillomino/FillominoBoard.tsx
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useI18n } from '@/i18n/useI18n';
-import type { FillominoPuzzleData } from '../types';
-import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino } from './utils';
+import type { FillominoCheckerboardPuzzleData, FillominoPuzzleData } from '../types';
+import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino, validateFillominoCheckerboard } from './utils';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
 import { getKeyboardDigit, isKeyboardInputTarget } from '@/lib/keyboard';
@@ -36,13 +36,15 @@ import { sanitizeMatrix, sanitizeNumberRecord, sanitizeStringArray } from '../sn
 import { filterValidInternalBoundaryEdgeKeys } from '../gridUtils';
 
 interface Props {
-  puzzle: FillominoPuzzleData;
+  puzzle: FillominoPuzzleData | FillominoCheckerboardPuzzleData;
   startTime: number;
   resetToken: number;
   onComplete: (time: number) => void;
   initialSnapshot?: unknown;
   onSnapshotChange?: (snapshot: unknown) => void;
   fixedCellSize?: number;
+  /** Enables the Fillomino Checkerboard variant: region adjacency must be 2-colorable. */
+  checkerboard?: boolean;
 }
 
 type DragType = 'copy' | 'clear' | 'thinLine' | 'deepLine' | 'tapNumber';
@@ -89,6 +91,7 @@ export default function FillominoBoard({
   initialSnapshot,
   onSnapshotChange,
   fixedCellSize,
+  checkerboard,
 }: Props) {
   const { copy } = useI18n();
   const { width, height, clues } = puzzle;
@@ -248,13 +251,15 @@ export default function FillominoBoard({
     if (hasCompleted.current) return;                    // 防止重复触发
     if (!startTime || startTime <= 0) return;            // 防止 startTime 为 null 或无效
 
-    const result = validateFillomino(grid, width, height, deepLineSet);
+    const result = checkerboard
+      ? validateFillominoCheckerboard(grid, width, height, deepLineSet)
+      : validateFillomino(grid, width, height, deepLineSet);
     if (result.valid) {
       hasCompleted.current = true;
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       onComplete(elapsed);
     }
-  }, [deepLineSet, grid, width, height, startTime, onComplete]);
+  }, [checkerboard, deepLineSet, grid, width, height, startTime, onComplete]);
 
   useEffect(() => {
     validate();

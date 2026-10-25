@@ -23,7 +23,6 @@ export const messages = {
       rulesReferenceAppSource: '应用内规则',
       viewHistory: '历史',
       puzzleNumber: (index: number) => `第 ${index} 题`,
-      puzzleAuthor: (name: string) => `作者：${name}`,
       startPuzzle: '开始',
       elapsedTime: (seconds: number) => formatMinutesSeconds(seconds),
       puzzleSummary: (name: string, index: number) => `${name} • 第 ${index} 题`,
@@ -56,8 +55,6 @@ export const messages = {
       languageButtonLabel: '切换到英文',
     },
     shared: {
-      resetPuzzle: '重置',
-      cancel: '取消',
       confirmView: '查看',
       revealAnswerPrompt: '查看答案？',
       clearCell: '清空',
@@ -132,7 +129,6 @@ export const messages = {
       rulesReferenceAppSource: 'In-app rule',
       viewHistory: 'History',
       puzzleNumber: (index: number) => `Puzzle ${index}`,
-      puzzleAuthor: (name: string) => `Author: ${name}`,
       startPuzzle: 'Start',
       elapsedTime: (seconds: number) => formatMinutesSeconds(seconds),
       puzzleSummary: (name: string, index: number) => `${name} • Puzzle ${index}`,
@@ -165,8 +161,6 @@ export const messages = {
       languageButtonLabel: 'Switch to Chinese',
     },
     shared: {
-      resetPuzzle: 'Reset',
-      cancel: 'Cancel',
       confirmView: 'Show',
       revealAnswerPrompt: 'Show answer?',
       clearCell: 'Clear',

@@ -62,6 +62,7 @@ import SkyscrapersExample from '../components/examples/SkyscrapersExample';
 import BattleshipExample from '../components/examples/BattleshipExample';
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
+import { parseFillominoCheckerboardLink } from './FillominoCheckerboard/utils';
 import { parseYajilinLink } from './Yajilin/utils';
 import { parseStarbattleLink } from './Starbattle/utils';
 import { parseHeyawakeLink } from './Heyawake/utils';
@@ -91,6 +92,7 @@ import type {
   BattleshipPuzzleData,
   DominoSearchPuzzleData,
   FillominoPuzzleData,
+  FillominoCheckerboardPuzzleData,
   HeyawakePuzzleData,
   LakesPuzzleData,
   LitsPuzzleData,
@@ -501,6 +503,7 @@ interface PuzzleRegistryEntry<TPuzzle extends PuzzleData> {
 type PuzzleRegistry = {
   nurikabe: PuzzleRegistryEntry<NurikabePuzzleData>;
   fillomino: PuzzleRegistryEntry<FillominoPuzzleData>;
+  'fillomino-checkerboard': PuzzleRegistryEntry<FillominoCheckerboardPuzzleData>;
   yajilin: PuzzleRegistryEntry<YajilinPuzzleData>;
   koburin: PuzzleRegistryEntry<KoburinPuzzleData>;
   neighbor: PuzzleRegistryEntry<NeighborPuzzleData>;
@@ -708,6 +711,93 @@ export const puzzleRegistry: PuzzleRegistry = {
           answer={<FillominoExample width={example.width} height={example.height} cluesGrid={example.cluesGrid} correctGrid={example.correctGrid} />}
           renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
             <FillominoBoard puzzle={puzzle as FillominoPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} />
+          )}
+        />
+      );
+    },
+  },
+  'fillomino-checkerboard': {
+    parsePuzzLink: parseFillominoCheckerboardLink,
+    template: {
+      type: 'fillomino-checkerboard',
+      name: {
+        'zh-CN': '棋盘码牌',
+        en: 'Fillomino Checkerboard',
+      },
+      rulesTitle: {
+        'zh-CN': '规则',
+        en: 'Rules',
+      },
+      rules: {
+        'zh-CN': [
+          '沿虚格线把盘面分成若干个区域，使得任意两个相邻的区域面积都不同。',
+          '数字表示其所在区域的面积。',
+          '额外约束：每个区域必须能整体染成黑色或白色，使得相邻（共边）的区域颜色都不同。',
+        ],
+        en: [
+          'Divide the grid into regions along the dotted lines so that no two adjacent regions have the same size.',
+          'A number gives the size of the region that contains it.',
+          'Extra constraint: every region must be colorable entirely black or entirely white so that no two regions sharing an edge have the same color.',
+        ],
+      },
+      exampleTitle: {
+        'zh-CN': '例题（4×4）',
+        en: 'Example (4×4)',
+      },
+      playableLabel: {
+        'zh-CN': '题面',
+        en: 'Puzzle',
+      },
+      answerLabel: {
+        'zh-CN': '正确答案',
+        en: 'Answer',
+      },
+      // WPF Puzzle GP 2016, Round 3 instructions example by Silke Berendes.
+      // Answer key 3424: the areas of the four dotted cells, left to right.
+      example: {
+        puzzleType: 'fillomino-checkerboard',
+        width: 4,
+        height: 4,
+        cluesGrid: [
+          [3, 1, null, null],
+          [null, null, null, null],
+          [null, null, null, null],
+          [null, null, 2, 4],
+        ],
+        correctGrid: [
+          [3, 1, 2, 2],
+          [3, 3, 4, 4],
+          [4, 4, 2, 4],
+          [4, 4, 2, 4],
+        ],
+      },
+    },
+    renderBoard: ({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange }) => (
+      <FillominoBoard
+        puzzle={puzzle}
+        startTime={startTime}
+        resetToken={resetToken}
+        onComplete={onComplete}
+        initialSnapshot={initialSnapshot}
+        onSnapshotChange={onSnapshotChange}
+        checkerboard
+      />
+    ),
+    renderExample: (template, locale) => {
+      const example = template.example;
+      if (example.puzzleType !== 'fillomino-checkerboard') {
+        throw new Error('Fillomino Checkerboard template example type mismatch.');
+      }
+
+      return (
+        <PlayableExample
+          example={example}
+          playableLabel={template.playableLabel[locale]}
+          answerLabel={template.answerLabel[locale]}
+          fixedCellSize={boardLayoutMetrics.exampleCellSize}
+          answer={<FillominoExample width={example.width} height={example.height} cluesGrid={example.cluesGrid} correctGrid={example.correctGrid} />}
+          renderBoard={({ puzzle, startTime, onComplete, fixedCellSize }) => (
+            <FillominoBoard checkerboard puzzle={puzzle as FillominoCheckerboardPuzzleData} startTime={startTime} resetToken={0} onComplete={onComplete} fixedCellSize={fixedCellSize} />
           )}
         />
       );
@@ -3642,6 +3732,7 @@ export function isPuzzleData(value: unknown): value is PuzzleData {
         clue.color === 'black' || clue.color === 'white' || clue.color === 'gray'
       );
     case 'fillomino':
+    case 'fillomino-checkerboard':
       return isTypedMatrix(value.clues, width, height, (cell) => isNullableInteger(cell, 0));
     case 'slither':
       return isTypedMatrix(value.clues, width, height, (cell) => cell === null || (isFiniteInteger(cell, 0) && cell <= 4));
@@ -3817,6 +3908,7 @@ export function getPuzzleTypeFromLink(link: string | undefined | null): PuzzleTy
     japanesearrows: 'japanese-arrows',
     japanese: 'japanese-arrows',
     fourwindswithparks: 'four-winds-with-parks',
+    fillominocheckerboard: 'fillomino-checkerboard',
     consecutivekakuro: 'consecutive-kakuro',
     japanesesumswithzeroes: 'japanese-sums-with-zeroes',
     japanesesums: 'japanese-sums-with-zeroes',

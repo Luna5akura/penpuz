@@ -3691,5 +3691,20 @@ export const ruleQuickReferenceItems: RuleQuickReferenceItem[] = [
     "tableRuleSource": "app-registry",
     "englishSource": "app-registry",
     "sourceUrl": null
+  },
+  {
+    "id": "fillomino-checkerboard",
+    "order": 241,
+    "refName": "fillomino-checkerboard",
+    "englishName": "Fillomino Checkerboard",
+    "chineseName": "棋盘码牌",
+    "chineseAlias": "棋盘码牌",
+    "category": "分区",
+    "ruleTags": "棋盘染色",
+    "chineseRules": "先按码牌规则分区：沿虚格线把盘面分成若干个区域，任意两个相邻区域面积都不同，数字表示其所在区域的面积。额外约束：每个区域必须能整体染成黑色或白色，使得相邻（共边）的区域颜色都不同。",
+    "englishRules": "Solve as Fillomino: divide the grid into regions so that no two adjacent regions have the same size, and a number gives the size of the region containing it.\nExtra constraint: every region must be colorable entirely black or entirely white so that no two regions sharing an edge have the same color.",
+    "tableRuleSource": "WPF Puzzle GP 2016, Round 3 IB",
+    "englishSource": "app-registry",
+    "sourceUrl": null
   }
 ];

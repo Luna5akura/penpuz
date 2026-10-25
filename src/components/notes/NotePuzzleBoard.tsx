@@ -384,7 +384,8 @@ function getCellView(
       const clue = clueMap?.get(getLocalCellKey(row, col)) as (typeof puzzle.clues)[number] | undefined;
       return clue ? { tone: 'clue', content: clue.value, locked: true } : { tone: 'cell' };
     }
-    case 'fillomino': {
+    case 'fillomino':
+    case 'fillomino-checkerboard': {
       const clue = puzzle.clues[row]?.[col] ?? null;
       return clue !== null ? { tone: 'clue', content: clue, locked: true } : { tone: 'cell' };
     }
@@ -674,6 +675,7 @@ function getSnapshotCellView(
     puzzleType === 'kakuro' ||
     puzzleType === 'consecutive-kakuro' ||
     puzzleType === 'fillomino' ||
+    puzzleType === 'fillomino-checkerboard' ||
     puzzleType === 'slovak-sums' ||
     puzzleType === 'skyscrapers' ||
     puzzleType === 'neighbor' ||

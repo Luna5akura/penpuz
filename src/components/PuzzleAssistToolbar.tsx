@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Bookmark, BookmarkPlus, Check, GitBranch, Redo2, Rewind, Undo2, X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { Button } from './ui/button';
 
@@ -67,57 +68,95 @@ export default function PuzzleAssistToolbar({
 
   return (
     <div
-      className={`flex w-full flex-col items-center gap-2 border px-3 py-3 transition-colors ${
+      className={`flex w-full flex-col items-center gap-2 border px-3 py-2 transition-colors ${
         trialActive
           ? 'border-amber-400 bg-amber-50/80 dark:border-amber-700 dark:bg-amber-950/25'
           : 'border-[#d3c3ae] bg-[#fffdf9] dark:border-gray-700 dark:bg-gray-900'
       }`}
     >
-      <div className={`flex flex-wrap items-center justify-center gap-2 ${trialActive ? 'w-full' : 'mx-auto'}`}>
-        <Button variant="outline" size="sm" onClick={onUndo} disabled={!canUndo} title="Ctrl/Cmd + Z">
-          {copy.assistToolbar.undo}
+      <div className={`flex flex-wrap items-center justify-center gap-1.5 ${trialActive ? 'w-full' : 'mx-auto'}`}>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          onClick={onUndo}
+          disabled={!canUndo}
+          aria-label={copy.assistToolbar.undo}
+          title={`${copy.assistToolbar.undo} (Ctrl/Cmd + Z)`}
+        >
+          <Undo2 />
         </Button>
         <Button
           variant="outline"
-          size="sm"
+          size="icon-sm"
           onClick={onRedo}
           disabled={!canRedo}
-          title="Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y"
+          aria-label={copy.assistToolbar.redo}
+          title={`${copy.assistToolbar.redo} (Ctrl/Cmd + Shift + Z / Ctrl/Cmd + Y)`}
         >
-          {copy.assistToolbar.redo}
+          <Redo2 />
         </Button>
+
+        <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+
         {!trialActive ? (
-          <Button variant="outline" size="sm" onClick={onStartTrial}>
-            {copy.assistToolbar.startTrial}
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={onStartTrial}
+            aria-label={copy.assistToolbar.startTrial}
+            title={copy.assistToolbar.startTrial}
+          >
+            <GitBranch />
           </Button>
         ) : (
           <>
-            <Button variant="outline" size="sm" onClick={onAddTrialCheckpoint}>
-              {copy.assistToolbar.addCheckpoint}
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={onAddTrialCheckpoint}
+              aria-label={copy.assistToolbar.addCheckpoint}
+              title={copy.assistToolbar.addCheckpoint}
+            >
+              <BookmarkPlus />
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              size="icon-sm"
               onClick={onUndoTrialCheckpoint}
               disabled={!canUndoTrialCheckpoint}
+              aria-label={copy.assistToolbar.undoCheckpoint}
+              title={copy.assistToolbar.undoCheckpoint}
             >
-              {copy.assistToolbar.undoCheckpoint}
+              <Rewind />
             </Button>
-            <Button variant="outline" size="sm" onClick={onDiscardTrial}>
-              {copy.assistToolbar.discardTrial}
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={onDiscardTrial}
+              aria-label={copy.assistToolbar.discardTrial}
+              title={copy.assistToolbar.discardTrial}
+            >
+              <X />
             </Button>
-            <Button size="sm" onClick={onCommitTrial}>
-              {copy.assistToolbar.commitTrial}
+            <Button
+              size="icon-sm"
+              onClick={onCommitTrial}
+              aria-label={copy.assistToolbar.commitTrial}
+              title={copy.assistToolbar.commitTrial}
+            >
+              <Check />
             </Button>
           </>
         )}
       </div>
       {trialActive && (
-        <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-muted-foreground">
-          <span className="px-2 py-0.5 font-medium text-amber-900 dark:text-amber-200">
+        <div className="flex flex-wrap items-center justify-center gap-3 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1 px-1 py-0.5 font-medium text-amber-900 dark:text-amber-200">
+            <GitBranch className="size-3.5" />
             {copy.assistToolbar.trialModeActive}
           </span>
-          <span className="px-2 py-0.5 dark:text-sky-200">
+          <span className="inline-flex items-center gap-1 px-1 py-0.5 text-sky-800 dark:text-sky-200">
+            <Bookmark className="size-3.5" />
             {copy.assistToolbar.checkpointCount(trialCheckpointCount)}
           </span>
         </div>

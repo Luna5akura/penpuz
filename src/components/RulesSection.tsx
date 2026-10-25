@@ -1,4 +1,5 @@
 // src/components/RulesSection.tsx
+import { BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useI18n } from '@/i18n/useI18n';
 import { PuzzleTemplate } from '../puzzles/types';
@@ -14,7 +15,8 @@ export default function RulesSection({ template }: Props) {
   return (
     <Card className="mx-auto mt-10 max-w-5xl border-[#d7c7b4] bg-[#fffdf9] dark:border-gray-700 dark:bg-gray-900">
       <CardHeader className="border-b px-4 pb-3 sm:px-5">
-        <CardTitle className="text-2xl font-semibold text-[#2f241a] dark:text-gray-100">
+        <CardTitle className="flex items-center gap-2 text-2xl font-semibold text-[#2f241a] dark:text-gray-100">
+          <BookOpen className="size-5 shrink-0 text-[#8a6a4f] dark:text-gray-400" aria-hidden="true" />
           {template.rulesTitle[locale]}
         </CardTitle>
       </CardHeader>

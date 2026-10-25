@@ -37,6 +37,18 @@ export interface FillominoPuzzleData {
   clues: (number | null)[][];
 }
 
+/**
+ * Fillomino Checkerboard (WPF Puzzle GP 2016, Round 3).  Same fillomino
+ * data as {@link FillominoPuzzleData}; the extra checkerboard constraint
+ * (region adjacency graph must be 2-colorable) lives in the validator.
+ */
+export interface FillominoCheckerboardPuzzleData {
+  type: 'fillomino-checkerboard';
+  width: number;
+  height: number;
+  clues: (number | null)[][];
+}
+
 export interface YajilinPuzzleData {
   type: 'yajilin';
   width: number;
@@ -552,6 +564,7 @@ export interface KropkiPuzzleData {
 export type PuzzleData =
   | NurikabePuzzleData
   | FillominoPuzzleData
+  | FillominoCheckerboardPuzzleData
   | YajilinPuzzleData
   | KoburinPuzzleData
   | NeighborPuzzleData
@@ -625,6 +638,13 @@ export type PuzzleExample =
     }
   | {
       puzzleType: 'fillomino';
+      width: number;
+      height: number;
+      cluesGrid: (number | null)[][]; // 初始线索
+      correctGrid: (number | null)[][]; // 正确答案
+    }
+  | {
+      puzzleType: 'fillomino-checkerboard';
       width: number;
       height: number;
       cluesGrid: (number | null)[][]; // 初始线索

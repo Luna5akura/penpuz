@@ -11,6 +11,8 @@ export function buildExamplePuzzleData(example: PuzzleExample): PuzzleData {
       return { type: 'nurikabe', width: example.width, height: example.height, clues: example.clues };
     case 'fillomino':
       return { type: 'fillomino', width: example.width, height: example.height, clues: example.cluesGrid };
+    case 'fillomino-checkerboard':
+      return { type: 'fillomino-checkerboard', width: example.width, height: example.height, clues: example.cluesGrid };
     case 'yajilin':
       return { type: 'yajilin', width: example.width, height: example.height, clues: example.clues };
     case 'koburin':

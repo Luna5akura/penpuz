@@ -1,7 +1,7 @@
 // src/App.tsx
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, CalendarDays, FlaskConical, History, Languages, NotebookText } from 'lucide-react';
+import { BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, History, Languages, LayoutGrid, NotebookText, Play, Puzzle, RotateCcw, Share2, Timer, Trophy, User, X } from 'lucide-react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
 import {
@@ -10,8 +10,9 @@ import {
   useDailyPuzzleSession,
 } from './hooks/useDailyPuzzleSession';
 import { getPuzzleTemplate, parsePuzzleLink, renderPuzzleBoard } from './puzzles/registry';
+import DifficultyBadge from './components/DifficultyBadge';
+import DifficultyStars from './components/DifficultyStars';
 import { Button } from './components/ui/button';
-// import { Card } from './components/ui/card';
 import { Badge } from './components/ui/badge';
 import { useI18n } from './i18n/useI18n';
 import { setDocumentMetadata } from './lib/documentMetadata';
@@ -184,11 +185,6 @@ function App() {
     closeHistory();
     setActivePage('notes');
     pushAppPageUrl('notes');
-  }, [closeHistory]);
-  const handleOpenDatabaseTestPage = useCallback(() => {
-    closeHistory();
-    setActivePage('database-test');
-    pushAppPageUrl('database-test');
   }, [closeHistory]);
 
   const copyHistoryLink = useCallback(async (url: string, dateStr: string) => {
@@ -430,7 +426,6 @@ function App() {
   const activeStarted = isDirectPuzzle || started;
   const activeElapsedTime = isDirectPuzzle ? directElapsedTime : elapsedTime;
   const puzzleName = template.name[locale];
-  const difficultyText = isDirectPuzzle ? null : puzzleDifficultyLabels[daily.difficulty][locale];
   const authorText = isDirectPuzzle ? null : daily.author;
   const isPuzzlePage = activePage === 'puzzle';
 
@@ -441,7 +436,10 @@ function App() {
         <Card className="mb-4 border-[#d7c7b4] bg-card p-4 dark:border-gray-700 dark:bg-card">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground sm:text-4xl">{copy.app.siteTitle}</h1>
+              <h1 className="flex items-center gap-2.5 text-3xl font-bold text-foreground sm:text-4xl">
+                <Puzzle className="size-7 shrink-0 text-primary sm:size-8" aria-hidden="true" />
+                {copy.app.siteTitle}
+              </h1>
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               <Button
@@ -461,15 +459,6 @@ function App() {
                 title={copy.app.notesTab}
               >
                 <NotebookText />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={handleOpenDatabaseTestPage}
-                aria-label={locale === 'zh-CN' ? '题库测试页' : 'Database test'}
-                title={locale === 'zh-CN' ? '题库测试页' : 'Database test'}
-              >
-                <FlaskConical />
               </Button>
               <Button
                 variant="outline"
@@ -510,20 +499,14 @@ function App() {
                 <div className="space-y-3 text-center">
                   <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{puzzleName}</h2>
                   <div className="flex flex-wrap items-center justify-center gap-2">
-                    {difficultyText && (
-                      <Badge
-                        variant="outline"
-                        className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                      >
-                        {difficultyText}
-                      </Badge>
-                    )}
+                    {!isDirectPuzzle && <DifficultyBadge difficulty={daily.difficulty} />}
                     {authorText && (
                       <Badge
                         variant="outline"
                         className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
                       >
-                        {copy.app.puzzleAuthor(authorText)}
+                        <User className="size-3.5" aria-hidden="true" />
+                        {authorText}
                       </Badge>
                     )}
                     <span className="text-sm font-medium text-muted-foreground">
@@ -531,8 +514,14 @@ function App() {
                     </span>
                   </div>
                   <div className="pt-1">
-                    <Button onClick={handleStart} size="lg" className="min-w-44">
-                      {copy.app.startPuzzle}
+                    <Button
+                      onClick={handleStart}
+                      size="icon-lg"
+                      className="size-14 rounded-full shadow-sm"
+                      aria-label={copy.app.startPuzzle}
+                      title={copy.app.startPuzzle}
+                    >
+                      <Play className="size-6" aria-hidden="true" />
                     </Button>
                   </div>
                 </div>
@@ -540,7 +529,8 @@ function App() {
             ) : (
               <>
                 <div className="mb-4 grid gap-2 border-b px-1 pb-3 sm:grid-cols-[1fr_auto_1fr] sm:items-end">
-                  <div className="text-xl font-semibold text-foreground sm:text-left sm:text-2xl">
+                  <div className="flex items-center gap-2 text-xl font-semibold text-foreground sm:text-left sm:text-2xl">
+                    <Timer className="size-5 shrink-0 text-muted-foreground sm:size-6" aria-hidden="true" />
                     {copy.app.elapsedTime(activeElapsedTime)}
                   </div>
                   <div className="text-base text-muted-foreground sm:text-center">
@@ -552,16 +542,29 @@ function App() {
                         variant="outline"
                         className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
                       >
-                        {copy.app.puzzleAuthor(authorText)}
+                        <User className="size-3.5" aria-hidden="true" />
+                        {authorText}
                       </Badge>
                     )}
                     {!isDirectPuzzle && hasResult && (
-                      <Button onClick={handleViewResult} variant="ghost" size="sm">
-                        {copy.app.viewResults}
+                      <Button
+                        onClick={handleViewResult}
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={copy.app.viewResults}
+                        title={copy.app.viewResults}
+                      >
+                        <Trophy />
                       </Button>
                     )}
-                    <Button onClick={handleOpenRestartDialog} variant="outline" size="sm">
-                      {copy.app.restart}
+                    <Button
+                      onClick={handleOpenRestartDialog}
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={copy.app.restart}
+                      title={copy.app.restart}
+                    >
+                      <RotateCcw />
                     </Button>
                   </div>
                 </div>
@@ -621,8 +624,14 @@ function App() {
                   <span className="text-sm text-muted-foreground">
                     {copy.app.historyPage(safeHistoryPage, totalHistoryPages)}
                   </span>
-                  <Button variant="ghost" onClick={closeHistory}>
-                    {copy.app.close}
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={closeHistory}
+                    aria-label={copy.app.close}
+                    title={copy.app.close}
+                  >
+                    <X />
                   </Button>
                 </div>
               </div>
@@ -668,26 +677,28 @@ function App() {
                     ))}
                   </div>
                   <h3 className="mt-4 text-sm font-semibold text-foreground">{copy.app.historyDifficultyFilter}</h3>
-                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                  <div className="mt-2 grid grid-cols-4 gap-1.5">
                     <Button
                       variant={historyDifficultyFilter === 'all' ? 'secondary' : 'outline'}
-                      size="xs"
-                      className="w-full justify-center truncate"
+                      size="icon-sm"
                       aria-pressed={historyDifficultyFilter === 'all'}
                       onClick={() => setHistoryDifficultyFilter('all')}
+                      aria-label={copy.app.allHistoryDifficulties}
+                      title={copy.app.allHistoryDifficulties}
                     >
-                      {copy.app.allHistoryDifficulties}
+                      <LayoutGrid />
                     </Button>
                     {(Object.keys(puzzleDifficultyLabels) as PuzzleDifficulty[]).map((difficulty) => (
                       <Button
                         key={difficulty}
                         variant={historyDifficultyFilter === difficulty ? 'secondary' : 'outline'}
-                        size="xs"
-                        className="w-full justify-center truncate"
+                        size="icon-sm"
                         aria-pressed={historyDifficultyFilter === difficulty}
                         onClick={() => setHistoryDifficultyFilter(difficulty)}
+                        aria-label={puzzleDifficultyLabels[difficulty][locale]}
+                        title={puzzleDifficultyLabels[difficulty][locale]}
                       >
-                        {puzzleDifficultyLabels[difficulty][locale]}
+                        <DifficultyStars difficulty={difficulty} starClassName="size-2.5" />
                       </Button>
                     ))}
                   </div>
@@ -747,12 +758,7 @@ function App() {
                                     <span className="truncate text-lg font-semibold text-foreground">
                                       {item.template.name[locale]}
                                     </span>
-                                    <Badge
-                                      variant="outline"
-                                      className="border-[#bca286] bg-secondary text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
-                                    >
-                                      {puzzleDifficultyLabels[item.difficulty][locale]}
-                                    </Badge>
+                                    <DifficultyBadge difficulty={item.difficulty} />
                                     <Badge variant="outline" className={statusTone}>
                                       {statusLabel}
                                     </Badge>
@@ -779,16 +785,20 @@ function App() {
                                   </div>
                                   <Button
                                     variant="outline"
-                                    size="sm"
+                                    size="icon-sm"
                                     className="mt-2"
                                     onClick={(event) => {
                                       event.stopPropagation();
                                       copyHistoryLink(buildHistoryShareUrl(item), item.dateStr);
                                     }}
-                                  >
-                                    {copiedHistoryDate === item.dateStr
+                                    aria-label={copiedHistoryDate === item.dateStr
                                       ? copy.app.historyLinkCopied
                                       : copy.app.shareHistoryLink}
+                                    title={copiedHistoryDate === item.dateStr
+                                      ? copy.app.historyLinkCopied
+                                      : copy.app.shareHistoryLink}
+                                  >
+                                    {copiedHistoryDate === item.dateStr ? <Check /> : <Share2 />}
                                   </Button>
                                 </div>
                               </div>
@@ -833,20 +843,26 @@ function App() {
                 <div className="flex items-center justify-between border-t px-4 py-3">
                   <Button
                     variant="outline"
+                    size="icon-sm"
                     onClick={() => setHistoryPage((page) => Math.max(1, page - 1))}
                     disabled={safeHistoryPage <= 1}
+                    aria-label={copy.app.previousPage}
+                    title={copy.app.previousPage}
                   >
-                    {copy.app.previousPage}
+                    <ChevronLeft />
                   </Button>
                   <span className="text-sm text-muted-foreground">
                     {copy.app.historyPage(safeHistoryPage, totalHistoryPages)}
                   </span>
                   <Button
                     variant="outline"
+                    size="icon-sm"
                     onClick={() => setHistoryPage((page) => Math.min(totalHistoryPages, page + 1))}
                     disabled={safeHistoryPage >= totalHistoryPages}
+                    aria-label={copy.app.nextPage}
+                    title={copy.app.nextPage}
                   >
-                    {copy.app.nextPage}
+                    <ChevronRight />
                   </Button>
                 </div>
               )}
@@ -877,16 +893,22 @@ function App() {
               aria-modal="true"
               aria-label={copy.app.restartOptionsTitle}
             >
-              <div className="space-y-2">
+              <div className="flex items-center justify-between gap-3">
                 <h2 className="text-xl font-semibold text-foreground">{copy.app.restartOptionsTitle}</h2>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setRestartDialogOpen(false)}
+                  aria-label={copy.app.close}
+                  title={copy.app.close}
+                >
+                  <X />
+                </Button>
               </div>
               <div className="mt-4 flex flex-col gap-2">
                 <Button onClick={handleRestartWithTime}>{copy.app.restartKeepTime}</Button>
                 <Button variant="outline" onClick={handleRestartFromZero}>
                   {copy.app.restartResetTime}
-                </Button>
-                <Button variant="ghost" onClick={() => setRestartDialogOpen(false)}>
-                  {copy.shared.cancel}
                 </Button>
               </div>
             </Card>

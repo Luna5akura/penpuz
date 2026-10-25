@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link as LinkIcon, RotateCcw } from 'lucide-react';
+import { Link as LinkIcon, House, RotateCcw } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useI18n } from '@/i18n/useI18n';
 import { getDatabasePuzzleSamples } from '@/puzzles/database';
 import { getPuzzleTemplate, renderPuzzleBoard } from '@/puzzles/registry';
-import { puzzleDifficultyLabels } from '@/puzzles/types';
+import DifficultyBadge from './DifficultyBadge';
 
 function FitBoard({ children }: { children: ReactNode }) {
   const viewportRef = useRef<HTMLDivElement>(null);
@@ -93,13 +93,25 @@ export default function DatabasePuzzleTestPage() {
                   </Button>
                 ))}
               </div>
-              <Button type="button" variant="outline" onClick={() => setResetToken((value) => value + 1)}>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => setResetToken((value) => value + 1)}
+                aria-label={locale === 'zh-CN' ? '全部重置' : 'Reset all'}
+                title={locale === 'zh-CN' ? '全部重置' : 'Reset all'}
+              >
                 <RotateCcw />
-                {locale === 'zh-CN' ? '全部重置' : 'Reset all'}
               </Button>
-              <Button asChild variant="outline">
+              <Button
+                asChild
+                variant="outline"
+                size="icon"
+                aria-label={locale === 'zh-CN' ? '返回主页' : 'Back to home'}
+                title={locale === 'zh-CN' ? '返回主页' : 'Back to home'}
+              >
                 <a href="/">
-                  {locale === 'zh-CN' ? '返回主页' : 'Back to home'}
+                  <House />
                 </a>
               </Button>
             </div>
@@ -110,7 +122,6 @@ export default function DatabasePuzzleTestPage() {
           {samples.map(({ type, entry, puzzle }) => {
             const template = getPuzzleTemplate(type);
             const title = template.name[locale];
-            const difficulty = puzzleDifficultyLabels[entry.difficulty][locale];
             return (
               <Card key={type} className="w-full min-w-0 max-w-full overflow-hidden">
                 <CardHeader className="min-w-0 gap-2 border-b bg-muted/20">
@@ -120,7 +131,7 @@ export default function DatabasePuzzleTestPage() {
                   </div>
                   <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
                     <span>{puzzle.width}×{puzzle.height}</span>
-                    <span>{difficulty}</span>
+                    <DifficultyBadge difficulty={entry.difficulty} />
                   </div>
                 </CardHeader>
                 <CardContent className="w-full min-w-0 max-w-full p-3 sm:p-4">

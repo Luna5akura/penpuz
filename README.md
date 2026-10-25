@@ -6,7 +6,7 @@
 
 当前注册中心中的题型包括：
 
-- 数墙（Nurikabe）、数织（Fillomino）、仙人指路（Yajilin）、数回（Slitherlink）
+- 数墙（Nurikabe）、数织（Fillomino）、棋盘码牌（Fillomino Checkerboard，题面与例题来自 WPF Puzzle GP 2016 第 3 轮）、仙人指路（Yajilin）、数回（Slitherlink）
 - 仙人指邻（Koburin）
 - 邻居（Neighbors，数字 1/2/3 邻接题，支持 9×9 题面；题面来自 WPF Puzzle GP 2015 第 4 轮）
 - 摩天邻居（Sky-neighbors，9×9 摩天楼 + 邻接题；题面来自 WPF Puzzle GP 2015 第 4 轮）

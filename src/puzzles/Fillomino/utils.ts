@@ -142,12 +142,23 @@ export function getFillominoAutoBoundaryLines(
   return keys;
 }
 
-export function validateFillomino(
+export interface FillominoRegion {
+  size: number;
+  values: Set<number>;
+  cells: { r: number; c: number }[];
+}
+
+/**
+ * Split the grid into polyomino regions along the given deep lines plus the
+ * automatically inferred boundaries between different numbered cells.  A
+ * region may contain any number of clues, including none.
+ */
+export function buildFillominoRegions(
   grid: (number | null)[][],
   width: number,
   height: number,
   deepLines: Set<string> = new Set()
-) {
+): { regionIds: number[][]; regions: FillominoRegion[] } {
   const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
   const autoThinLines = getFillominoAutoBoundaryLines(grid, width, height);
   const hasBoundary = (r1: number, c1: number, r2: number, c2: number): boolean => {
@@ -171,8 +182,7 @@ export function validateFillomino(
 
   const visited = Array.from({ length: height }, () => Array(width).fill(false));
   const regionIds = Array.from({ length: height }, () => Array(width).fill(-1));
-  const regions: { size: number; values: Set<number>; cells: { r: number; c: number }[] }[] = [];
-  const invalidRegionIds = new Set<number>();
+  const regions: FillominoRegion[] = [];
 
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
@@ -210,20 +220,34 @@ export function validateFillomino(
         }
       }
 
-      // A region may carry one number (its area), conflicting numbers are
-      // invalid, and a region without any number is allowed: its size is
-      // simply the number of cells it encloses, which still participates
-      // in the adjacent-areas-must-differ rule below.
-      if (values.size > 1) invalidRegionIds.add(regionId);
-
-      const [regionValue] = values;
-      if (regionValue !== undefined && cells.length !== regionValue) {
-        invalidRegionIds.add(regionId);
-      }
-
       regions.push({ size: cells.length, values, cells });
     }
   }
+
+  return { regionIds, regions };
+}
+
+export function validateFillomino(
+  grid: (number | null)[][],
+  width: number,
+  height: number,
+  deepLines: Set<string> = new Set()
+) {
+  const { regionIds, regions } = buildFillominoRegions(grid, width, height, deepLines);
+  const invalidRegionIds = new Set<number>();
+
+  regions.forEach((region, regionId) => {
+    // A region may carry one number (its area), conflicting numbers are
+    // invalid, and a region without any number is allowed: its size is
+    // simply the number of cells it encloses, which still participates
+    // in the adjacent-areas-must-differ rule below.
+    if (region.values.size > 1) invalidRegionIds.add(regionId);
+
+    const [regionValue] = region.values;
+    if (regionValue !== undefined && region.size !== regionValue) {
+      invalidRegionIds.add(regionId);
+    }
+  });
 
   for (let r = 0; r < height; r++) {
     for (let c = 0; c < width; c++) {
@@ -268,6 +292,87 @@ export function validateFillomino(
   return {
     valid,
     message,
+    invalidCells: uniqueInvalid,
+  };
+}
+
+/**
+ * Fillomino Checkerboard (WPF Puzzle GP 2016, Round 3): the fillomino
+ * division must additionally admit a black/white coloring of whole regions
+ * in which no two edge-adjacent regions share a color.  That is possible
+ * exactly when the region adjacency graph is bipartite (has no odd cycle).
+ */
+export function validateFillominoCheckerboard(
+  grid: (number | null)[][],
+  width: number,
+  height: number,
+  deepLines: Set<string> = new Set()
+) {
+  const fillominoResult = validateFillomino(grid, width, height, deepLines);
+  if (!fillominoResult.valid) return fillominoResult;
+
+  const { regionIds, regions } = buildFillominoRegions(grid, width, height, deepLines);
+  const regionCount = regions.length;
+  const adjacency: number[][] = Array.from({ length: regionCount }, () => []);
+  const addEdge = (a: number, b: number) => {
+    if (a === b) return;
+    if (!adjacency[a].includes(b)) adjacency[a].push(b);
+    if (!adjacency[b].includes(a)) adjacency[b].push(a);
+  };
+
+  for (let r = 0; r < height; r++) {
+    for (let c = 0; c < width; c++) {
+      const currentRegionId = regionIds[r][c];
+      if (c + 1 < width) addEdge(currentRegionId, regionIds[r][c + 1]);
+      if (r + 1 < height) addEdge(currentRegionId, regionIds[r + 1][c]);
+    }
+  }
+
+  const color = Array(regionCount).fill(-1);
+  const invalidRegionIds = new Set<number>();
+
+  for (let start = 0; start < regionCount; start++) {
+    if (color[start] !== -1) continue;
+
+    const component: number[] = [];
+    const stack = [start];
+    color[start] = 0;
+    let failed = false;
+
+    while (stack.length > 0) {
+      const regionId = stack.pop()!;
+      component.push(regionId);
+
+      for (const neighbor of adjacency[regionId]) {
+        if (color[neighbor] === -1) {
+          color[neighbor] = color[regionId] ^ 1;
+          stack.push(neighbor);
+        } else if (color[neighbor] === color[regionId]) {
+          failed = true;
+        }
+      }
+    }
+
+    // A failed component contains an odd cycle, so none of its regions can
+    // be colored consistently.  Highlight the whole component.
+    if (failed) {
+      component.forEach((regionId) => invalidRegionIds.add(regionId));
+    }
+  }
+
+  if (invalidRegionIds.size === 0) {
+    return { valid: true, message: undefined, invalidCells: [] as { r: number; c: number }[] };
+  }
+
+  const invalidCells = Array.from(invalidRegionIds).flatMap((regionId) => regions[regionId].cells);
+  const uniqueInvalid = Array.from(new Set(invalidCells.map((cell) => `${cell.r},${cell.c}`))).map((key) => {
+    const [rr, cc] = key.split(',').map(Number);
+    return { r: rr, c: cc };
+  });
+
+  return {
+    valid: false,
+    message: '存在无法交替染成黑白两色的相邻区域，不满足棋盘染色约束',
     invalidCells: uniqueInvalid,
   };
 }
