@@ -1,7 +1,7 @@
 // src/App.tsx
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, History, Languages, LayoutGrid, NotebookText, Play, Puzzle, RotateCcw, Share2, Timer, Trophy, User, X } from 'lucide-react';
+import { BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, History, Languages, LayoutGrid, NotebookText, Play, Puzzle, Share2, Timer, Trophy, UserPen, X } from 'lucide-react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
 import {
@@ -12,6 +12,7 @@ import {
 import { getPuzzleTemplate, parsePuzzleLink, renderPuzzleBoard } from './puzzles/registry';
 import DifficultyBadge from './components/DifficultyBadge';
 import DifficultyStars from './components/DifficultyStars';
+import { RestartActionContext } from './components/RestartActionContext';
 import { Button } from './components/ui/button';
 import { Badge } from './components/ui/badge';
 import { useI18n } from './i18n/useI18n';
@@ -505,7 +506,7 @@ function App() {
                         variant="outline"
                         className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
                       >
-                        <User className="size-3.5" aria-hidden="true" />
+                        <UserPen className="size-3.5" aria-hidden="true" />
                         {authorText}
                       </Badge>
                     )}
@@ -542,7 +543,7 @@ function App() {
                         variant="outline"
                         className="border-[#bca286] bg-secondary text-sm text-[#5a3d27] dark:border-gray-600 dark:bg-muted dark:text-gray-100"
                       >
-                        <User className="size-3.5" aria-hidden="true" />
+                        <UserPen className="size-3.5" aria-hidden="true" />
                         {authorText}
                       </Badge>
                     )}
@@ -557,19 +558,12 @@ function App() {
                         <Trophy />
                       </Button>
                     )}
-                    <Button
-                      onClick={handleOpenRestartDialog}
-                      variant="outline"
-                      size="icon-sm"
-                      aria-label={copy.app.restart}
-                      title={copy.app.restart}
-                    >
-                      <RotateCcw />
-                    </Button>
                   </div>
                 </div>
                 <div className="mb-12 flex w-full min-w-0 justify-center">
-                  {renderBoard()}
+                  <RestartActionContext.Provider value={handleOpenRestartDialog}>
+                    {renderBoard()}
+                  </RestartActionContext.Provider>
                 </div>
               </>
             )}
@@ -887,24 +881,25 @@ function App() {
             onClick={() => setRestartDialogOpen(false)}
           >
             <Card
-              className="w-full max-w-sm border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card"
+              className="relative w-full max-w-sm border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card"
               onClick={(event) => event.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-label={copy.app.restartOptionsTitle}
             >
-              <div className="flex items-center justify-between gap-3">
-                <h2 className="text-xl font-semibold text-foreground">{copy.app.restartOptionsTitle}</h2>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setRestartDialogOpen(false)}
-                  aria-label={copy.app.close}
-                  title={copy.app.close}
-                >
-                  <X />
-                </Button>
-              </div>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="absolute right-2 top-2"
+                onClick={() => setRestartDialogOpen(false)}
+                aria-label={copy.app.close}
+                title={copy.app.close}
+              >
+                <X />
+              </Button>
+              <h2 className="text-center text-xl font-semibold leading-8 text-foreground">
+                {copy.app.restartOptionsTitle}
+              </h2>
               <div className="mt-4 flex flex-col gap-2">
                 <Button onClick={handleRestartWithTime}>{copy.app.restartKeepTime}</Button>
                 <Button variant="outline" onClick={handleRestartFromZero}>

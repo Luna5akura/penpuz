@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
-import { Bookmark, BookmarkPlus, Check, GitBranch, Redo2, Rewind, Undo2, X } from 'lucide-react';
+import { Bookmark, BookmarkPlus, Check, GitBranch, Redo2, Rewind, RotateCcw, Undo2, X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { Button } from './ui/button';
+import { useRestartAction } from './RestartActionContext';
 
 interface Props {
   canUndo: boolean;
@@ -33,6 +34,7 @@ export default function PuzzleAssistToolbar({
   onCommitTrial,
 }: Props) {
   const { copy } = useI18n();
+  const onRestart = useRestartAction();
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -75,6 +77,20 @@ export default function PuzzleAssistToolbar({
       }`}
     >
       <div className={`flex flex-wrap items-center justify-center gap-1.5 ${trialActive ? 'w-full' : 'mx-auto'}`}>
+        {onRestart && (
+          <>
+            <Button
+              variant="outline"
+              size="icon-sm"
+              onClick={onRestart}
+              aria-label={copy.app.restart}
+              title={copy.app.restart}
+            >
+              <RotateCcw />
+            </Button>
+            <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
+          </>
+        )}
         <Button
           variant="outline"
           size="icon-sm"
