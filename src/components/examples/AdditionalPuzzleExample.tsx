@@ -172,7 +172,7 @@ function RegionBoundaries({ regionIds, width, height }: { regionIds: number[][];
             y1={y}
             x2={x1 + CELL_SIZE}
             y2={y}
-            stroke={woodBoardTheme.border}
+            stroke={woodBoardTheme.deepLine}
             strokeWidth={strokeWidth}
             strokeLinecap="square"
           />
@@ -188,7 +188,7 @@ function RegionBoundaries({ regionIds, width, height }: { regionIds: number[][];
             y1={y1}
             x2={x}
             y2={y1 + CELL_SIZE}
-            stroke={woodBoardTheme.border}
+            stroke={woodBoardTheme.deepLine}
             strokeWidth={strokeWidth}
             strokeLinecap="square"
           />
@@ -426,7 +426,7 @@ function NumberGridBoard({
               y1={line.y1 * CELL_SIZE}
               x2={line.x2 * CELL_SIZE}
               y2={line.y2 * CELL_SIZE}
-              stroke={woodBoardTheme.border}
+              stroke={woodBoardTheme.deepLine}
               strokeLinecap="square"
               strokeWidth={boundaryStrokeWidth}
             />

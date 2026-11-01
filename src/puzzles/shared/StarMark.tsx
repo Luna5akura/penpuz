@@ -1,4 +1,4 @@
-import { getBoardSymbolFontSize } from '../boardTheme';
+import { boardStrokeWidths, getBoardSymbolFontSize } from '../boardTheme';
 
 /** Ten vertices of a classic five-pointed star in a 100×100 view box. */
 const STAR_POINTS = (() => {
@@ -16,8 +16,8 @@ const STAR_POINTS = (() => {
  * the notes/replay thumbnails.  Sizes with the cell and inherits the cell's
  * ink colour through `currentColor`.
  */
-export default function StarMark({ cellSize }: { cellSize: number }) {
-  const span = Math.round(getBoardSymbolFontSize(cellSize) * 0.8);
+export default function StarMark({ cellSize, size }: { cellSize: number; size?: number }) {
+  const span = Math.round(size ?? getBoardSymbolFontSize(cellSize) * 0.92);
   return (
     <svg
       className="pointer-events-none"
@@ -27,7 +27,13 @@ export default function StarMark({ cellSize }: { cellSize: number }) {
       aria-hidden="true"
       focusable="false"
     >
-      <polygon points={STAR_POINTS} fill="currentColor" />
+      <polygon
+        points={STAR_POINTS}
+        fill="var(--board-deep-line)"
+        stroke="var(--board-deep-line)"
+        strokeWidth={boardStrokeWidths.boundary * 2.5}
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

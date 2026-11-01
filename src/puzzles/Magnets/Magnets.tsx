@@ -127,6 +127,36 @@ export default function MagnetsBoard({ puzzle, startTime, resetToken, onComplete
       left: Array.from({ length: puzzle.height }, (_, row) => [puzzle.leftPlusClues[row], puzzle.leftClues[row]]),
     }}
     outsideClueStackCellTextSize
+    getSatisfiedOutsideClueKeys={(grid) => {
+      // 列内 +/− 个数、行内 +/− 个数与盘外数字一致时该线索变灰
+      const satisfied = new Set<string>();
+      const matches = (expected: number | null, actual: number) => expected === null || expected === actual;
+      for (let col = 0; col < puzzle.width; col++) {
+        let plus = 0;
+        let minus = 0;
+        for (let row = 0; row < puzzle.height; row++) {
+          const cell = grid[row]?.[col];
+          if (cell === PLUS) plus += 1;
+          else if (cell === MINUS) minus += 1;
+        }
+        if (matches(puzzle.topClues[col], plus) && matches(puzzle.topMinusClues[col], minus)) {
+          satisfied.add(`top-${col}`);
+        }
+      }
+      for (let row = 0; row < puzzle.height; row++) {
+        let plus = 0;
+        let minus = 0;
+        for (let col = 0; col < puzzle.width; col++) {
+          const cell = grid[row]?.[col];
+          if (cell === PLUS) plus += 1;
+          else if (cell === MINUS) minus += 1;
+        }
+        if (matches(puzzle.leftPlusClues[row], plus) && matches(puzzle.leftClues[row], minus)) {
+          satisfied.add(`left-${row}`);
+        }
+      }
+      return satisfied;
+    }}
     outsideClueCornerMarks={[
       { row: 0, col: 0, label: '+' },
       { row: 1, col: 1, label: '−' },

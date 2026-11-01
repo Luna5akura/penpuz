@@ -78,6 +78,49 @@ export default function SkyscrapersBoard({
         renderCandidates={renderCandidates}
         renderCellValue={(value) => (typeof value === 'number' ? value : null)}
         outsideClues={puzzle.clues}
+        getSatisfiedOutsideClueKeys={(grid) => {
+          // 可见摩天楼数 = 盘外数字时该线索变灰
+          const satisfied = new Set<string>();
+          const visible = (side: 'top' | 'bottom' | 'left' | 'right', index: number) => {
+            const clue = puzzle.clues[side]?.[index];
+            if (clue === null || clue === undefined) return false;
+            let count = 0;
+            let highest = 0;
+            if (side === 'top' || side === 'bottom') {
+              for (let step = 0; step < puzzle.height; step++) {
+                const row = side === 'bottom' ? puzzle.height - 1 - step : step;
+                const cell = grid[row]?.[index];
+                if (typeof cell !== 'number') continue;
+                if (cell > highest) {
+                  highest = cell;
+                  count += 1;
+                }
+              }
+            } else {
+              for (let step = 0; step < puzzle.width; step++) {
+                const col = side === 'right' ? puzzle.width - 1 - step : step;
+                const cell = grid[index]?.[col];
+                if (typeof cell !== 'number') continue;
+                if (cell > highest) {
+                  highest = cell;
+                  count += 1;
+                }
+              }
+            }
+            return count === clue;
+          };
+          for (const side of ['top', 'bottom'] as const) {
+            for (let index = 0; index < puzzle.width; index++) {
+              if (visible(side, index)) satisfied.add(`${side}-${index}`);
+            }
+          }
+          for (const side of ['left', 'right'] as const) {
+            for (let index = 0; index < puzzle.height; index++) {
+              if (visible(side, index)) satisfied.add(`${side}-${index}`);
+            }
+          }
+          return satisfied;
+        }}
         outsideClueCellTextSize
         hoverKeyboardEntry
         cellInputMode="cycle"

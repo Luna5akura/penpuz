@@ -20,4 +20,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // The puzzle registry deliberately lazy-loads every board component so
+    // each puzzle type splits into its own chunk.  It is not a component
+    // file, so the fast-refresh export rule does not apply.
+    files: ['src/puzzles/registry.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

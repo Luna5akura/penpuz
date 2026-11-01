@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ChevronUp, ExternalLink, House, Play, RotateCcw } from 'lucide-react';
+import { ChevronUp, ExternalLink, Play, Puzzle, RotateCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useI18n } from '@/i18n/useI18n';
@@ -67,7 +67,7 @@ export default function AllPuzzlesPage() {
                 title={locale === 'zh-CN' ? '返回主页' : 'Back to home'}
               >
                 <a href="/">
-                  <House />
+                  <Puzzle />
                 </a>
               </Button>
             </div>

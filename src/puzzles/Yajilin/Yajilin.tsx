@@ -56,6 +56,8 @@ interface Props {
     height: number
   ) => YajilinValidationResult;
   renderClue?: (clue: YajilinPuzzleData['clues'][number], cellSize: number) => ReactNode;
+  /** 变体的“线索已满足”判定；缺省按方向统计涂黑格数。 */
+  getSatisfiedClueKeys?: (grid: YajilinCellState[][]) => Set<string>;
 }
 
 const BOARD_PADDING = commonBoardChrome.padding;
@@ -114,6 +116,7 @@ export default function YajilinBoard({
   showValidationMessage = false,
   validateBoard,
   renderClue,
+  getSatisfiedClueKeys,
 }: Props) {
   const { width, height, clues } = puzzle;
   const [containerRef, viewportWidth] = useBoardContainerWidth();
@@ -232,6 +235,28 @@ export default function YajilinBoard({
       : null),
     [clues, grid, hasEdited, height, loopEdges, validateBoard, width]
   );
+
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    if (getSatisfiedClueKeys) return getSatisfiedClueKeys(grid);
+    const satisfied = new Set<string>();
+    for (const clue of clues) {
+      if (clue.value === '?') continue;
+      let count = 0;
+      if (clue.direction === 'up') {
+        for (let r = clue.row - 1; r >= 0; r--) if (grid[r][clue.col] === 1) count += 1;
+      } else if (clue.direction === 'down') {
+        for (let r = clue.row + 1; r < height; r++) if (grid[r][clue.col] === 1) count += 1;
+      } else if (clue.direction === 'left') {
+        for (let c = clue.col - 1; c >= 0; c--) if (grid[clue.row][c] === 1) count += 1;
+      } else {
+        for (let c = clue.col + 1; c < width; c++) if (grid[clue.row][c] === 1) count += 1;
+      }
+      if (count === clue.value) satisfied.add(`${clue.row},${clue.col}`);
+    }
+    return satisfied;
+  }, [clues, getSatisfiedClueKeys, grid, height, width]);
+
 
   useEffect(() => {
     if (!validation?.valid || hasCompleted.current) return;
@@ -729,6 +754,9 @@ export default function YajilinBoard({
                     ...(clue
                       ? getBoardCellColors('clue')
                       : getBoardCellColors(isShaded ? 'playerShaded' : 'cell')),
+                    ...(clue && satisfiedClueCells.has(`${r}-${c}`)
+                      ? { color: woodBoardTheme.neutralSoft }
+                      : {}),
                     ...cellStyle,
                   }}
                 >

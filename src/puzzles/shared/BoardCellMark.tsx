@@ -19,7 +19,7 @@ interface BoardCellMarkProps {
 export default function BoardCellMark({
   kind,
   cellSize,
-  color = woodBoardTheme.border,
+  color = woodBoardTheme.deepLine,
   x,
   y,
 }: BoardCellMarkProps) {

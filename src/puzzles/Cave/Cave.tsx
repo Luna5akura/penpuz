@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import type { CavePuzzleData } from '../types';
 import { getCellKey } from '../gridUtils';
-import { boardClassNames, getBoardClueTextStyle } from '../boardTheme';
+import { boardClassNames, getBoardClueTextStyle, woodBoardTheme } from '../boardTheme';
 import { validateCave } from './utils';
 
 interface Props {
@@ -57,14 +57,29 @@ export default function CaveBoard({
         if (state === 2) return 'marked';
         return 'cell';
       }}
-      renderCellContent={(row, col, _state, cellSize) => {
+      renderCellContent={(row, col, _state, cellSize, grid) => {
         const clue = clueMap.get(getCellKey(row, col));
         if (clue === undefined) return null;
+
+        // 数字线索满足要求（上下左右可见山洞格数 = 数字）后变灰
+        let visible = 1;
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          let r = row + dr;
+          let c = col + dc;
+          while (r >= 0 && r < puzzle.height && c >= 0 && c < puzzle.width && grid[r][c] !== 1) {
+            visible += 1;
+            r += dr;
+            c += dc;
+          }
+        }
+        const satisfied = visible === clue;
+
         return (
           <span
             className={boardClassNames.cellText}
             style={{
               ...getBoardClueTextStyle(cellSize),
+              ...(satisfied ? { color: woodBoardTheme.neutralSoft } : {}),
             }}
           >
             {clue}

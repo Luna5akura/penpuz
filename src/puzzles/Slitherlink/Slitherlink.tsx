@@ -35,7 +35,7 @@ import {
   getGridLineEdgeKey,
   parseGridLineEdgeKey,
 } from '../gridUtils';
-import { validateSlitherlink } from './utils';
+import { getSlitherlinkCellEdgeKeys, validateSlitherlink } from './utils';
 
 interface Props {
   puzzle: SlitherlinkPuzzleData;
@@ -426,6 +426,20 @@ export default function SlitherlinkBoard({
     [normalizedSnapshot.lineEdges, puzzle, validateLines]
   );
   const visibleValidation = showValidationMessage ? validation : null;
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    const satisfied = new Set<string>();
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        const clue = clues[r][c];
+        if (clue === null) continue;
+        const edgeCount = getSlitherlinkCellEdgeKeys(r, c).filter((key) => lineSet.has(key)).length;
+        if (edgeCount === clue) satisfied.add(`${r}-${c}`);
+      }
+    }
+    return satisfied;
+  }, [clues, height, lineSet, width]);
+
   const cellSize = useMemo(
     () => getResponsiveCellSize({ fixedCellSize, viewportWidth, width, containerWidth: true }),
     [fixedCellSize, viewportWidth, width]
@@ -818,7 +832,7 @@ export default function SlitherlinkBoard({
                     strokeWidth={getBoardGridStrokeWidth()}
                   />
                   {cellMark
-                    ? renderCellCenterMark(cellMark, row, col, cellSize, cellMarkColors?.text ?? woodBoardTheme.border)
+                    ? renderCellCenterMark(cellMark, row, col, cellSize, cellMarkColors?.text ?? woodBoardTheme.deepLine)
                     : null}
                   {clue !== null ? (
                     renderClue
@@ -829,7 +843,9 @@ export default function SlitherlinkBoard({
                           y={BOARD_PADDING + (row + 0.5) * cellSize}
                           dominantBaseline="central"
                           textAnchor="middle"
-                          fill={woodBoardTheme.border}
+                          fill={satisfiedClueCells.has(`${row}-${col}`)
+                            ? woodBoardTheme.neutralSoft
+                            : woodBoardTheme.border}
                           {...clueTextProps}
                         >
                           {clue}

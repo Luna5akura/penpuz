@@ -59,7 +59,7 @@ function MagicSnailOverlay({
           y1={line.y1 * cellSize}
           x2={line.x2 * cellSize}
           y2={line.y2 * cellSize}
-          stroke={woodBoardTheme.border}
+          stroke={woodBoardTheme.deepLine}
           strokeLinecap="square"
           strokeWidth={boundaryStrokeWidth}
         />

@@ -85,6 +85,29 @@ export default function BattleshipBoard({
       fixedCellSize={fixedCellSize}
       showValidationMessage={showValidationMessage}
       outsideClues={{ top: puzzle.columnClues, left: puzzle.rowClues }}
+      getSatisfiedOutsideClueKeys={(grid) => {
+        // 行/列内船段数 = 盘外数字时该线索变灰
+        const satisfied = new Set<string>();
+        for (let row = 0; row < puzzle.height; row++) {
+          let count = 0;
+          for (let col = 0; col < puzzle.width; col++) {
+            if (grid[row][col] === 1) count += 1;
+          }
+          if (puzzle.rowClues[row] !== null && count === puzzle.rowClues[row]) {
+            satisfied.add(`left-${row}`);
+          }
+        }
+        for (let col = 0; col < puzzle.width; col++) {
+          let count = 0;
+          for (let row = 0; row < puzzle.height; row++) {
+            if (grid[row][col] === 1) count += 1;
+          }
+          if (puzzle.columnClues[col] !== null && count === puzzle.columnClues[col]) {
+            satisfied.add(`top-${col}`);
+          }
+        }
+        return satisfied;
+      }}
       outsideClueCellTextSize
       renderBoardAccessory={(cellSize, grid) => (
         <BattleshipFleet

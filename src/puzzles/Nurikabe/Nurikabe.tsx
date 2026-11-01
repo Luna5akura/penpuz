@@ -16,6 +16,7 @@ import {
   getBoardTextStyle,
   getBoardTrialCellStyle,
   getResponsiveCellSize,
+  woodBoardTheme,
 } from '../boardTheme';
 import { safeSetPointerCapture } from '@/lib/pointer';
 import { sanitizeMatrix } from '../snapshotGuards';
@@ -187,6 +188,33 @@ export default function NurikabeBoard({
     }
   }, [grid, clues, width, height, startTime, onComplete]);
 
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    const satisfied = new Set<string>();
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
+    for (const clue of clues) {
+      if (clue.value === '?') continue;
+      const visited = Array.from({ length: height }, () => Array(width).fill(false));
+      const stack: Array<[number, number]> = [[clue.row, clue.col]];
+      visited[clue.row][clue.col] = true;
+      let size = 0;
+      while (stack.length > 0) {
+        const [r, c] = stack.pop()!;
+        size += 1;
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr < 0 || nr >= height || nc < 0 || nc >= width) continue;
+          if (visited[nr][nc] || grid[nr][nc] === 1) continue;
+          visited[nr][nc] = true;
+          stack.push([nr, nc]);
+        }
+      }
+      if (size === clue.value) satisfied.add(`${clue.row},${clue.col}`);
+    }
+    return satisfied;
+  }, [clues, grid, height, width]);
+
   const handlePointerDown = (r: number, c: number, e: React.PointerEvent<HTMLDivElement>) => {
     const isTouchPointer = e.pointerType === 'touch' || (e.button === 0 && isMobile);
     if (!isTouchPointer && e.button !== 0 && e.button !== 2) return;
@@ -330,6 +358,9 @@ export default function NurikabeBoard({
                     ? 'clue'
                     : isShaded ? 'playerShaded' : isMarked ? 'marked' : 'cell'),
                   ...getBoardTextStyle(cellSize),
+                  ...(clue && satisfiedClueCells.has(`${r}-${c}`)
+                    ? { color: woodBoardTheme.neutralSoft }
+                    : {}),
                   ...style,
                 }}
                 className={`relative flex items-center justify-center border-0 cursor-pointer touch-none ${boardClassNames.cellTextTight}`}

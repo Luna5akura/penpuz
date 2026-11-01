@@ -103,9 +103,11 @@ interface NumberPlacementBoardProps<TPuzzle extends { width: number; height: num
   ) => NumberPlacementValidationResult;
   getFixedValue?: (row: number, col: number) => number | null;
   isBlockedCell?: (row: number, col: number) => boolean;
-  renderBlockedCell?: (row: number, col: number, cellSize: number) => ReactNode;
+  renderBlockedCell?: (row: number, col: number, cellSize: number, grid: NumberPlacementCellValue[][]) => ReactNode;
   renderOverlay?: (cellSize: number, boardWidthPx: number, boardHeightPx: number) => ReactNode;
-  renderCellValue?: (value: NumberPlacementCellValue, cellSize: number, row: number, col: number) => ReactNode;
+  renderCellValue?: (value: NumberPlacementCellValue, cellSize: number, row: number, col: number, grid: NumberPlacementCellValue[][]) => ReactNode;
+  /** 判定盘外线索是否已满足（key 形如 top-0 / left-3），满足的线索变灰。 */
+  getSatisfiedOutsideClueKeys?: (grid: NumberPlacementCellValue[][]) => Set<string>;
   renderCandidates?: (values: number[], cellSize: number, row: number, col: number) => ReactNode;
   getCellTone?: (row: number, col: number, value: NumberPlacementCellValue) => BoardCellTone | null | undefined;
   extraCellValues?: Array<Exclude<NumberPlacementCellValue, number | null>>;
@@ -341,6 +343,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   inputModeOptions,
   showValueButtons = true,
   outsideClues,
+  getSatisfiedOutsideClueKeys,
   outsideClueStacks,
   outsideClueStackCellTextSize = false,
   outsideClueStackTextStyle,
@@ -473,6 +476,11 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
   const resolvedOutsideClues = useMemo(
     () => typeof outsideClues === 'function' ? outsideClues(validationGrid) ?? undefined : outsideClues,
     [outsideClues, validationGrid]
+  );
+
+  const satisfiedOutsideClueKeys = useMemo(
+    () => getSatisfiedOutsideClueKeys?.(grid) ?? new Set<string>(),
+    [getSatisfiedOutsideClueKeys, grid]
   );
   const hasOutsideInput = OUTSIDE_SIDES.some((side) => outsideInput?.[side] === true);
   const layoutOutsideClues = resolvedOutsideClues ?? (
@@ -1192,7 +1200,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
         }}
       >
         {tone === 'outlined' ? <BoardCellOutline cellSize={cellSize} /> : null}
-        {renderCellValue?.(value, cellSize, coordinate.row, coordinate.col)}
+        {renderCellValue?.(value, cellSize, coordinate.row, coordinate.col, grid)}
       </div>
     );
   };
@@ -1212,6 +1220,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
           left: `${left}px`,
           top: `${top}px`,
           ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, availableWidth, value)),
+          ...(satisfiedOutsideClueKeys.has(key) ? { color: woodBoardTheme.neutralSoft } : {}),
         }}
       >
         {value}
@@ -1278,14 +1287,14 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 >
                   {tone === 'outlined' ? <BoardCellOutline cellSize={cellSize} /> : null}
                   {blocked
-                    ? renderBlockedCell?.(row, col, cellSize)
+                    ? renderBlockedCell?.(row, col, cellSize, grid)
                     : candidates[row][col].length > 0
                       ? (
                         <span style={getBoardInkStyle(trialColors?.text ?? woodBoardTheme.border)}>
                           {renderCandidates?.(candidates[row][col], cellSize, row, col)}
                         </span>
                       )
-                      : renderCellValue?.(value, cellSize, row, col)}
+                      : renderCellValue?.(value, cellSize, row, col, grid)}
                 </div>
               );
             })
@@ -1370,7 +1379,7 @@ export default function NumberPlacementBoard<TPuzzle extends { width: number; he
                 const y = side === 'top' ? BOARD_PADDING + topSlot * outsideClueLayout.clueSize : side === 'bottom' ? gridTop + boardHeightPx + stack * outsideClueLayout.clueSize : gridTop + index * cellSize;
                 const clueWidth = side === 'top' || side === 'bottom' ? cellSize : outsideClueLayout.clueSize;
                 const clueHeight = side === 'left' || side === 'right' ? cellSize : outsideClueLayout.clueSize;
-                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...(outsideClueStackTextStyle ? outsideClueStackTextStyle(cellSize, value) : outsideClueStackCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, clueWidth, value)), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
+                return <span key={`stack-${side}-${index}-${stack}`} className="absolute flex items-center justify-center text-center tabular-nums" style={{ ...(outsideClueStackTextStyle ? outsideClueStackTextStyle(cellSize, value) : outsideClueStackCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, clueWidth, value)), ...(satisfiedOutsideClueKeys.has(`${side}-${index}`) ? { color: woodBoardTheme.neutralSoft } : {}), left: x, top: y, width: clueWidth, height: clueHeight, display: 'flex', overflow: 'visible' }}>{value}</span>;
               }))
             )}
           </div>

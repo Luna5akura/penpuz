@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Bookmark, BookmarkPlus, Check, GitBranch, Redo2, Rewind, RotateCcw, Undo2, X } from 'lucide-react';
+import { Bookmark, BookmarkPlus, Check, GitBranch, Redo2, Rewind, RotateCcw, SearchCheck, Undo2, X } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { Button } from './ui/button';
 import { useRestartAction } from './RestartActionContext';
@@ -17,6 +17,8 @@ interface Props {
   onStartTrial: () => void;
   onDiscardTrial: () => void;
   onCommitTrial: () => void;
+  /** Optional "check my work" action; highlights invalid cells on boards that support it. */
+  onCheck?: () => void;
 }
 
 export default function PuzzleAssistToolbar({
@@ -32,6 +34,7 @@ export default function PuzzleAssistToolbar({
   onStartTrial,
   onDiscardTrial,
   onCommitTrial,
+  onCheck,
 }: Props) {
   const { copy } = useI18n();
   const onRestart = useRestartAction();
@@ -70,7 +73,7 @@ export default function PuzzleAssistToolbar({
 
   return (
     <div
-      className={`flex w-full flex-col items-center gap-2 border px-3 py-2 transition-colors ${
+      className={`flex w-full flex-col items-center gap-2 border px-3 py-2 transition-colors sticky bottom-3 z-20 shadow-md md:static md:shadow-none ${
         trialActive
           ? 'border-amber-400 bg-amber-50/80 dark:border-amber-700 dark:bg-amber-950/25'
           : 'border-[#d3c3ae] bg-[#fffdf9] dark:border-gray-700 dark:bg-gray-900'
@@ -111,6 +114,17 @@ export default function PuzzleAssistToolbar({
         >
           <Redo2 />
         </Button>
+        {onCheck && (
+          <Button
+            variant="outline"
+            size="icon-sm"
+            onClick={onCheck}
+            aria-label={copy.shared.check}
+            title={copy.shared.check}
+          >
+            <SearchCheck />
+          </Button>
+        )}
 
         <span aria-hidden="true" className="mx-1 h-5 w-px bg-border" />
 

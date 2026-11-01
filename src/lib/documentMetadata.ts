@@ -48,4 +48,9 @@ export function setDocumentMetadata({ title, description, url, type = 'website' 
   if (url) {
     setPropertyMeta('og:url', url);
   }
+
+  // Branded share card; the daily puzzle page keeps the same card.
+  const shareImageUrl = `${window.location.origin}/share-card.png`;
+  setPropertyMeta('og:image', shareImageUrl);
+  setNamedMeta('twitter:image', shareImageUrl);
 }

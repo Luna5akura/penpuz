@@ -53,6 +53,25 @@ export function KoburinBoard({
     loopEdges: Set<string>,
   ) => validateKoburin(grid, loopEdges, puzzle), [puzzle]);
 
+  const getSatisfiedClueKeys = useCallback((grid: YajilinCellState[][]) => {
+    const satisfied = new Set<string>();
+    const deltas = puzzle.minesweeper
+      ? ([[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]] as const)
+      : ([[-1, 0], [1, 0], [0, -1], [0, 1]] as const);
+    for (const clue of puzzle.clues) {
+      if (clue.value === '?') continue;
+      let count = 0;
+      for (const [dr, dc] of deltas) {
+        const nr = clue.row + dr;
+        const nc = clue.col + dc;
+        if (nr < 0 || nr >= puzzle.height || nc < 0 || nc >= puzzle.width) continue;
+        if (grid[nr][nc] === 1) count += 1;
+      }
+      if (count === clue.value) satisfied.add(`${clue.row},${clue.col}`);
+    }
+    return satisfied;
+  }, [puzzle]);
+
   const renderClue = useCallback((clue: YajilinClue, cellSize: number) => (
     <span
       className={`flex h-full w-full items-center justify-center ${boardClassNames.cellText}`}
@@ -73,6 +92,7 @@ export function KoburinBoard({
       fixedCellSize={fixedCellSize}
       showValidationMessage={showValidationMessage}
       validateBoard={validate}
+      getSatisfiedClueKeys={getSatisfiedClueKeys}
       renderClue={renderClue}
     />
   );

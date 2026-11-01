@@ -23,7 +23,7 @@ export default function BoardEdgeCross({
   x,
   y,
   cellSize,
-  color = woodBoardTheme.border,
+  color = woodBoardTheme.deepLine,
 }: BoardEdgeCrossProps) {
   const size = getLoopCrossSize(cellSize);
 

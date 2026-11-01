@@ -2,9 +2,10 @@
 import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useI18n } from '@/i18n/useI18n';
 import type { FillominoCheckerboardPuzzleData, FillominoPuzzleData } from '../types';
-import { getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino, validateFillominoCheckerboard } from './utils';
+import { buildFillominoRegions, getFillominoAutoBoundaryLines, getFillominoEdgeKey, validateFillomino, validateFillominoCheckerboard } from './utils';
 import { usePuzzleHistory } from '../../hooks/usePuzzleHistory';
 import PuzzleAssistToolbar from '../../components/PuzzleAssistToolbar';
+import ValidationMessage from '../../components/ValidationMessage';
 import { getKeyboardDigit, isKeyboardInputTarget } from '@/lib/keyboard';
 import { useBoardContainerWidth } from '../useBoardContainerWidth';
 import { getTrialLevelColors } from '../trialStyles';
@@ -142,6 +143,15 @@ export default function FillominoBoard({
     setMobileMode('number');
   }, []);
 
+  // ==================== 检查模式状态 ====================
+  // Marks are tied to the snapshot they were computed against, so they
+  // disappear automatically as soon as the player edits the board.
+  const [checkResult, setCheckResult] = useState<{
+    invalid: Set<string>;
+    message: string;
+    snapshot: unknown;
+  } | null>(null);
+
   // ==================== 新增：防止重复完成 ====================
   const hasCompleted = useRef(false);
   const createInitialSnapshot = useCallback<() => FillominoSnapshot>(() => ({
@@ -265,6 +275,26 @@ export default function FillominoBoard({
     validate();
   }, [validate]);
 
+  // ==================== 检查按钮：高亮违规格 ====================
+  const runCheck = useCallback(() => {
+    const result = checkerboard
+      ? validateFillominoCheckerboard(grid, width, height, deepLineSet)
+      : validateFillomino(grid, width, height, deepLineSet);
+    if (result.valid) {
+      setCheckResult({ invalid: new Set(), message: '当前盘面符合规则', snapshot: normalizedSnapshot });
+    } else {
+      setCheckResult({
+        invalid: new Set(result.invalidCells.map((cell) => `${cell.r}-${cell.c}`)),
+        message: result.message ?? '存在不符合规则的格子',
+        snapshot: normalizedSnapshot,
+      });
+    }
+  }, [checkerboard, deepLineSet, grid, height, normalizedSnapshot, width]);
+
+  const checkStale = checkResult !== null && checkResult.snapshot !== normalizedSnapshot;
+  const checkInvalidCells = checkStale ? new Set<string>() : (checkResult?.invalid ?? new Set<string>());
+  const checkMessage = checkStale ? null : (checkResult?.message ?? null);
+
   // ==================== 键盘输入（带详细调试日志） ====================
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isKeyboardInputTarget(e.target)) return;
@@ -362,6 +392,23 @@ export default function FillominoBoard({
     [grid, height, width]
   );
   const autoThinLineSet = useMemo(() => new Set(autoThinLines), [autoThinLines]);
+
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    const { regionIds, regions } = buildFillominoRegions(grid, width, height, deepLineSet);
+    const satisfied = new Set<string>();
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        const clue = clues[r][c];
+        if (clue === null) continue;
+        const regionId = regionIds[r][c];
+        if (regionId >= 0 && regions[regionId]?.size === clue) {
+          satisfied.add(`${r}-${c}`);
+        }
+      }
+    }
+    return satisfied;
+  }, [clues, deepLineSet, grid, height, width]);
 
   const setCellValue = useCallback((r: number, c: number, value: number | null) => {
     if (clues[r][c] !== null) return;
@@ -752,6 +799,12 @@ export default function FillominoBoard({
                     ...getBoardTextStyle(cellSize),
                     ...getBoardCellStyle(cellSize, isClue ? 'clue' : 'cell'),
                     ...(trialColors && !isClue ? getBoardTrialCellStyle(trialColors, 'soft') : {}),
+                    ...(isClue && satisfiedClueCells.has(`${r}-${c}`)
+                      ? { color: woodBoardTheme.neutralSoft }
+                      : {}),
+                    ...(checkInvalidCells.has(`${r}-${c}`)
+                      ? { backgroundColor: 'rgba(239, 68, 68, 0.25)', boxShadow: 'inset 0 0 0 2px rgba(220, 38, 38, 0.75)' }
+                      : {}),
                   }}
                 >
                   {value ?? ''}
@@ -910,7 +963,9 @@ export default function FillominoBoard({
         onStartTrial={startTrial}
         onDiscardTrial={discardTrial}
         onCommitTrial={commitTrial}
+        onCheck={runCheck}
       />
+      {checkMessage ? <ValidationMessage message={checkMessage} /> : null}
     </div>
   );
 }

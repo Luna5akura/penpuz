@@ -204,8 +204,8 @@ export default function HeyawakeExample({
                       y1={y}
                       x2={x2}
                       y2={y}
-                      stroke={woodBoardTheme.border}
-                      strokeWidth={boundaryStroke}
+                      stroke={woodBoardTheme.deepLine}
+              strokeWidth={boundaryStroke}
                       strokeLinecap="square"
                     />
                   );
@@ -222,8 +222,8 @@ export default function HeyawakeExample({
                       y1={y1}
                       x2={x}
                       y2={y2}
-                      stroke={woodBoardTheme.border}
-                      strokeWidth={boundaryStroke}
+                      stroke={woodBoardTheme.deepLine}
+              strokeWidth={boundaryStroke}
                       strokeLinecap="square"
                     />
                   );

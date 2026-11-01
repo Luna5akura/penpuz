@@ -12,10 +12,12 @@ interface KakuroClueProps {
   right: number | null;
   down: number | null;
   cellSize: number;
+  satisfiedRight?: boolean;
+  satisfiedDown?: boolean;
 }
 
 /** Standard Kakuro black cell: a diagonal with right/down sums. */
-export default function KakuroClue({ right, down, cellSize }: KakuroClueProps) {
+export default function KakuroClue({ right, down, cellSize, satisfiedRight = false, satisfiedDown = false }: KakuroClueProps) {
   const { locale, copy } = useI18n();
   const numberStyle = {
     ...getBoardTextStyle(cellSize, 0.34, 10, 1),
@@ -47,7 +49,7 @@ export default function KakuroClue({ right, down, cellSize }: KakuroClueProps) {
       {right !== null ? (
         <span
           className={`absolute right-0 top-0 text-right ${boardClassNames.cellTextTight}`}
-          style={{ ...numberStyle, paddingTop: `${padding}px`, paddingRight: `${padding}px` }}
+          style={{ ...numberStyle, ...(satisfiedRight ? { color: woodBoardTheme.neutralSoft } : {}), paddingTop: `${padding}px`, paddingRight: `${padding}px` }}
         >
           {right}
         </span>
@@ -55,7 +57,7 @@ export default function KakuroClue({ right, down, cellSize }: KakuroClueProps) {
       {down !== null ? (
         <span
           className={`absolute bottom-0 left-0 text-left ${boardClassNames.cellTextTight}`}
-          style={{ ...numberStyle, paddingBottom: `${padding}px`, paddingLeft: `${padding}px` }}
+          style={{ ...numberStyle, ...(satisfiedDown ? { color: woodBoardTheme.neutralSoft } : {}), paddingBottom: `${padding}px`, paddingLeft: `${padding}px` }}
         >
           {down}
         </span>

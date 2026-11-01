@@ -62,7 +62,9 @@ export function isNotePost(value: unknown): value is NotePost {
     typeof record.author === 'string' &&
     typeof record.date === 'string' &&
     Array.isArray(record.blocks) &&
-    record.blocks.every(isNoteBlock)
+    record.blocks.every(isNoteBlock) &&
+    (record.tags === undefined ||
+      (Array.isArray(record.tags) && record.tags.every(isLocalizedText)))
   );
 }
 

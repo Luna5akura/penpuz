@@ -63,7 +63,7 @@ function SkyNeighborOverlay({
         width={Math.max(0, boardWidth - frameStroke)}
         height={Math.max(0, boardHeight - frameStroke)}
         fill="none"
-        stroke={woodBoardTheme.border}
+        stroke={woodBoardTheme.deepLine}
         strokeWidth={frameStroke}
         vectorEffect="non-scaling-stroke"
       />

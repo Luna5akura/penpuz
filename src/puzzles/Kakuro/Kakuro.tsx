@@ -55,10 +55,32 @@ export default function KakuroBoard({
       onComplete={onComplete}
       validate={validateKakuro}
       isBlockedCell={isBlockedCell}
-      renderBlockedCell={(row, col, cellSize) => {
+      renderBlockedCell={(row, col, cellSize, grid) => {
         const clue = puzzle.cells[row][col];
         if (!clue) return null;
-        return <KakuroClue right={clue.right} down={clue.down} cellSize={cellSize} />;
+        const isSatisfied = (dr: number, dc: number, target: number | null) => {
+          if (target === null) return false;
+          let sum = 0;
+          let r = row + dr;
+          let c = col + dc;
+          while (r >= 0 && r < puzzle.height && c >= 0 && c < puzzle.width && puzzle.cells[r][c] === null) {
+            const cell = grid[r]?.[c];
+            if (typeof cell !== 'number') return false;
+            sum += cell;
+            r += dr;
+            c += dc;
+          }
+          return sum === target;
+        };
+        return (
+          <KakuroClue
+            right={clue.right}
+            down={clue.down}
+            cellSize={cellSize}
+            satisfiedRight={isSatisfied(0, 1, clue.right)}
+            satisfiedDown={isSatisfied(1, 0, clue.down)}
+          />
+        );
       }}
       renderCandidates={renderCandidates}
       renderCellValue={(value) => (typeof value === 'number' ? value : null)}

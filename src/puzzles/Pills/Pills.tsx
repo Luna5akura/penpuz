@@ -324,6 +324,26 @@ export default function PillsBoard({ puzzle, startTime, resetToken, onComplete, 
     () => getBoardOutsideClueLayout(cellSize, { top: puzzle.topClues, left: puzzle.leftClues }),
     [cellSize, puzzle.leftClues, puzzle.topClues]
   );
+  // ==================== 盘外线索满足要求后变灰 ====================
+  const satisfiedOutsideClues = useMemo(() => {
+    const satisfied = new Set<string>();
+    for (let row = 0; row < height; row++) {
+      let dots = 0;
+      for (let col = 0; col < width; col++) {
+        if (normalizedSnapshot.grid[row]?.[col] === 1) dots += puzzle.dots[row]?.[col] ?? 0;
+      }
+      if (puzzle.leftClues[row] !== null && dots === puzzle.leftClues[row]) satisfied.add(`left-${row}`);
+    }
+    for (let col = 0; col < width; col++) {
+      let dots = 0;
+      for (let row = 0; row < height; row++) {
+        if (normalizedSnapshot.grid[row]?.[col] === 1) dots += puzzle.dots[row]?.[col] ?? 0;
+      }
+      if (puzzle.topClues[col] !== null && dots === puzzle.topClues[col]) satisfied.add(`top-${col}`);
+    }
+    return satisfied;
+  }, [height, normalizedSnapshot.grid, puzzle.dots, puzzle.leftClues, puzzle.topClues, width]);
+
   const gridLeft = BOARD_PADDING + outsideClueLayout.left;
   const gridTop = BOARD_PADDING + outsideClueLayout.top;
   const { outerWidth, outerHeight } = getBoardFrameDimensions(width, height, cellSize, {
@@ -581,6 +601,7 @@ export default function PillsBoard({ puzzle, startTime, resetToken, onComplete, 
                 left: `${gridLeft + (col + 0.5) * cellSize}px`,
                 top: `${BOARD_PADDING + outsideClueLayout.top / 2}px`,
                 ...getBoardOutsideClueTextStyle(cellSize, cellSize, value),
+                ...(satisfiedOutsideClues.has(`top-${col}`) ? { color: woodBoardTheme.neutralSoft } : {}),
               }}
             >
               {value}
@@ -594,6 +615,7 @@ export default function PillsBoard({ puzzle, startTime, resetToken, onComplete, 
                 left: `${BOARD_PADDING + outsideClueLayout.left / 2}px`,
                 top: `${gridTop + (row + 0.5) * cellSize}px`,
                 ...getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value),
+                ...(satisfiedOutsideClues.has(`left-${row}`) ? { color: woodBoardTheme.neutralSoft } : {}),
               }}
             >
               {value}

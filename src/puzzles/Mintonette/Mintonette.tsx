@@ -444,6 +444,24 @@ export default function MintonetteBoard({
               const clueInfo = clueMap.get(`${row},${col}`);
               if (!clueInfo) return null;
 
+              // 数字线索满足要求（路径在该格的转弯次数 = 数字）后变灰
+              let satisfied = false;
+              if (clueInfo.value !== null) {
+                const edges: Array<[number, number]> = [];
+                for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+                  const nr = row + dr;
+                  const nc = col + dc;
+                  if (nr < 0 || nr >= height || nc < 0 || nc >= width) continue;
+                  const key = getMintonetteEdgeKey(row, col, nr, nc);
+                  if (key && lineEdgeSet.has(key)) edges.push([dr, dc]);
+                }
+                if (edges.length === 2) {
+                  const [a, b] = edges;
+                  const turns = a[0] * b[0] + a[1] * b[1] === 0 ? 1 : 0;
+                  satisfied = turns === clueInfo.value;
+                }
+              }
+
               return (
                 <div
                   key={`clue-${row}-${col}`}
@@ -456,6 +474,7 @@ export default function MintonetteBoard({
                     border: `${clueCircleStrokeWidth}px solid ${woodBoardTheme.border}`,
                     ...getBoardCellColors('cell'),
                     ...clueTextStyle,
+                    ...(satisfied ? { color: woodBoardTheme.neutralSoft } : {}),
                   }}
                 >
                   {clueInfo.value ?? ''}

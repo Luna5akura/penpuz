@@ -67,6 +67,8 @@ interface ShadingBoardProps<TPuzzle extends { width: number; height: number }> {
   outsideClues?: ShadingBoardOutsideClues;
   /** Render outside clue digits at the same size as in-cell clues (e.g. Battleships). */
   outsideClueCellTextSize?: boolean;
+  /** 判定盘外线索是否已满足（key 形如 top-0 / left-3），满足的线索变灰。 */
+  getSatisfiedOutsideClueKeys?: (grid: ShadingCellState[][]) => Set<string>;
   /** Optional pre-filled initial grid (e.g. given piece parts in Place by Product). */
   getInitialGrid?: (width: number, height: number) => ShadingCellState[][];
   /** Apply the cell action on pointer down instead of waiting for release (e.g. Place by Product). */
@@ -128,6 +130,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
   showValidationMessage = false,
   outsideClues,
   outsideClueCellTextSize = false,
+  getSatisfiedOutsideClueKeys,
   getInitialGrid,
   applyOnPointerDown = false,
   renderBoardAccessory,
@@ -205,6 +208,10 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
     [height, snapshot, width]
   );
   const grid = normalizedSnapshot.grid;
+  const satisfiedOutsideClueKeys = useMemo(
+    () => getSatisfiedOutsideClueKeys?.(grid) ?? new Set<string>(),
+    [getSatisfiedOutsideClueKeys, grid]
+  );
   const levels = normalizedSnapshot.levels;
   const isMobile = viewportWidth < commonBoardChrome.mobileBreakpoint;
   const validation = useMemo(() => validate(grid, puzzle), [grid, puzzle, validate]);
@@ -371,7 +378,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
     // nothing left to apply and dragging continues painting other cells.
     // (applyDragToCell would skip the start cell via its lastCell guard, so
     // apply the state directly here.)
-    if (applyOnPointerDown) {
+    if (applyOnPointerDown || (!isTouchPointer && event.button === 2)) {
       applyCellState(row, col, nextDragMode);
       pointerState.current.pendingTap = null;
     }
@@ -480,6 +487,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                   left: `${gridLeft + (col + 0.5) * cellSize}px`,
                   top: `${BOARD_PADDING + outsideTop / 2}px`,
                   ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, cellSize, value)),
+                  ...(satisfiedOutsideClueKeys.has(`top-${col}`) ? { color: woodBoardTheme.neutralSoft } : {}),
                 }}
               >
                 {value}
@@ -493,6 +501,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                   left: `${gridLeft + (col + 0.5) * cellSize}px`,
                   top: `${gridTop + boardHeightPx + outsideBottom / 2}px`,
                   ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, cellSize, value)),
+                  ...(satisfiedOutsideClueKeys.has(`bottom-${col}`) ? { color: woodBoardTheme.neutralSoft } : {}),
                 }}
               >
                 {value}
@@ -506,6 +515,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                   left: `${BOARD_PADDING + outsideLeft / 2}px`,
                   top: `${gridTop + (row + 0.5) * cellSize}px`,
                   ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value)),
+                  ...(satisfiedOutsideClueKeys.has(`left-${row}`) ? { color: woodBoardTheme.neutralSoft } : {}),
                 }}
               >
                 {value}
@@ -518,6 +528,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                 style={{
                   left: `${gridLeft + boardWidthPx + outsideRight / 2}px`,
                   top: `${gridTop + (row + 0.5) * cellSize}px`,
+                  ...(satisfiedOutsideClueKeys.has(`right-${row}`) ? { color: woodBoardTheme.neutralSoft } : {}),
                   ...(outsideClueCellTextSize ? getBoardClueTextStyle(cellSize) : getBoardOutsideClueTextStyle(cellSize, outsideClueLayout.clueSize, value)),
                 }}
               >
@@ -578,7 +589,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                   y1={y}
                   x2={x2}
                   y2={y}
-                  stroke={woodBoardTheme.border}
+                  stroke={woodBoardTheme.deepLine}
                   strokeWidth={boundaryStroke}
                   strokeLinecap="square"
                 />
@@ -595,7 +606,7 @@ export default function ShadingBoard<TPuzzle extends { width: number; height: nu
                   y1={y1}
                   x2={x}
                   y2={y2}
-                  stroke={woodBoardTheme.border}
+                  stroke={woodBoardTheme.deepLine}
                   strokeWidth={boundaryStroke}
                   strokeLinecap="square"
                 />

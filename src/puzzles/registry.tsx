@@ -1,65 +1,66 @@
-import type { ReactElement } from 'react';
-import NurikabeBoard from './Nurikabe/Nurikabe';
-import FillominoBoard from './Fillomino/Fillomino';
-import YajilinBoard from './Yajilin/Yajilin';
-import KoburinBoard from './Koburin/Koburin';
-import NeighborBoard from './Neighbor/Neighbor';
-import SkyNeighborBoard from './SkyNeighbor/SkyNeighbor';
-import StarbattleBoard from './Starbattle/Starbattle';
-import HeyawakeBoard from './Heyawake/Heyawake';
-import AqreBoard from './Aqre/Aqre';
-import MintonetteBoard from './Mintonette/Mintonette';
-import NikojiBoard from './Nikoji/Nikoji';
-import AkariBoard from './Akari/Akari';
-import KurarinBoard from './Kurarin/Kurarin';
-import WalkwalkBoard from './Walkwalk/Walkwalk';
-import SlitherlinkBoard from './Slitherlink/Slitherlink';
-import LitsBoard from './Lits/Lits';
-import LakesBoard from './Lakes/Lakes';
-import TapaBoard from './Tapa/Tapa';
-import YinYangBoard from './YinYang/YinYang';
-import KropkiBoard from './Kropki/Kropki';
-import MagicSummerBoard from './MagicSummer/MagicSummer';
-import SkyscrapersBoard from './Skyscrapers/Skyscrapers';
-import BattleshipBoard from './Battleship/Battleship';
-import DominoSearchBoard from './DominoSearch/DominoSearch';
-import MagicSnailBoard from './MagicSnail/MagicSnail';
-import SlovakSumsBoard from './SlovakSums/SlovakSums';
-import KakuroBoard from './Kakuro/Kakuro';
-import WolvesAndSheepBoard from './WolvesAndSheep/WolvesAndSheep';
-import ShapeMinesweeperBoard from './ShapeMinesweeper/ShapeMinesweeper';
-import CaveBoard from './Cave/Cave';
-import JapaneseArrowsBoard from './JapaneseArrows/JapaneseArrows';
-import FourWindsWithParksBoard from './FourWindsWithParks/FourWindsWithParks';
-import FourWindsBoard from './FourWinds/FourWinds';
-import ConsecutiveKakuroBoard from './ConsecutiveKakuro/ConsecutiveKakuro';
-import JapaneseSumsBoard from './JapaneseSums/JapaneseSums';
-import ABCBoxBoard from './ABCBox/ABCBox';
-import ABCBoxExample from '../components/examples/ABCBoxExample';
-import MagnetsBoard from './Magnets/Magnets';
-import PillsBoard from './Pills/Pills';
-import PlaceByProductBoard from './PlaceByProduct/PlaceByProduct';
-import MasyuBoard from './Masyu/Masyu';
-import MasyuExample from '../components/examples/MasyuExample';
-import PlaceByProductExample from '../components/examples/PlaceByProductExample';
-import NurikabeExample from '../components/examples/NurikabeExample';
-import FillominoExample from '../components/examples/FillominoExample';
-import YajilinExample from '../components/examples/YajilinExample';
-import KoburinExample from '../components/examples/KoburinExample';
-import NeighborExample from '../components/examples/NeighborExample';
-import SkyNeighborExample from '../components/examples/SkyNeighborExample';
-import StarbattleExample from '../components/examples/StarbattleExample';
-import HeyawakeExample from '../components/examples/HeyawakeExample';
-import AqreExample from '../components/examples/AqreExample';
-import MintonetteExample from '../components/examples/MintonetteExample';
-import NikojiExample from '../components/examples/NikojiExample';
-import AkariExample from '../components/examples/AkariExample';
-import KurarinExample from '../components/examples/KurarinExample';
-import WalkwalkExample from '../components/examples/WalkwalkExample';
-import AdditionalPuzzleExample from '../components/examples/AdditionalPuzzleExample';
-import PlayableExample from '../components/examples/PlayableExample';
-import SkyscrapersExample from '../components/examples/SkyscrapersExample';
-import BattleshipExample from '../components/examples/BattleshipExample';
+import { lazy, Suspense, type ReactElement } from 'react';
+import BoardLoadingFallback from '../components/BoardLoadingFallback';
+const NurikabeBoard = lazy(() => import('./Nurikabe/Nurikabe'));
+const FillominoBoard = lazy(() => import('./Fillomino/Fillomino'));
+const YajilinBoard = lazy(() => import('./Yajilin/Yajilin'));
+const KoburinBoard = lazy(() => import('./Koburin/Koburin'));
+const NeighborBoard = lazy(() => import('./Neighbor/Neighbor'));
+const SkyNeighborBoard = lazy(() => import('./SkyNeighbor/SkyNeighbor'));
+const StarbattleBoard = lazy(() => import('./Starbattle/Starbattle'));
+const HeyawakeBoard = lazy(() => import('./Heyawake/Heyawake'));
+const AqreBoard = lazy(() => import('./Aqre/Aqre'));
+const MintonetteBoard = lazy(() => import('./Mintonette/Mintonette'));
+const NikojiBoard = lazy(() => import('./Nikoji/Nikoji'));
+const AkariBoard = lazy(() => import('./Akari/Akari'));
+const KurarinBoard = lazy(() => import('./Kurarin/Kurarin'));
+const WalkwalkBoard = lazy(() => import('./Walkwalk/Walkwalk'));
+const SlitherlinkBoard = lazy(() => import('./Slitherlink/Slitherlink'));
+const LitsBoard = lazy(() => import('./Lits/Lits'));
+const LakesBoard = lazy(() => import('./Lakes/Lakes'));
+const TapaBoard = lazy(() => import('./Tapa/Tapa'));
+const YinYangBoard = lazy(() => import('./YinYang/YinYang'));
+const KropkiBoard = lazy(() => import('./Kropki/Kropki'));
+const MagicSummerBoard = lazy(() => import('./MagicSummer/MagicSummer'));
+const SkyscrapersBoard = lazy(() => import('./Skyscrapers/Skyscrapers'));
+const BattleshipBoard = lazy(() => import('./Battleship/Battleship'));
+const DominoSearchBoard = lazy(() => import('./DominoSearch/DominoSearch'));
+const MagicSnailBoard = lazy(() => import('./MagicSnail/MagicSnail'));
+const SlovakSumsBoard = lazy(() => import('./SlovakSums/SlovakSums'));
+const KakuroBoard = lazy(() => import('./Kakuro/Kakuro'));
+const WolvesAndSheepBoard = lazy(() => import('./WolvesAndSheep/WolvesAndSheep'));
+const ShapeMinesweeperBoard = lazy(() => import('./ShapeMinesweeper/ShapeMinesweeper'));
+const CaveBoard = lazy(() => import('./Cave/Cave'));
+const JapaneseArrowsBoard = lazy(() => import('./JapaneseArrows/JapaneseArrows'));
+const FourWindsWithParksBoard = lazy(() => import('./FourWindsWithParks/FourWindsWithParks'));
+const FourWindsBoard = lazy(() => import('./FourWinds/FourWinds'));
+const ConsecutiveKakuroBoard = lazy(() => import('./ConsecutiveKakuro/ConsecutiveKakuro'));
+const JapaneseSumsBoard = lazy(() => import('./JapaneseSums/JapaneseSums'));
+const ABCBoxBoard = lazy(() => import('./ABCBox/ABCBox'));
+const ABCBoxExample = lazy(() => import('../components/examples/ABCBoxExample'));
+const MagnetsBoard = lazy(() => import('./Magnets/Magnets'));
+const PillsBoard = lazy(() => import('./Pills/Pills'));
+const PlaceByProductBoard = lazy(() => import('./PlaceByProduct/PlaceByProduct'));
+const MasyuBoard = lazy(() => import('./Masyu/Masyu'));
+const MasyuExample = lazy(() => import('../components/examples/MasyuExample'));
+const PlaceByProductExample = lazy(() => import('../components/examples/PlaceByProductExample'));
+const NurikabeExample = lazy(() => import('../components/examples/NurikabeExample'));
+const FillominoExample = lazy(() => import('../components/examples/FillominoExample'));
+const YajilinExample = lazy(() => import('../components/examples/YajilinExample'));
+const KoburinExample = lazy(() => import('../components/examples/KoburinExample'));
+const NeighborExample = lazy(() => import('../components/examples/NeighborExample'));
+const SkyNeighborExample = lazy(() => import('../components/examples/SkyNeighborExample'));
+const StarbattleExample = lazy(() => import('../components/examples/StarbattleExample'));
+const HeyawakeExample = lazy(() => import('../components/examples/HeyawakeExample'));
+const AqreExample = lazy(() => import('../components/examples/AqreExample'));
+const MintonetteExample = lazy(() => import('../components/examples/MintonetteExample'));
+const NikojiExample = lazy(() => import('../components/examples/NikojiExample'));
+const AkariExample = lazy(() => import('../components/examples/AkariExample'));
+const KurarinExample = lazy(() => import('../components/examples/KurarinExample'));
+const WalkwalkExample = lazy(() => import('../components/examples/WalkwalkExample'));
+const AdditionalPuzzleExample = lazy(() => import('../components/examples/AdditionalPuzzleExample'));
+const PlayableExample = lazy(() => import('../components/examples/PlayableExample'));
+const SkyscrapersExample = lazy(() => import('../components/examples/SkyscrapersExample'));
+const BattleshipExample = lazy(() => import('../components/examples/BattleshipExample'));
 import { parsePuzzLink } from './Nurikabe/utils';
 import { parseFillominoLink } from './Fillomino/utils';
 import { parseFillominoCheckerboardLink } from './FillominoCheckerboard/utils';
@@ -136,12 +137,12 @@ import type {
   KropkiPuzzleData,
 } from './types';
 import type { Locale } from '@/i18n/types';
-import TapaExample from '../components/examples/TapaExample';
-import YinYangExample from '../components/examples/YinYangExample';
-import KropkiExample from '../components/examples/KropkiExample';
-import MagicSummerExample from '../components/examples/MagicSummerExample';
-import KakuroExample from '../components/examples/KakuroExample';
-import ShadingPuzzleExample from '../components/examples/ShadingPuzzleExample';
+const TapaExample = lazy(() => import('../components/examples/TapaExample'));
+const YinYangExample = lazy(() => import('../components/examples/YinYangExample'));
+const KropkiExample = lazy(() => import('../components/examples/KropkiExample'));
+const MagicSummerExample = lazy(() => import('../components/examples/MagicSummerExample'));
+const KakuroExample = lazy(() => import('../components/examples/KakuroExample'));
+const ShadingPuzzleExample = lazy(() => import('../components/examples/ShadingPuzzleExample'));
 import { parseKakuroLink } from './Kakuro/utils';
 import { parseWolvesAndSheepLink } from './WolvesAndSheep/utils';
 import { parseKoburinLink } from './Koburin/utils';
@@ -3947,9 +3948,17 @@ export function renderPuzzleBoard(
   onSnapshotChange?: (snapshot: unknown) => void
 ): ReactElement {
   const entry = puzzleRegistry[puzzle.type] as PuzzleRegistryEntry<typeof puzzle>;
-  return entry.renderBoard({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange });
+  return (
+    <Suspense fallback={<BoardLoadingFallback />}>
+      {entry.renderBoard({ puzzle, startTime, resetToken, onComplete, initialSnapshot, onSnapshotChange })}
+    </Suspense>
+  );
 }
 
 export function renderPuzzleExample(template: PuzzleTemplate, locale: Locale): ReactElement {
-  return puzzleRegistry[template.type].renderExample(template, locale);
+  return (
+    <Suspense fallback={<BoardLoadingFallback />}>
+      {puzzleRegistry[template.type].renderExample(template, locale)}
+    </Suspense>
+  );
 }

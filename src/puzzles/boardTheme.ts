@@ -1,27 +1,28 @@
 import type { TrialLevelColors } from './trialStyles';
 
-// Keep the dark square colour in one place.  A number of puzzle families use
-// a dark square for a blocked/clue cell (Nurikabe, Kakuro, Yajilin, etc.).
-// Historically a few of those renderers carried their own near-black token,
-// which made the same semantic cell look different between the main board,
-// examples, and replay thumbnails.
-const DARK_CELL_BACKGROUND = '#3f2a1e';
-const DARK_CELL_TEXT = '#ffffff';
-const MARKED_CELL_BACKGROUND = '#ead9bf';
+// Board colors resolve to CSS variables (see index.css) so every board,
+// example and replay thumbnail flips between light and dark themes in sync.
+// The canonical token constants below keep the semantic declarations in one
+// place, exactly as the style contract requires.
+const DARK_CELL_BACKGROUND = 'var(--board-dark-cell)';
+const DARK_CELL_TEXT = 'var(--board-dark-cell-text)';
+const MARKED_CELL_BACKGROUND = 'var(--board-marked-cell)';
 
 export const woodBoardTheme = {
-  frame: '#d2b48c',
-  border: '#3f2a1e',
+  frame: 'var(--board-frame)',
+  /** Outer frame outline; muted in dark mode so the board edge stays calm. */
+  frameBorder: 'var(--board-frame-border)',
+  border: 'var(--board-border)',
   /** The semantic color used for every resolved Battleship segment. */
   battleshipShip: DARK_CELL_BACKGROUND,
   /** Unknown Battleship clues stay visually distinct from resolved segments. */
-  battleshipUnknownShip: '#9ca3af',
-  cell: '#f8f1e3',
-  whiteCell: '#fffdf6',
+  battleshipUnknownShip: 'var(--board-battleship-unknown)',
+  cell: 'var(--board-cell)',
+  whiteCell: 'var(--board-white-cell)',
   /** Clue cells intentionally share the same fill as crossed/marked cells. */
   clueCell: MARKED_CELL_BACKGROUND,
-  prefilledCell: '#f0e6d2',
-  panel: '#fbf6ed',
+  prefilledCell: 'var(--board-prefilled-cell)',
+  panel: 'var(--board-panel)',
   /** Canonical background for every dark/shaded board cell. */
   darkCell: DARK_CELL_BACKGROUND,
   darkCellText: DARK_CELL_TEXT,
@@ -30,25 +31,25 @@ export const woodBoardTheme = {
   shaded: DARK_CELL_BACKGROUND,
   shadedText: DARK_CELL_TEXT,
   marked: MARKED_CELL_BACKGROUND,
-  markedText: '#7a6a5b',
-  lit: '#d9efb5',
-  brightLit: '#b7dd7f',
-  ink: '#111111',
-  thinLine: 'rgba(93, 64, 39, 0.48)',
-  deepLine: '#374151',
-  faintLine: '#d4c1a6',
-  accentBorder: '#6d5134',
-  accentFill: '#f6ead6',
-  accentText: '#5a3d27',
-  gridLine: '#d4c1a6',
-  invalidDark: '#7c2d2d',
-  invalidSoft: '#f5d0c5',
-  invalidMarked: '#f2c9bf',
-  invalidText: '#7a3b2e',
-  neutralInk: '#111827',
-  neutralMid: '#374151',
-  neutralSoft: '#9ca3af',
-  neutralLight: '#f9fafb',
+  markedText: 'var(--board-marked-text)',
+  lit: 'var(--board-lit)',
+  brightLit: 'var(--board-bright-lit)',
+  ink: 'var(--board-ink)',
+  thinLine: 'var(--board-thin-line)',
+  deepLine: 'var(--board-deep-line)',
+  faintLine: 'var(--board-faint-line)',
+  accentBorder: 'var(--board-accent-border)',
+  accentFill: 'var(--board-accent-fill)',
+  accentText: 'var(--board-accent-text)',
+  gridLine: 'var(--board-grid-line)',
+  invalidDark: 'var(--board-invalid-dark)',
+  invalidSoft: 'var(--board-invalid-soft)',
+  invalidMarked: 'var(--board-invalid-marked)',
+  invalidText: 'var(--board-invalid-text)',
+  neutralInk: 'var(--board-neutral-ink)',
+  neutralMid: 'var(--board-neutral-mid)',
+  neutralSoft: 'var(--board-neutral-soft)',
+  neutralLight: 'var(--board-neutral-light)',
 } as const;
 
 export const boardTypography = {
@@ -882,7 +883,7 @@ export function getBoardCellOutlineRect(
 export function getBoardFrameStyle(borderWidth = commonBoardChrome.border) {
   return {
     background: woodBoardTheme.frame,
-    border: `${borderWidth}px solid ${woodBoardTheme.border}`,
+    border: `${borderWidth}px solid ${woodBoardTheme.frameBorder}`,
     boxSizing: 'border-box',
     // A fixed-cell board must keep its frame and contents at the same width.
     // Responsive sizing handles ordinary viewports; an enclosing scroll area

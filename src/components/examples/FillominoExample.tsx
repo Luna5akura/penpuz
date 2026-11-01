@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   boardClassNames,
   commonBoardChrome,
-  getBoardBoundaryStrokeWidth,
+  getBoardRegionStrokeWidth,
   getBoardCellStyle,
   getBoardFrameDimensions,
   getBoardFrameStyle,
@@ -40,7 +40,7 @@ export default function FillominoExample({ width, height, cluesGrid, correctGrid
     CELL_SIZE,
     { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
   );
-  const boundaryStrokeWidth = getBoardBoundaryStrokeWidth(CELL_SIZE);
+  const boundaryStrokeWidth = getBoardRegionStrokeWidth(CELL_SIZE);
 
   return (
     <div
@@ -100,7 +100,7 @@ export default function FillominoExample({ width, height, cluesGrid, correctGrid
                 y1={r * CELL_SIZE}
                 x2={x}
                 y2={(r + 1) * CELL_SIZE}
-                stroke={woodBoardTheme.accentBorder}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStrokeWidth}
                 strokeLinecap="butt"
               />
@@ -119,7 +119,7 @@ export default function FillominoExample({ width, height, cluesGrid, correctGrid
                 y1={y}
                 x2={(c + 1) * CELL_SIZE}
                 y2={y}
-                stroke={woodBoardTheme.accentBorder}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStrokeWidth}
                 strokeLinecap="butt"
               />

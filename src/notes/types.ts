@@ -42,6 +42,8 @@ export interface NotePost {
   author: string;
   date: string;
   blocks: NotePostBlock[];
+  /** Optional classification tags shown as badges (e.g. puzzle types). */
+  tags?: LocalizedText[];
 }
 
 export interface DraftNotePostFile {

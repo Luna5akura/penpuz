@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Edit3, Eye, FileDown, FileText, Link2, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
+import { ArrowDown, ArrowUp, Edit3, Eye, FileDown, FileText, Link2, Pin, Plus, RotateCcw, Save, Trash2, Upload } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { setDocumentMetadata } from '@/lib/documentMetadata';
+import type { LocalizedText } from '@/i18n/types';
 import { cn } from '@/lib/utils';
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from '@/lib/safeStorage';
 import { notePosts } from '@/notes/posts';
@@ -71,6 +72,35 @@ interface StoredNoteEditorDraft {
 }
 
 const NOTE_EDITOR_DRAFT_STORAGE_KEY = 'penpuz:note-editor-draft:v1';
+const NOTE_PINS_STORAGE_KEY = 'penpuz:note-pins';
+
+function readPinnedNoteIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = readLocalStorage(NOTE_PINS_STORAGE_KEY);
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+    return Array.isArray(parsed) ? new Set(parsed.filter((id): id is string => typeof id === 'string')) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/**
+ * Classification tags derived from the puzzle types covered by a note's
+ * replay blocks, so static posts gain useful badges without editing data.
+ */
+function getDerivedPostTags(post: NotePost): LocalizedText[] {
+  if (post.tags && post.tags.length > 0) return post.tags;
+
+  const types = new Set<string>();
+  post.blocks.forEach((block) => {
+    if (block.type === 'puzzle-replay') types.add(block.puzzleType);
+  });
+  return Array.from(types).map((type) => ({
+    'zh-CN': getNotePuzzleTypeName(type as PuzzleType, 'zh-CN'),
+    en: getNotePuzzleTypeName(type as PuzzleType, 'en'),
+  }));
+}
 
 const noteCopy = {
   'zh-CN': {
@@ -84,6 +114,9 @@ const noteCopy = {
     noPosts: '暂无笔记',
     copyLink: '复制链接',
     linkCopied: '已复制',
+    pin: '置顶',
+    unpin: '取消置顶',
+    tagFilterAll: '全部',
     byline: (author: string, date: string) => `${author} · ${date}`,
     titleZh: '标题',
     titleEn: '英文标题',
@@ -133,6 +166,9 @@ const noteCopy = {
     noPosts: 'No notes',
     copyLink: 'Copy link',
     linkCopied: 'Copied',
+    pin: 'Pin',
+    unpin: 'Unpin',
+    tagFilterAll: 'All',
     byline: (author: string, date: string) => `${author} · ${date}`,
     titleZh: 'Chinese title',
     titleEn: 'Title',
@@ -631,6 +667,8 @@ function renderPost(
   labels: (typeof noteCopy)['zh-CN'],
   actions?: ReactNode
 ) {
+  const tags = getDerivedPostTags(post);
+
   return (
     <article className="min-w-0">
       <header className="border-b px-4 py-4 sm:px-5">
@@ -638,6 +676,18 @@ function renderPost(
           <div>
             <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{post.title[locale]}</h2>
             <p className="mt-2 text-base leading-7 text-muted-foreground">{post.summary[locale]}</p>
+            {tags.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap gap-1.5">
+                {tags.map((tag) => (
+                  <span
+                    key={tag.en}
+                    className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-xs text-muted-foreground"
+                  >
+                    {tag[locale]}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex shrink-0 flex-col gap-2 text-sm text-muted-foreground sm:items-end sm:text-right">
             <div>{labels.byline(post.author, post.date)}</div>
@@ -722,6 +772,8 @@ function NotesPage() {
       : getInitialSelectedPostId();
   });
   const [copiedNoteId, setCopiedNoteId] = useState<string | null>(null);
+  const [pinnedNoteIds, setPinnedNoteIds] = useState<Set<string>>(() => readPinnedNoteIds());
+  const [noteTagFilter, setNoteTagFilter] = useState<string | null>(null);
   const [lastAutoSavedAt, setLastAutoSavedAt] = useState<string | null>(() => restoredEditorDraft?.savedAt ?? null);
   const [draftId, setDraftId] = useState(() => restoredEditorDraft?.draft.id ?? '');
   const [draftTitleZh, setDraftTitleZh] = useState(() => restoredEditorDraft?.draft.titleZh ?? '新的解题笔记');
@@ -743,6 +795,51 @@ function NotesPage() {
   );
 
   const selectedPost = notePosts.find((post) => post.id === selectedPostId) ?? notePosts[0];
+
+  const toggleNotePin = useCallback((postId: string) => {
+    setPinnedNoteIds((current) => {
+      const next = new Set(current);
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+      try {
+        writeLocalStorage(NOTE_PINS_STORAGE_KEY, JSON.stringify(Array.from(next)));
+      } catch {
+        // Pinning still applies for this session when storage is unavailable.
+      }
+      return next;
+    });
+  }, []);
+
+  const sortedNotePosts = useMemo(
+    () => [...notePosts].sort((left, right) =>
+      Number(pinnedNoteIds.has(right.id)) - Number(pinnedNoteIds.has(left.id))
+    ),
+    [pinnedNoteIds]
+  );
+
+  const allNoteTags = useMemo(() => {
+    const seen = new Map<string, LocalizedText>();
+    notePosts.forEach((post) => {
+      getDerivedPostTags(post).forEach((tag) => {
+        if (!seen.has(tag.en)) seen.set(tag.en, tag);
+      });
+    });
+    return Array.from(seen.values());
+  }, []);
+
+  const visibleNotePosts = useMemo(
+    () =>
+      noteTagFilter === null
+        ? sortedNotePosts
+        : sortedNotePosts.filter((post) =>
+            getDerivedPostTags(post).some((tag) => tag.en === noteTagFilter)
+          ),
+    [noteTagFilter, sortedNotePosts]
+  );
+
   const autoSaveText = useMemo(() => {
     if (!lastAutoSavedAt) return null;
     const formatted = formatAutosaveTime(lastAutoSavedAt, locale);
@@ -1158,6 +1255,32 @@ function NotesPage() {
     syncNotePageUrl(selectedPost.id, 'replace');
   }, [mode, selectedPost]);
 
+  const renderNoteTagFilter = (variant: 'mobile' | 'desktop') => (
+    <div className={cn('flex items-center gap-1.5', variant === 'mobile' ? 'overflow-x-auto pb-1' : 'flex-wrap px-3 pb-2')}>
+      <Button
+        type="button"
+        size="xs"
+        variant={noteTagFilter === null ? 'secondary' : 'outline'}
+        aria-pressed={noteTagFilter === null}
+        onClick={() => setNoteTagFilter(null)}
+      >
+        {labels.tagFilterAll}
+      </Button>
+      {allNoteTags.map((tag) => (
+        <Button
+          key={tag.en}
+          type="button"
+          size="xs"
+          variant={noteTagFilter === tag.en ? 'secondary' : 'outline'}
+          aria-pressed={noteTagFilter === tag.en}
+          onClick={() => setNoteTagFilter((current) => (current === tag.en ? null : tag.en))}
+        >
+          {tag[locale]}
+        </Button>
+      ))}
+    </div>
+  );
+
   const renderNoteDirectory = (variant: 'mobile' | 'desktop') => (
     <div
       className={
@@ -1166,13 +1289,16 @@ function NotesPage() {
           : 'divide-y'
       }
     >
-      {notePosts.map((post) => {
+      {visibleNotePosts.map((post) => {
         const active = post.id === selectedPost?.id;
+        const pinned = pinnedNoteIds.has(post.id);
+        const tags = variant === 'desktop' ? getDerivedPostTags(post) : [];
 
         return (
-          <button
+          <div
             key={post.id}
-            type="button"
+            role="button"
+            tabIndex={0}
             aria-current={active ? 'page' : undefined}
             className={cn(
               variant === 'mobile'
@@ -1185,17 +1311,58 @@ function NotesPage() {
               setSelectedPostId(post.id);
               syncNotePageUrl(post.id, 'push');
             }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                setMode('read');
+                setSelectedPostId(post.id);
+                syncNotePageUrl(post.id, 'push');
+              }
+            }}
           >
-            <div className={cn(
-              'truncate font-semibold text-foreground',
-              variant === 'mobile' ? 'text-sm' : 'text-base'
-            )}>
-              {post.title[locale]}
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <div className={cn(
+                  'flex items-center gap-1.5 truncate font-semibold text-foreground',
+                  variant === 'mobile' ? 'text-sm' : 'text-base'
+                )}>
+                  {pinned && <Pin className="size-3.5 shrink-0 fill-current text-primary" aria-hidden="true" />}
+                  <span className="truncate">{post.title[locale]}</span>
+                </div>
+                {variant === 'desktop' ? (
+                  <div className="mt-1 text-sm leading-5 text-muted-foreground">{post.summary[locale]}</div>
+                ) : null}
+                {tags.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {tags.map((tag) => (
+                      <span
+                        key={tag.en}
+                        className="rounded-md border border-border bg-muted/60 px-1.5 py-0.5 text-xs text-muted-foreground"
+                      >
+                        {tag[locale]}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+              {variant === 'desktop' ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  className="shrink-0"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    toggleNotePin(post.id);
+                  }}
+                  aria-label={pinned ? labels.unpin : labels.pin}
+                  title={pinned ? labels.unpin : labels.pin}
+                >
+                  <Pin className={pinned ? 'fill-current text-primary' : ''} />
+                </Button>
+              ) : null}
             </div>
-            {variant === 'desktop' ? (
-              <div className="mt-1 text-sm leading-5 text-muted-foreground">{post.summary[locale]}</div>
-            ) : null}
-          </button>
+          </div>
         );
       })}
     </div>
@@ -1237,6 +1404,7 @@ function NotesPage() {
           className="fixed inset-x-0 bottom-0 z-50 border-t bg-card/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-6px_18px_rgba(63,42,30,0.12)] backdrop-blur lg:hidden"
           aria-label={labels.title}
         >
+          {renderNoteTagFilter('mobile')}
           {renderNoteDirectory('mobile')}
         </nav>
       )}
@@ -1244,21 +1412,34 @@ function NotesPage() {
       {mode === 'read' && selectedPost && (
         <section className="grid min-w-0 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
           <aside className="hidden border bg-card lg:sticky lg:top-4 lg:block lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto">
+            <div className="border-b py-2">{renderNoteTagFilter('desktop')}</div>
             {renderNoteDirectory('desktop')}
           </aside>
           {renderPost(
             selectedPost,
             locale,
             labels,
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => copyNoteLink(selectedPost.id)}
-            >
-              <Link2 />
-              {copiedNoteId === selectedPost.id ? labels.linkCopied : labels.copyLink}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => toggleNotePin(selectedPost.id)}
+                aria-pressed={pinnedNoteIds.has(selectedPost.id)}
+              >
+                <Pin className={pinnedNoteIds.has(selectedPost.id) ? 'fill-current' : ''} />
+                {pinnedNoteIds.has(selectedPost.id) ? labels.unpin : labels.pin}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyNoteLink(selectedPost.id)}
+              >
+                <Link2 />
+                {copiedNoteId === selectedPost.id ? labels.linkCopied : labels.copyLink}
+              </Button>
+            </div>
           )}
         </section>
       )}

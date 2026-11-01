@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Link as LinkIcon, House, RotateCcw } from 'lucide-react';
+import { Link as LinkIcon, Puzzle, RotateCcw } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -111,7 +111,7 @@ export default function DatabasePuzzleTestPage() {
                 title={locale === 'zh-CN' ? '返回主页' : 'Back to home'}
               >
                 <a href="/">
-                  <House />
+                  <Puzzle />
                 </a>
               </Button>
             </div>

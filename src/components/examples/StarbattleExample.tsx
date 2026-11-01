@@ -119,11 +119,12 @@ export default function StarbattleExample({
           ) : (
             <div className="flex flex-col items-end gap-3">
               <div
-                className="rounded-full px-3 py-1 text-sm font-semibold"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold"
                 style={{
                   ...getBoardBadgeStyle(),
                 }}
               >
+                <StarMark cellSize={CELL_SIZE} size={17} />
                 {copy.shared.starbattleQuota(starsPerUnit)}
               </div>
               <div
@@ -210,8 +211,8 @@ export default function StarbattleExample({
                       y1={y}
                       x2={x2}
                       y2={y}
-                      stroke={woodBoardTheme.border}
-                      strokeWidth={boundaryStroke}
+                      stroke={woodBoardTheme.deepLine}
+              strokeWidth={boundaryStroke}
                       strokeLinecap="square"
                     />
                   );
@@ -228,8 +229,8 @@ export default function StarbattleExample({
                       y1={y1}
                       x2={x}
                       y2={y2}
-                      stroke={woodBoardTheme.border}
-                      strokeWidth={boundaryStroke}
+                      stroke={woodBoardTheme.deepLine}
+              strokeWidth={boundaryStroke}
                       strokeLinecap="square"
                     />
                   );

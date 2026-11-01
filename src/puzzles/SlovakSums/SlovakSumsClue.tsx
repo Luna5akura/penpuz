@@ -1,13 +1,14 @@
-import { boardClassNames, getBoardTextStyle } from '../boardTheme';
+import { boardClassNames, getBoardTextStyle, woodBoardTheme } from '../boardTheme';
 import { useI18n } from '@/i18n/useI18n';
 
 interface SlovakSumsClueProps {
   sum: number | null;
   count: number;
   cellSize: number;
+  satisfied?: boolean;
 }
 
-export default function SlovakSumsClue({ sum, count, cellSize }: SlovakSumsClueProps) {
+export default function SlovakSumsClue({ sum, count, cellSize, satisfied = false }: SlovakSumsClueProps) {
   const { copy } = useI18n();
   const dotPadding = Math.max(2, cellSize * 0.09);
   const dotGap = Math.max(1, cellSize * 0.035);
@@ -28,6 +29,7 @@ export default function SlovakSumsClue({ sum, count, cellSize }: SlovakSumsClueP
       style={{
         boxSizing: 'border-box',
         overflow: 'hidden',
+        ...(satisfied ? { color: woodBoardTheme.neutralSoft } : {}),
         paddingLeft: `${dotPadding}px`,
         paddingRight: `${dotPadding}px`,
         paddingTop: hasDots ? `${dotPadding}px` : undefined,
@@ -53,11 +55,12 @@ export default function SlovakSumsClue({ sum, count, cellSize }: SlovakSumsClueP
           {Array.from({ length: count }, (_, index) => (
             <span
               key={index}
-              className="rounded-full bg-white"
+              className="rounded-full"
               style={{
                 width: `${dotDiameter}px`,
                 height: `${dotDiameter}px`,
                 flex: '0 0 auto',
+                backgroundColor: woodBoardTheme.darkCellText,
               }}
             />
           ))}

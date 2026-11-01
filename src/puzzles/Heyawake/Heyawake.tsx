@@ -173,6 +173,67 @@ export default function HeyawakeBoard({
     [clues]
   );
 
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    const roomShaded = new Map<number, number>();
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] !== 1) continue;
+        const regionId = regionIds[r][c];
+        roomShaded.set(regionId, (roomShaded.get(regionId) ?? 0) + 1);
+      }
+    }
+    return new Set(
+      clues
+        .filter((clue) => (roomShaded.get(regionIds[clue.row][clue.col]) ?? 0) >= clue.value)
+        .map((clue) => `${clue.row},${clue.col}`)
+    );
+  }, [clues, grid, height, regionIds, width]);
+
+  // ==================== 解题辅助：不能涂黑的格子自动标记 ====================
+  // 条件一：某个区域（房间）的涂黑数已达线索要求，其余空格不能再涂黑；
+  // 条件二：与已涂黑格正交相邻的格子不能涂黑（黑白墙禁止黑格相邻）。
+  const autoMarkedCells = useMemo(() => {
+    const marked = new Set<string>();
+    const key = (r: number, c: number) => `${r}-${c}`;
+    const isClueCell = (r: number, c: number) => clueMap.has(key(r, c));
+
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] !== 1) continue;
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr < 0 || nr >= height || nc < 0 || nc >= width) continue;
+          if (grid[nr][nc] === 0 && !isClueCell(nr, nc)) marked.add(key(nr, nc));
+        }
+      }
+    }
+
+    const roomShaded = new Map<number, number>();
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] !== 1) continue;
+        const regionId = regionIds[r][c];
+        roomShaded.set(regionId, (roomShaded.get(regionId) ?? 0) + 1);
+      }
+    }
+
+    for (const clue of clues) {
+
+      const regionId = regionIds[clue.row][clue.col];
+      if ((roomShaded.get(regionId) ?? 0) < clue.value) continue;
+      for (let r = 0; r < height; r++) {
+        for (let c = 0; c < width; c++) {
+          if (regionIds[r][c] !== regionId) continue;
+          if (grid[r][c] === 0 && !isClueCell(r, c)) marked.add(key(r, c));
+        }
+      }
+    }
+
+    return marked;
+  }, [clueMap, clues, grid, height, regionIds, width]);
+
   const cellSize = useMemo(() => {
     return getResponsiveCellSize({
       fixedCellSize,
@@ -342,6 +403,12 @@ export default function HeyawakeBoard({
       moved: false,
     };
     startBatch();
+
+    // 右键按下即生效；松开不再重复触发，拖动继续涂画。
+    if (!isTouchPointer && event.button === 2) {
+      applyCellState(row, col, nextDragMode);
+      pointerState.current.pendingTap = null;
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -400,7 +467,10 @@ export default function HeyawakeBoard({
               const isInvalid = showValidationMessage && invalidCellSet.has(`${row},${col}`);
               const isShaded = state === 1;
               const isMarked = state === 2;
-              const baseTone = isMarked ? 'marked' as const : isShaded ? 'playerShaded' as const : 'cell' as const;
+              const isAutoMarked = state === 0 && autoMarkedCells.has(`${row}-${col}`);
+              const baseTone = isMarked || isAutoMarked
+                ? 'marked' as const
+                : isShaded ? 'playerShaded' as const : 'cell' as const;
               const invalidStyle = isInvalid
                 ? getInvalidBoardCellColors(isShaded ? 'dark' : isMarked ? 'marked' : 'soft')
                 : undefined;
@@ -424,7 +494,9 @@ export default function HeyawakeBoard({
                       className={boardClassNames.cellText}
                       style={{
                         ...clueTextStyle,
-                        color: isShaded ? woodBoardTheme.darkCellText : trialColors?.text ?? woodBoardTheme.border,
+                        color: satisfiedClueCells.has(`${row},${col}`)
+                          ? woodBoardTheme.neutralSoft
+                          : isShaded ? woodBoardTheme.darkCellText : trialColors?.text ?? woodBoardTheme.border,
                       }}
                     >
                       {clueValue}
@@ -490,7 +562,7 @@ export default function HeyawakeBoard({
                 y1={y}
                 x2={x2}
                 y2={y}
-                stroke={woodBoardTheme.border}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />
@@ -508,7 +580,7 @@ export default function HeyawakeBoard({
                 y1={y1}
                 x2={x}
                 y2={y2}
-                stroke={woodBoardTheme.border}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />

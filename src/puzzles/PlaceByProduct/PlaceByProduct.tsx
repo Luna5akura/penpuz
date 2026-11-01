@@ -107,6 +107,36 @@ export default function PlaceByProductBoard({
         getInitialGrid={getInitialGrid}
         applyOnPointerDown
         outsideClues={{ top: puzzle.colClues, left: puzzle.rowClues }}
+        getSatisfiedOutsideClueKeys={(grid) => {
+          // 行/列白色分组长度之积 = 盘外数字时该线索变灰；0 表示被拼块完全填满
+          const satisfied = new Set<string>();
+          const productMatches = (line: ShadingCellState[], clue: number | null) => {
+            if (clue === null) return false;
+            const runs: number[] = [];
+            let current = 0;
+            for (const state of line) {
+              if (state !== 1) {
+                current += 1;
+              } else if (current > 0) {
+                runs.push(current);
+                current = 0;
+              }
+            }
+            if (current > 0) runs.push(current);
+            if (runs.length === 0) return clue === 0;
+            if (clue === 0) return false;
+            return runs.reduce((total, length) => total * length, 1) === clue;
+          };
+          for (let row = 0; row < puzzle.height; row++) {
+            const line = Array.from({ length: puzzle.width }, (_, col) => grid[row]?.[col]);
+            if (productMatches(line, puzzle.rowClues[row])) satisfied.add(`left-${row}`);
+          }
+          for (let col = 0; col < puzzle.width; col++) {
+            const line = Array.from({ length: puzzle.height }, (_, row) => grid[row]?.[col]);
+            if (productMatches(line, puzzle.colClues[col])) satisfied.add(`top-${col}`);
+          }
+          return satisfied;
+        }}
         outsideClueCellTextSize
         isLockedCell={(row, col) => puzzle.givens[row][col]}
         getCellTone={(_row, _col, state) => (state === 1 ? 'shaded' : state === 2 ? 'marked' : 'cell')}

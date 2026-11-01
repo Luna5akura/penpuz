@@ -48,7 +48,6 @@ interface Props {
 
 type PendingTap =
   | { kind: 'desktop-left-cell'; row: number; col: number }
-  | { kind: 'desktop-right-cell'; row: number; col: number }
   | { kind: 'mobile-cell'; row: number; col: number }
   | { kind: 'mobile-edge'; key: string }
   | { kind: 'mobile-vertex'; key: string }
@@ -61,6 +60,8 @@ type StarbattleSnapshot = {
   cellLevels: number[][];
   edgeDotLevels: Record<string, number>;
   vertexDotLevels: Record<string, number>;
+  /** 星格被右键“打叉”时只改填充色，星形保留：记录这些格子。 */
+  starMarkedCells: string[];
 };
 
 const BOARD_PADDING = commonBoardChrome.padding;
@@ -74,6 +75,7 @@ function normalizeStarbattleSnapshot(snapshot: unknown, width: number, height: n
     cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
     edgeDotLevels: {},
     vertexDotLevels: {},
+    starMarkedCells: [],
   };
   const source = snapshot as Partial<StarbattleSnapshot> | null | undefined;
 
@@ -88,7 +90,53 @@ function normalizeStarbattleSnapshot(snapshot: unknown, width: number, height: n
     ),
     edgeDotLevels: sanitizeNumberRecord(source?.edgeDotLevels),
     vertexDotLevels: sanitizeNumberRecord(source?.vertexDotLevels),
+    starMarkedCells: sanitizeStringArray(source?.starMarkedCells).filter((key) => {
+      const match = key.match(/^(\d+)-(\d+)$/);
+      if (!match) return false;
+      const row = Number(match[1]);
+      const col = Number(match[2]);
+      return row >= 0 && row < height && col >= 0 && col < width;
+    }),
   };
+}
+
+/**
+ * 交叉点圆形标记的自动位移：
+ * 当顶点周围四格中「相邻的两格」都打了叉时，标记自动移到剩下两格
+ * （它们必然也相邻）共享边的中点，提示那两格是仅剩的候选位置。
+ */
+function getStarbattleVertexDotPosition(
+  vertexRow: number,
+  vertexCol: number,
+  grid: StarbattleCellState[][],
+  width: number,
+  height: number
+): { x: number; y: number } {
+  const inBounds = (r: number, c: number) => r >= 0 && r < height && c >= 0 && c < width;
+  // 周围四格：左上 (vr-1,vc-1)、右上 (vr-1,vc)、左下 (vr,vc-1)、右下 (vr,vc)
+  const tl = inBounds(vertexRow - 1, vertexCol - 1) ? grid[vertexRow - 1][vertexCol - 1] : null;
+  const tr = inBounds(vertexRow - 1, vertexCol) ? grid[vertexRow - 1][vertexCol] : null;
+  const bl = inBounds(vertexRow, vertexCol - 1) ? grid[vertexRow][vertexCol - 1] : null;
+  const br = inBounds(vertexRow, vertexCol) ? grid[vertexRow][vertexCol] : null;
+  if (tl === null || tr === null || bl === null || br === null) {
+    // 边界顶点保持原位
+    return { x: vertexCol, y: vertexRow };
+  }
+
+  const crossed = (value: StarbattleCellState | null) => value === 2;
+  if (crossed(tl) && crossed(tr) && !crossed(bl) && !crossed(br)) {
+    return { x: vertexCol, y: vertexRow + 0.5 };
+  }
+  if (crossed(bl) && crossed(br) && !crossed(tl) && !crossed(tr)) {
+    return { x: vertexCol, y: vertexRow - 0.5 };
+  }
+  if (crossed(tl) && crossed(bl) && !crossed(tr) && !crossed(br)) {
+    return { x: vertexCol + 0.5, y: vertexRow };
+  }
+  if (crossed(tr) && crossed(br) && !crossed(tl) && !crossed(bl)) {
+    return { x: vertexCol - 0.5, y: vertexRow };
+  }
+  return { x: vertexCol, y: vertexRow };
 }
 
 export default function StarbattleBoard({
@@ -129,6 +177,7 @@ export default function StarbattleBoard({
     cellLevels: Array.from({ length: height }, () => Array(width).fill(0)),
     edgeDotLevels: {},
     vertexDotLevels: {},
+    starMarkedCells: [],
   }), [height, width]);
   const initialSnapshotRef = useRef(initialSnapshot);
   useEffect(() => {
@@ -179,7 +228,61 @@ export default function StarbattleBoard({
   const vertexDots = useMemo(() => new Set(normalizedSnapshot.vertexDots), [normalizedSnapshot.vertexDots]);
   const edgeDotLevels = normalizedSnapshot.edgeDotLevels;
   const vertexDotLevels = normalizedSnapshot.vertexDotLevels;
+  const starMarkedCellSet = useMemo(() => new Set(normalizedSnapshot.starMarkedCells), [normalizedSnapshot.starMarkedCells]);
   const hasEdited = canUndo || canRedo || trialActive || trialCheckpointCount > 0;
+
+  // ==================== 解题辅助：不能放星的格子提示 ====================
+  // 条件一：某行/列/区已放满星星，其余格不能再放；
+  // 条件二：与已放星星相邻（八邻域，含对角）的格子不能再放。
+  const starImpossibleCells = useMemo(() => {
+    const impossible = new Set<string>();
+    const key = (r: number, c: number) => `${r}-${c}`;
+
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] !== 1) continue;
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            if (dr === 0 && dc === 0) continue;
+            const nr = r + dr;
+            const nc = c + dc;
+            if (nr < 0 || nr >= height || nc < 0 || nc >= width) continue;
+            impossible.add(key(nr, nc));
+          }
+        }
+      }
+    }
+
+    const rowCounts = Array(height).fill(0);
+    const colCounts = Array(width).fill(0);
+    const regionCounts = new Map<number, number>();
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] !== 1) continue;
+        rowCounts[r] += 1;
+        colCounts[c] += 1;
+        const regionId = puzzle.regionIds[r][c];
+        regionCounts.set(regionId, (regionCounts.get(regionId) ?? 0) + 1);
+      }
+    }
+
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] === 1) continue;
+        const regionId = puzzle.regionIds[r][c];
+        if (
+          rowCounts[r] >= starsPerUnit ||
+          colCounts[c] >= starsPerUnit ||
+          (regionCounts.get(regionId) ?? 0) >= starsPerUnit
+        ) {
+          impossible.add(key(r, c));
+        }
+      }
+    }
+
+    return impossible;
+  }, [grid, height, puzzle.regionIds, starsPerUnit, width]);
+
 
   const cellSize = useMemo(() => {
     return getResponsiveCellSize({
@@ -341,6 +444,40 @@ export default function StarbattleBoard({
     });
   }, [applyChange, currentTrialLevel, trialActive]);
 
+  const toggleStarMarkedCell = useCallback((key: string) => {
+    applyChange((currentSnapshot) => {
+      const nextStarMarked = new Set(currentSnapshot.starMarkedCells);
+      if (nextStarMarked.has(key)) {
+        nextStarMarked.delete(key);
+      } else {
+        nextStarMarked.add(key);
+      }
+      return {
+        ...currentSnapshot,
+        starMarkedCells: Array.from(nextStarMarked).sort(),
+      };
+    }, { coalesce: true });
+  }, [applyChange]);
+
+  const applyRightDragToCell = useCallback((row: number, col: number, mode: 'mark' | 'clear') => {
+    const key = `${row}-${col}`;
+    const state = grid[row][col];
+    if (state === 1) {
+      // 星格：只改填充色，星形保留。
+      if (mode === 'mark') {
+        if (!starMarkedCellSet.has(key)) toggleStarMarkedCell(key);
+      } else if (starMarkedCellSet.has(key)) {
+        toggleStarMarkedCell(key);
+      }
+      return;
+    }
+    if (mode === 'mark') {
+      if (state === 0) updateCellState(row, col, 2);
+    } else if (state === 2) {
+      updateCellState(row, col, 0);
+    }
+  }, [grid, starMarkedCellSet, toggleStarMarkedCell, updateCellState]);
+
   const getRelativePoint = useCallback((clientX: number, clientY: number) => {
     const rect = boardRef.current?.getBoundingClientRect();
     if (!rect) return null;
@@ -373,9 +510,6 @@ export default function StarbattleBoard({
 
     if (current.pendingTap?.kind === 'desktop-left-cell') {
       toggleStar(current.pendingTap.row, current.pendingTap.col);
-    } else if (current.pendingTap?.kind === 'desktop-right-cell') {
-      const nextState = grid[current.pendingTap.row][current.pendingTap.col] === 2 ? 0 : 2;
-      updateCellState(current.pendingTap.row, current.pendingTap.col, nextState);
     } else if (current.pendingTap?.kind === 'mobile-cell') {
       cycleMobileCell(current.pendingTap.row, current.pendingTap.col);
     } else if (current.pendingTap?.kind === 'mobile-edge') {
@@ -420,13 +554,16 @@ export default function StarbattleBoard({
         return;
       }
 
+      const nextRightDragMode = grid[hitTarget.row][hitTarget.col] === 2 ? 'clear' : 'mark';
+      // 右键按下即生效；星格只改填充色，空格画叉，叉格清除。
+      applyRightDragToCell(hitTarget.row, hitTarget.col, nextRightDragMode);
       pointerState.current = {
         pointerId: event.pointerId,
         isTouch: false,
-        pendingTap: { kind: 'desktop-right-cell', row: hitTarget.row, col: hitTarget.col },
-        cellDragMode: grid[hitTarget.row][hitTarget.col] === 2 ? 'clear' : 'mark',
+        pendingTap: null,
+        cellDragMode: nextRightDragMode,
         lastCell: { row: hitTarget.row, col: hitTarget.col },
-        moved: false,
+        moved: true,
       };
       startBatch();
       return;
@@ -500,7 +637,11 @@ export default function StarbattleBoard({
     const hitTarget = detectStarbattleHitTarget(point.x, point.y, width, height, cellSize);
     if (!hitTarget || hitTarget.kind !== 'cell') return;
 
-    applyDragToCell(hitTarget.row, hitTarget.col);
+    if (!current.isTouch) {
+      applyRightDragToCell(hitTarget.row, hitTarget.col, current.cellDragMode === 'mark' ? 'mark' : 'clear');
+    } else {
+      applyDragToCell(hitTarget.row, hitTarget.col);
+    }
   };
 
   const { outerWidth, outerHeight } = getBoardFrameDimensions(
@@ -516,11 +657,12 @@ export default function StarbattleBoard({
     <div ref={containerRef} className="flex w-full min-w-0 max-w-full flex-col items-center gap-3">
       <div className="w-full flex justify-end">
         <div
-          className="rounded-full px-3 py-1 text-sm font-semibold dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+          className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           style={{
             ...getBoardBadgeStyle(),
           }}
         >
+          <StarMark cellSize={cellSize} size={17} />
           {copy.shared.starbattleQuota(starsPerUnit)}
         </div>
       </div>
@@ -549,7 +691,10 @@ export default function StarbattleBoard({
               const trialColors = getTrialLevelColors(cellLevels[r][c]);
               const isInvalid = showValidationMessage && invalidCellSet.has(`${r},${c}`);
               const isMarked = state === 2;
-              const baseTone = isMarked ? 'marked' as const : 'cell' as const;
+              const isHinted = state === 0 && starImpossibleCells.has(`${r}-${c}`);
+              const isStarMarked = state === 1 && starMarkedCellSet.has(`${r}-${c}`);
+              // 自动提示格、星格被右键标记时，都与右键打叉格共用同一填充色。
+              const baseTone = isMarked || isHinted || isStarMarked ? 'marked' as const : 'cell' as const;
               const trialStyle = trialColors
                 ? getBoardTrialCellStyle(trialColors, state === 1 ? 'filled' : 'soft')
                 : undefined;
@@ -572,6 +717,7 @@ export default function StarbattleBoard({
                       cellSize={cellSize}
                     />
                   ) : null}
+
                 </div>
               );
             })
@@ -630,7 +776,7 @@ export default function StarbattleBoard({
                 y1={y}
                 x2={x2}
                 y2={y}
-                stroke={woodBoardTheme.border}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />
@@ -648,7 +794,7 @@ export default function StarbattleBoard({
                 y1={y1}
                 x2={x}
                 y2={y2}
-                stroke={woodBoardTheme.border}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />
@@ -671,7 +817,7 @@ export default function StarbattleBoard({
                 cx={centerX}
                 cy={centerY}
                 r={dotRadius}
-                fill={trialColors?.line ?? woodBoardTheme.border}
+                fill={trialColors?.line ?? woodBoardTheme.deepLine}
               />
             );
           })}
@@ -680,13 +826,14 @@ export default function StarbattleBoard({
             const vertex = parseStarbattleVertexKey(key);
             if (!vertex) return null;
             const trialColors = getTrialLevelColors(vertexDotLevels[key] ?? 0);
+            const position = getStarbattleVertexDotPosition(vertex.row, vertex.col, grid, width, height);
             return (
               <circle
                 key={key}
-                cx={BOARD_PADDING + vertex.col * cellSize}
-                cy={BOARD_PADDING + vertex.row * cellSize}
+                cx={BOARD_PADDING + position.x * cellSize}
+                cy={BOARD_PADDING + position.y * cellSize}
                 r={dotRadius}
-                fill={trialColors?.line ?? woodBoardTheme.border}
+                fill={trialColors?.line ?? woodBoardTheme.deepLine}
               />
             );
           })}

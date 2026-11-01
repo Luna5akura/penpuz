@@ -14,5 +14,37 @@ export default function JapaneseSumsBoard({ puzzle, startTime, resetToken, onCom
   const getCellTone = (_row: number, _col: number, value: NumberPlacementCellValue) => (
     value === 'cross' ? 'marked' : 'cell'
   );
-  return <NumberPlacementBoard puzzle={puzzle} numbers={digits} cycleValues={['circle', ...digits, 'cross']} cycleValuesLeft={['circle', ...digits, 'cross']} cycleValuesRight={['cross', ...digits.slice().reverse(), 'circle']} extraCellValues={['circle','cross']} cellInputMode="cycle" startTime={startTime} resetToken={resetToken} onComplete={onComplete} validate={validateJapaneseSums} outsideClues={outsideClues} outsideClueStacks={puzzle.clues} outsideClueStackTextStyle={(cellSize) => getBoardTextStyle(cellSize, 0.65, 9)} renderCellValue={renderValue} getCellTone={getCellTone} fixedCellSize={fixedCellSize} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} showValidationMessage={showValidationMessage} />;
+  const getSatisfiedOutsideClueKeys = (grid: NumberPlacementCellValue[][]) => {
+    // 行/列中连续数字组的和（按顺序）与盘外线索完全一致时变灰
+    const satisfied = new Set<string>();
+    const blockSums = (line: Array<NumberPlacementCellValue | undefined>) => {
+      const sums: number[] = [];
+      let current = 0;
+      let hasDigit = false;
+      for (const cell of line) {
+        if (typeof cell === 'number') {
+          current += cell;
+          hasDigit = true;
+        } else if (hasDigit) {
+          sums.push(current);
+          current = 0;
+          hasDigit = false;
+        }
+      }
+      if (hasDigit) sums.push(current);
+      return sums;
+    };
+    for (let row = 0; row < puzzle.height; row++) {
+      const line = Array.from({ length: puzzle.width }, (_, col) => grid[row]?.[col]);
+      const sums = blockSums(line);
+      if (JSON.stringify(sums) === JSON.stringify(puzzle.clues.left[row])) satisfied.add(`left-${row}`);
+    }
+    for (let col = 0; col < puzzle.width; col++) {
+      const line = Array.from({ length: puzzle.height }, (_, row) => grid[row]?.[col]);
+      const sums = blockSums(line);
+      if (JSON.stringify(sums) === JSON.stringify(puzzle.clues.top[col])) satisfied.add(`top-${col}`);
+    }
+    return satisfied;
+  };
+  return <NumberPlacementBoard puzzle={puzzle} numbers={digits} cycleValues={['circle', ...digits, 'cross']} cycleValuesLeft={['circle', ...digits, 'cross']} cycleValuesRight={['cross', ...digits.slice().reverse(), 'circle']} extraCellValues={['circle','cross']} cellInputMode="cycle" startTime={startTime} resetToken={resetToken} onComplete={onComplete} validate={validateJapaneseSums} outsideClues={outsideClues} outsideClueStacks={puzzle.clues} getSatisfiedOutsideClueKeys={getSatisfiedOutsideClueKeys} outsideClueStackTextStyle={(cellSize) => getBoardTextStyle(cellSize, 0.65, 9)} renderCellValue={renderValue} getCellTone={getCellTone} fixedCellSize={fixedCellSize} initialSnapshot={initialSnapshot} onSnapshotChange={onSnapshotChange} showValidationMessage={showValidationMessage} />;
 }

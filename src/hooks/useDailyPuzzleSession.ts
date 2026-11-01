@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDailyPuzzle, getHistoryPuzzles, getPuzzleByDateStr } from '../puzzles/database';
 import { readLocalStorage, removeLocalStorage, writeLocalStorage } from '../lib/safeStorage';
 import type { DailyPuzzleData, HistoryPuzzleData } from '../puzzles/types';
@@ -152,7 +152,7 @@ function createInitialSessionState(): DailyPuzzleSessionState {
   };
 }
 
-export function useDailyPuzzleSession() {
+export function useDailyPuzzleSession(timerPaused: boolean = false) {
   const [initialState] = useState<DailyPuzzleSessionState>(() => createInitialSessionState());
   const [todayDaily, setTodayDaily] = useState<DailyPuzzleData | null>(initialState.todayDaily);
   const [daily, setDaily] = useState<DailyPuzzleData | null>(initialState.daily);
@@ -161,6 +161,7 @@ export function useDailyPuzzleSession() {
   const [started, setStarted] = useState(initialState.started);
   const [startTime, setStartTime] = useState<number | null>(initialState.startTime);
   const [elapsedTime, setElapsedTime] = useState(initialState.elapsedTime);
+  const elapsedTimeRef = useRef(elapsedTime);
   const [attemptCompleted, setAttemptCompleted] = useState(initialState.attemptCompleted);
   const [resultTime, setResultTime] = useState(initialState.resultTime);
   const [resultOpen, setResultOpen] = useState(initialState.resultOpen);
@@ -243,14 +244,27 @@ export function useDailyPuzzleSession() {
   }, [refreshDailyDate]);
 
   useEffect(() => {
-    if (!started || !startTime || attemptCompleted) return;
+    elapsedTimeRef.current = elapsedTime;
+  }, [elapsedTime]);
+
+  useEffect(() => {
+    if (!started || !startTime || attemptCompleted || timerPaused) return;
 
     const interval = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [attemptCompleted, started, startTime]);
+  }, [attemptCompleted, started, startTime, timerPaused]);
+
+  // Rebasing the start time on resume keeps the elapsed time from jumping
+  // forward across the paused window.
+  useEffect(() => {
+    if (timerPaused) return;
+    setStartTime((current) =>
+      current === null ? current : Date.now() - elapsedTimeRef.current * 1000
+    );
+  }, [timerPaused]);
 
   useEffect(() => {
     if (!daily || !started || attemptCompleted || !savedProgress?.snapshot) return;

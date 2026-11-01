@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import ShadingBoard, { type ShadingCellState } from '../shared/ShadingBoard';
 import type { LakesPuzzleData } from '../types';
 import { getCellKey } from '../gridUtils';
-import { boardClassNames, getBoardClueTextStyle } from '../boardTheme';
+import { boardClassNames, getBoardClueTextStyle, woodBoardTheme } from '../boardTheme';
 import { validateLakes } from './utils';
 
 interface Props {
@@ -53,15 +53,38 @@ export default function LakesBoard({
         if (state === 2) return 'marked';
         return 'cell';
       }}
-      renderCellContent={(row, col, _state, cellSize) => {
+      renderCellContent={(row, col, _state, cellSize, grid) => {
         const value = clueMap.get(getCellKey(row, col));
         if (value === undefined) return null;
+
+        // 数字线索满足要求（湖区大小 = 数字）后变灰
+        let satisfied = false;
+        if (value !== '?') {
+          const visited = Array.from({ length: puzzle.height }, () => Array(puzzle.width).fill(false));
+          const stack: Array<[number, number]> = [[row, col]];
+          visited[row][col] = true;
+          let size = 0;
+          while (stack.length > 0) {
+            const [r, c] = stack.pop()!;
+            size += 1;
+            for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+              const nr = r + dr;
+              const nc = c + dc;
+              if (nr < 0 || nr >= puzzle.height || nc < 0 || nc >= puzzle.width) continue;
+              if (visited[nr][nc] || grid[nr][nc] === 1) continue;
+              visited[nr][nc] = true;
+              stack.push([nr, nc]);
+            }
+          }
+          satisfied = size === value;
+        }
 
         return (
           <span
             className={boardClassNames.cellText}
             style={{
               ...getBoardClueTextStyle(cellSize),
+              ...(satisfied ? { color: woodBoardTheme.neutralSoft } : {}),
             }}
           >
             {value}

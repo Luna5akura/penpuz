@@ -1,4 +1,5 @@
-import type { DailyPuzzleData, HistoryPuzzleData, PuzzleData, PuzzleEntry, PuzzleType } from './types';
+import type { DailyPuzzleData, HistoryPuzzleData, PuzzleData, PuzzleDifficulty, PuzzleEntry, PuzzleType } from './types';
+import { committedRotationIndices } from './rotationSchedule';
 import { getPuzzleTemplate, puzzleRegistry, resolvePuzzleEntry } from './registry';
 
 export interface DatabasePuzzleSample {
@@ -38,7 +39,7 @@ function formatBeijingDate(date: Date): string {
 }
 
 // ==================== 统一存储所有谜题 ====================
-const allPuzzles: PuzzleEntry[] = [
+export const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'https://pzprxs.vercel.app/p?nurikabe/10/10/2l2u2l2n2m2m.k2g2i2q2l2s',
     difficulty: '困难',
@@ -923,7 +924,61 @@ const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
     author: 'PGP2016R3',
   },
+  {
+    puzzLink: 'https://penpuz.today/?fillomino-checkerboard/6/6/h3j1l2h4.2l1h3.4j',
+    difficulty: '简单',
+    author: 'Silke Berendes',
+  },
+  {
+    puzzLink: 'https://penpuz.today/?fillomino-checkerboard/7/7/h7h1j5m1.3o8.2n3i6p',
+    difficulty: '困难',
+    author: 'Silke Berendes',
+  },
+  {
+    puzzLink: 'https://penpuz.today/?fillomino-checkerboard/8/8/.2j3j2i3h3.3l2k3i2j5.3h1k7o1',
+    difficulty: '困难',
+    author: 'Silke Berendes',
+  },
+  {
+    puzzLink: 'https://penpuz.today/?fillomino-checkerboard/9/9/.2.3m4i1.5h6i5r8j35i3h3k8h6.62.3h6o6i',
+    difficulty: '极难',
+    author: 'Silke Berendes',
+  },
 ];
+
+/**
+ * Deterministic daily rotation with adjacent days as different in difficulty
+ * as the pool allows: entries are interleaved 简单 → 困难 → 极难 while each
+ * difficulty keeps its original database order.
+ */
+const DAILY_DIFFICULTY_CYCLE: PuzzleDifficulty[] = ['简单', '困难', '极难'];
+
+function buildBalancedRotation(entries: PuzzleEntry[]): PuzzleEntry[] {
+  const buckets: Record<PuzzleDifficulty, PuzzleEntry[]> = {
+    简单: [],
+    困难: [],
+    极难: [],
+  };
+  entries.forEach((entry) => {
+    buckets[entry.difficulty].push(entry);
+  });
+
+  const rotated: PuzzleEntry[] = [];
+  let placed = true;
+  while (placed) {
+    placed = false;
+    for (const difficulty of DAILY_DIFFICULTY_CYCLE) {
+      const entry = buckets[difficulty].shift();
+      if (entry) {
+        rotated.push(entry);
+        placed = true;
+      }
+    }
+  }
+  return rotated;
+}
+
+export const dailyRotation = buildBalancedRotation(allPuzzles);
 
 /**
  * Return the first parseable database entry for every registered puzzle type.
@@ -960,8 +1015,9 @@ export interface DatabasePuzzleListItem {
  */
 export function getAllDatabasePuzzles(): DatabasePuzzleListItem[] {
   const items: DatabasePuzzleListItem[] = [];
-  for (let index = 0; index < allPuzzles.length; index += 1) {
-    const entry = allPuzzles[index];
+  const firstCycleLength = Math.min(dailyRotation.length, committedRotationIndices.length);
+  for (let index = 0; index < firstCycleLength; index += 1) {
+    const entry = getRotationEntry(index);
     const puzzle = getPuzzleForDatabaseIndex(index);
     if (!puzzle) continue;
     items.push({ index, type: puzzle.type, entry, puzzle });
@@ -975,11 +1031,24 @@ const START_DATE = '2026-04-09';
 const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
 const parsedPuzzleCache = new Map<number, PuzzleData | null>();
 
+/**
+ * 第 index 天对应的题库条目。
+ * 冻结窗口（committedRotationIndices）内的日期永远固定；窗口之外按
+ * 当前平衡轮换续排，只有超出冻结窗口的未来日期才会随题库更新移动。
+ */
+function getRotationEntry(index: number): PuzzleEntry {
+  if (index < committedRotationIndices.length) {
+    return allPuzzles[committedRotationIndices[index]];
+  }
+  const offset = index - committedRotationIndices.length;
+  return dailyRotation[offset % dailyRotation.length];
+}
+
 function getPuzzleForDatabaseIndex(index: number): PuzzleData | null {
   const cached = parsedPuzzleCache.get(index);
   if (cached !== undefined || parsedPuzzleCache.has(index)) return cached ?? null;
 
-  const puzzle = resolvePuzzleEntry(allPuzzles[index]) ?? null;
+  const puzzle = resolvePuzzleEntry(getRotationEntry(index)) ?? null;
   parsedPuzzleCache.set(index, puzzle);
   return puzzle;
 }
@@ -1010,29 +1079,21 @@ function getDaysSinceStartFromDateStr(dateStr: string): number | null {
  * users gap-free as well.
  */
 function getPublicPuzzleIndex(daysSinceStart: number): number | null {
-  const databaseIndex = daysSinceStart % allPuzzles.length;
-  let parseablePerCycle = 0;
-  for (let index = 0; index < allPuzzles.length; index += 1) {
-    if (getPuzzleForDatabaseIndex(index)) parseablePerCycle += 1;
-  }
+  if (!getPuzzleForDatabaseIndex(daysSinceStart)) return null;
 
-  let publicIndex = Math.floor(daysSinceStart / allPuzzles.length) * parseablePerCycle;
-  for (let index = 0; index <= databaseIndex; index += 1) {
-    const puzzle = getPuzzleForDatabaseIndex(index);
-    if (!puzzle) continue;
-    if (index === databaseIndex) return publicIndex;
-    publicIndex += 1;
+  let publicIndex = 0;
+  for (let index = 0; index < daysSinceStart; index += 1) {
+    if (getPuzzleForDatabaseIndex(index)) publicIndex += 1;
   }
-  return null;
+  return publicIndex;
 }
 
 export function getPuzzleByDateStr(dateStr: string): DailyPuzzleData | null {
   const daysSinceStart = getDaysSinceStartFromDateStr(dateStr);
   if (daysSinceStart === null) return null;
 
-  const databaseIndex = daysSinceStart % allPuzzles.length;
-  const entry = allPuzzles[databaseIndex];
-  const puzzle = getPuzzleForDatabaseIndex(databaseIndex);
+  const entry = getRotationEntry(daysSinceStart);
+  const puzzle = getPuzzleForDatabaseIndex(daysSinceStart);
   if (!puzzle) return null;
 
   const publicIndex = getPublicPuzzleIndex(daysSinceStart);
@@ -1061,9 +1122,8 @@ export function getHistoryPuzzles(daysSinceStart: number): HistoryPuzzleData[] {
   let publicIndex = 0;
 
   for (let d = 0; d < daysSinceStart; d++) {
-    const databaseIndex = d % allPuzzles.length;
-    const entry = allPuzzles[databaseIndex];
-    const puzzle = getPuzzleForDatabaseIndex(databaseIndex);
+    const entry = getRotationEntry(d);
+    const puzzle = getPuzzleForDatabaseIndex(d);
     if (!puzzle) continue;
 
     history.push({

@@ -1,9 +1,11 @@
 // src/App.tsx
 
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { BookOpen, CalendarDays, Check, ChevronLeft, ChevronRight, History, Languages, LayoutGrid, NotebookText, Play, Puzzle, Share2, Timer, Trophy, UserPen, X } from 'lucide-react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Flame, History, Languages, LayoutGrid, ListVideo, Moon, NotebookText, Pause, Play, Puzzle, Share2, Sun, Timer, Trophy, UserPen, X } from 'lucide-react';
 import RulesSection from './components/RulesSection';
 import CompletionModal from './components/CompletionModal';
+import KeyboardShortcutsDialog from './components/KeyboardShortcutsDialog';
+import SolveReplayDialog, { type SolveTimelineEntry } from './components/SolveReplayDialog';
 import {
   readSavedCompletion,
   readSavedProgress,
@@ -26,6 +28,10 @@ import {
 } from './puzzles/types';
 import { formatMinutesSeconds } from './lib/formatDuration';
 import { Card } from './components/ui/card';
+import { useTheme } from './hooks/useTheme';
+import { isKeyboardInputTarget } from './lib/keyboard';
+import { getBeijingDateStr } from './puzzles/database';
+import { readLocalStorage, removeLocalStorage, writeLocalStorage } from './lib/safeStorage';
 
 const HISTORY_PAGE_SIZE = 5;
 const RuleQuickReferenceDialog = lazy(() => import('./components/RuleQuickReferenceDialog'));
@@ -36,6 +42,56 @@ const DatabasePuzzleTestPage = lazy(() => import('./components/DatabasePuzzleTes
 const AllPuzzlesPage = lazy(() => import('./components/AllPuzzlesPage'));
 
 type ActivePage = 'puzzle' | 'notes' | 'database-test' | 'all-puzzles';
+
+function getPreviousDateStr(dateStr: string): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const previous = new Date(Date.UTC(year, month - 1, day - 1));
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${previous.getUTCFullYear()}-${pad(previous.getUTCMonth() + 1)}-${pad(previous.getUTCDate())}`;
+}
+
+const SOLVE_TIMELINE_MAX_ENTRIES = 400;
+const SOLVE_TIMELINE_MIN_INTERVAL_MS = 1500;
+
+function getSolveTimelineKey(dateStr: string) {
+  return `puzzle-timeline-${dateStr}`;
+}
+
+function readSolveTimeline(dateStr: string): SolveTimelineEntry[] {
+  try {
+    const raw = readLocalStorage(getSolveTimelineKey(dateStr));
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return [];
+    const entries = (parsed as { version?: unknown; entries?: unknown }).entries;
+    if (!Array.isArray(entries)) return [];
+    return entries.filter(
+      (entry): entry is SolveTimelineEntry =>
+        !!entry &&
+        typeof entry === 'object' &&
+        typeof (entry as SolveTimelineEntry).t === 'number' &&
+        (entry as SolveTimelineEntry).snapshot !== undefined
+    );
+  } catch {
+    return [];
+  }
+}
+
+function persistSolveTimeline(dateStr: string, entries: SolveTimelineEntry[]) {
+  try {
+    writeLocalStorage(getSolveTimelineKey(dateStr), JSON.stringify({ version: 1, entries }));
+  } catch {
+    // Timeline capture is best-effort.
+  }
+}
+
+function clearSolveTimeline(dateStr: string) {
+  try {
+    removeLocalStorage(getSolveTimelineKey(dateStr));
+  } catch {
+    // ignore
+  }
+}
 
 function readActivePageFromUrl(): ActivePage {
   if (typeof window === 'undefined') return 'puzzle';
@@ -94,7 +150,15 @@ function App() {
   const [historyTypeFilter, setHistoryTypeFilter] = useState<PuzzleType | 'all'>('all');
   const [historyDifficultyFilter, setHistoryDifficultyFilter] = useState<PuzzleDifficulty | 'all'>('all');
   const [restartDialogOpen, setRestartDialogOpen] = useState(false);
+  const [timerPaused, setTimerPaused] = useState(false);
+  const [replayOpen, setReplayOpen] = useState(false);
+  const [replaySessionId, setReplaySessionId] = useState(0);
+  const [replayEntries, setReplayEntries] = useState<SolveTimelineEntry[]>([]);
+  const [timelineCount, setTimelineCount] = useState(0);
+  const solveTimelineRef = useRef<SolveTimelineEntry[]>([]);
+  const lastTimelineRecordAtRef = useRef(0);
   const [ruleReferenceOpen, setRuleReferenceOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [copiedHistoryDate, setCopiedHistoryDate] = useState<string | null>(null);
   const [directBoardInstance, setDirectBoardInstance] = useState(0);
   const [directStartTime, setDirectStartTime] = useState(() => Date.now());
@@ -102,6 +166,7 @@ function App() {
   const [directAttemptCompleted, setDirectAttemptCompleted] = useState(false);
   const [directBoardSnapshot, setDirectBoardSnapshot] = useState<unknown>(null);
   const { locale, copy, toggleLocale } = useI18n();
+  const { theme, toggleTheme } = useTheme();
   const {
     todayDaily,
     daily,
@@ -127,7 +192,7 @@ function App() {
     closeHistory,
     loadHistoryPuzzle,
     buildHistoryShareUrl,
-  } = useDailyPuzzleSession();
+  } = useDailyPuzzleSession(timerPaused);
   const linkedPuzzle = useMemo(
     () => {
       void urlVersion;
@@ -161,22 +226,70 @@ function App() {
     setDirectBoardSnapshot(null);
     setDirectBoardInstance((value) => value + 1);
   }, []);
+  useEffect(() => {
+    if (!daily || isDirectPuzzle) return;
+    const entries = readSolveTimeline(daily.dateStr);
+    solveTimelineRef.current = entries;
+    lastTimelineRecordAtRef.current = 0;
+    setTimelineCount(entries.length);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [daily?.dateStr, isDirectPuzzle]);
+
+  const handleBoardProgressWithTimeline = useCallback((snapshot: unknown) => {
+    if (isDirectPuzzle) {
+      handleDirectBoardProgress(snapshot);
+      return;
+    }
+    handleBoardProgress(snapshot);
+    if (!daily) return;
+
+    const now = Date.now();
+    if (now - lastTimelineRecordAtRef.current < SOLVE_TIMELINE_MIN_INTERVAL_MS) return;
+    lastTimelineRecordAtRef.current = now;
+
+    const entries = solveTimelineRef.current;
+    if (entries.length >= SOLVE_TIMELINE_MAX_ENTRIES) entries.shift();
+    entries.push({ t: elapsedTime, snapshot });
+    persistSolveTimeline(daily.dateStr, entries);
+    setTimelineCount(entries.length);
+  }, [daily, elapsedTime, handleBoardProgress, handleDirectBoardProgress, isDirectPuzzle]);
+
+  const resetSolveTimeline = useCallback(() => {
+    solveTimelineRef.current = [];
+    lastTimelineRecordAtRef.current = 0;
+    setTimelineCount(0);
+    if (daily) clearSolveTimeline(daily.dateStr);
+  }, [daily]);
+
+  const openReplay = useCallback(() => {
+    if (!daily) return;
+    const entries = readSolveTimeline(daily.dateStr);
+    if (entries.length < 2) return;
+    setReplayEntries(entries);
+    setReplaySessionId((current) => current + 1);
+    setReplayOpen(true);
+  }, [daily]);
+
   const handleRestartWithTime = useCallback(() => {
+    setTimerPaused(false);
+    resetSolveTimeline();
     if (isDirectPuzzle) {
       restartDirectPuzzle(directElapsedTime);
     } else {
       handleRestartPreserveTime();
     }
     setRestartDialogOpen(false);
-  }, [directElapsedTime, handleRestartPreserveTime, isDirectPuzzle, restartDirectPuzzle]);
+  }, [directElapsedTime, handleRestartPreserveTime, isDirectPuzzle, resetSolveTimeline, restartDirectPuzzle]);
   const handleRestartFromZero = useCallback(() => {
+    setTimerPaused(false);
+    resetSolveTimeline();
     if (isDirectPuzzle) {
       restartDirectPuzzle(0);
     } else {
       handleRestartResetTime();
     }
     setRestartDialogOpen(false);
-  }, [handleRestartResetTime, isDirectPuzzle, restartDirectPuzzle]);
+  }, [handleRestartResetTime, isDirectPuzzle, resetSolveTimeline, restartDirectPuzzle]);
   const handleOpenPuzzlePage = useCallback(() => {
     closeHistory();
     setActivePage('puzzle');
@@ -243,7 +356,7 @@ function App() {
       linkedPuzzle ? directBoardInstance : boardInstance,
       linkedPuzzle ? handleDirectComplete : handleComplete,
       linkedPuzzle ? directBoardSnapshot : boardSnapshot,
-      linkedPuzzle ? handleDirectBoardProgress : handleBoardProgress,
+      handleBoardProgressWithTimeline,
     );
   }, [
     boardInstance,
@@ -252,9 +365,8 @@ function App() {
     directBoardInstance,
     directBoardSnapshot,
     directStartTime,
-    handleBoardProgress,
+    handleBoardProgressWithTimeline,
     handleComplete,
-    handleDirectBoardProgress,
     handleDirectComplete,
     linkedPuzzle,
     startTime,
@@ -355,6 +467,19 @@ function App() {
     return () => window.removeEventListener('popstate', syncPageFromUrl);
   }, []);
 
+  // `?` opens the keyboard shortcut panel.
+  useEffect(() => {
+    const handleShortcutKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== '?') return;
+      const target = event.target as HTMLElement | null;
+      if (isKeyboardInputTarget(target)) return;
+      event.preventDefault();
+      setShortcutsOpen((current) => !current);
+    };
+    document.addEventListener('keydown', handleShortcutKeyDown);
+    return () => document.removeEventListener('keydown', handleShortcutKeyDown);
+  }, []);
+
   useEffect(() => {
     if (!linkedPuzzleKey) return;
 
@@ -366,14 +491,21 @@ function App() {
   }, [linkedPuzzleKey]);
 
   useEffect(() => {
-    if (!linkedPuzzleKey || directAttemptCompleted) return;
+    if (!linkedPuzzleKey || directAttemptCompleted || timerPaused) return;
 
     const interval = window.setInterval(() => {
       setDirectElapsedTime(Math.floor((Date.now() - directStartTime) / 1000));
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [directAttemptCompleted, directStartTime, linkedPuzzleKey]);
+  }, [directAttemptCompleted, directStartTime, linkedPuzzleKey, timerPaused]);
+
+  // Rebasing the direct start time on resume prevents the timer jumping.
+  useEffect(() => {
+    if (timerPaused) return;
+    setDirectStartTime(Date.now() - directElapsedTime * 1000);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timerPaused]);
 
   useEffect(() => {
     if (!daily || activePage !== 'puzzle') return;
@@ -430,6 +562,32 @@ function App() {
   const authorText = isDirectPuzzle ? null : daily.author;
   const isPuzzlePage = activePage === 'puzzle';
 
+  const [startYear, startMonth, startDay] = daily.dateStr.split('-').map(Number);
+  const startCardDate = {
+    dateText: new Intl.DateTimeFormat(locale === 'zh-CN' ? 'zh-CN' : 'en-US', {
+      timeZone: 'UTC',
+      month: 'long',
+      day: 'numeric',
+    }).format(new Date(Date.UTC(startYear, startMonth - 1, startDay))),
+    weekday: new Intl.DateTimeFormat(locale === 'zh-CN' ? 'zh-CN' : 'en-US', {
+      timeZone: 'UTC',
+      weekday: 'long',
+    }).format(new Date(Date.UTC(startYear, startMonth - 1, startDay))),
+  };
+
+  const streakCount = (() => {
+    let cursor = getBeijingDateStr();
+    let count = 0;
+    if (!readSavedCompletion(cursor)) {
+      cursor = getPreviousDateStr(cursor);
+    }
+    while (readSavedCompletion(cursor)) {
+      count += 1;
+      cursor = getPreviousDateStr(cursor);
+    }
+    return count;
+  })();
+
   return (
     <div className="min-h-screen bg-background py-4 dark:bg-background">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
@@ -450,7 +608,7 @@ function App() {
                 aria-label={copy.app.puzzleTab}
                 title={copy.app.puzzleTab}
               >
-                <CalendarDays />
+                <Puzzle />
               </Button>
               <Button
                 variant={activePage === 'notes' ? 'default' : 'outline'}
@@ -499,6 +657,9 @@ function App() {
               <Card className="mx-auto max-w-lg border-[#d7c7b4] bg-card p-5 dark:border-gray-700 dark:bg-card">
                 <div className="space-y-3 text-center">
                   <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">{puzzleName}</h2>
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {startCardDate.dateText} · {startCardDate.weekday}
+                  </div>
                   <div className="flex flex-wrap items-center justify-center gap-2">
                     {!isDirectPuzzle && <DifficultyBadge difficulty={daily.difficulty} />}
                     {authorText && (
@@ -513,10 +674,20 @@ function App() {
                     <span className="text-sm font-medium text-muted-foreground">
                       {copy.app.puzzleNumber(daily.index + 1)}
                     </span>
+                    {streakCount > 0 && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-orange-300 bg-orange-50 px-2.5 py-0.5 text-sm font-medium text-orange-700 dark:border-orange-900/70 dark:bg-orange-950/40 dark:text-orange-300">
+                        <Flame className="size-3.5" aria-hidden="true" />
+                        {copy.app.streak(streakCount)}
+                      </span>
+                    )}
                   </div>
                   <div className="pt-1">
                     <Button
-                      onClick={handleStart}
+                      onClick={() => {
+                        setTimerPaused(false);
+                        resetSolveTimeline();
+                        handleStart();
+                      }}
                       size="icon-lg"
                       className="size-14 rounded-full shadow-sm"
                       aria-label={copy.app.startPuzzle}
@@ -533,6 +704,15 @@ function App() {
                   <div className="flex items-center gap-2 text-xl font-semibold text-foreground sm:text-left sm:text-2xl">
                     <Timer className="size-5 shrink-0 text-muted-foreground sm:size-6" aria-hidden="true" />
                     {copy.app.elapsedTime(activeElapsedTime)}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setTimerPaused((current) => !current)}
+                      aria-label={timerPaused ? copy.app.resumeTimer : copy.app.pauseTimer}
+                      title={timerPaused ? copy.app.resumeTimer : copy.app.pauseTimer}
+                    >
+                      {timerPaused ? <Play /> : <Pause />}
+                    </Button>
                   </div>
                   <div className="text-base text-muted-foreground sm:text-center">
                     {isDirectPuzzle ? metadata.title : copy.app.puzzleSummary(puzzleName, daily.index + 1)}
@@ -558,11 +738,37 @@ function App() {
                         <Trophy />
                       </Button>
                     )}
+                    {!isDirectPuzzle && timelineCount >= 2 && (
+                      <Button
+                        onClick={openReplay}
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={copy.app.replayTitle}
+                        title={copy.app.replayTitle}
+                      >
+                        <ListVideo />
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div className="mb-12 flex w-full min-w-0 justify-center">
                   <RestartActionContext.Provider value={handleOpenRestartDialog}>
-                    {renderBoard()}
+                    <div className="relative w-full min-w-0">
+                      {renderBoard()}
+                      {timerPaused ? (
+                        <button
+                          type="button"
+                          onClick={() => setTimerPaused(false)}
+                          aria-label={copy.app.resumeTimer}
+                          title={copy.app.resumeTimer}
+                          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 rounded-xl bg-background/70 backdrop-blur-md"
+                        >
+                          <span className="flex size-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm">
+                            <Play className="size-7" aria-hidden="true" />
+                          </span>
+                        </button>
+                      ) : null}
+                    </div>
                   </RestartActionContext.Provider>
                 </div>
               </>
@@ -596,6 +802,20 @@ function App() {
             />
           </Suspense>
         )}
+
+        <KeyboardShortcutsDialog
+          open={shortcutsOpen}
+          onClose={() => setShortcutsOpen(false)}
+          puzzleType={activePuzzle?.type ?? null}
+        />
+
+        <SolveReplayDialog
+          key={replaySessionId}
+          open={replayOpen}
+          onClose={() => setReplayOpen(false)}
+          puzzle={activePuzzle}
+          entries={replayEntries}
+        />
 
         {/* 历史题目列表 Modal */}
         {showHistory && (
@@ -875,6 +1095,18 @@ function App() {
             dateStr={daily.dateStr}
           />
         )}
+        {/* 浮动日夜切换：不占顶部栏，全站随时可用 */}
+        <Button
+          variant="outline"
+          size="icon-lg"
+          className="fixed bottom-24 right-4 z-40 rounded-full border-border bg-background/90 shadow-lg backdrop-blur transition-colors hover:bg-muted md:bottom-4"
+          onClick={toggleTheme}
+          aria-label={copy.app.themeToggle}
+          title={copy.app.themeToggle}
+        >
+          {theme === 'dark' ? <Sun /> : <Moon />}
+        </Button>
+
         {restartDialogOpen && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-3"

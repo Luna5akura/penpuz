@@ -184,6 +184,23 @@ export default function AqreBoard({
     [clues]
   );
 
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    const roomShaded = new Map<number, number>();
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        if (grid[r][c] !== 1) continue;
+        const regionId = regionIds[r][c];
+        roomShaded.set(regionId, (roomShaded.get(regionId) ?? 0) + 1);
+      }
+    }
+    return new Set(
+      clues
+        .filter((clue) => (roomShaded.get(regionIds[clue.row][clue.col]) ?? 0) >= clue.value)
+        .map((clue) => `${clue.row},${clue.col}`)
+    );
+  }, [clues, grid, height, regionIds, width]);
+
   const cellSize = useMemo(() => getResponsiveCellSize({
     fixedCellSize,
     viewportWidth,
@@ -329,6 +346,12 @@ export default function AqreBoard({
       lastCell: { row, col },
     };
     startBatch();
+
+    // 右键按下即生效；松开不再重复触发，拖动继续涂画。
+    if (!isTouchPointer && event.button === 2) {
+      applyCellState(row, col, nextDragMode);
+      pointerState.current.pendingTap = null;
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -411,7 +434,9 @@ export default function AqreBoard({
                       className={boardClassNames.cellText}
                       style={{
                         ...clueTextStyle,
-                        color: isShaded ? woodBoardTheme.darkCellText : trialColors?.text ?? woodBoardTheme.border,
+                        color: satisfiedClueCells.has(`${row},${col}`)
+                          ? woodBoardTheme.neutralSoft
+                          : isShaded ? woodBoardTheme.darkCellText : trialColors?.text ?? woodBoardTheme.border,
                       }}
                     >
                       {clueValue}
@@ -480,7 +505,7 @@ export default function AqreBoard({
                 y1={y}
                 x2={x2}
                 y2={y}
-                stroke={woodBoardTheme.border}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />
@@ -498,7 +523,7 @@ export default function AqreBoard({
                 y1={y1}
                 x2={x}
                 y2={y2}
-                stroke={woodBoardTheme.border}
+                stroke={woodBoardTheme.deepLine}
                 strokeWidth={boundaryStroke}
                 strokeLinecap="square"
               />

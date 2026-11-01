@@ -130,6 +130,36 @@ export default function MagicSummerBoard({
         cycleValues={cycleValues}
         inputModeOptions={inputModeOptions}
         outsideClues={outsideClues}
+        getSatisfiedOutsideClueKeys={(grid) => {
+          // 行/列中所有多位数之和 = 盘外数字时该线索变灰
+          const satisfied = new Set<string>();
+          const sumMatches = (line: Array<NumberPlacementCellValue | undefined>, clue: number | null | undefined) => {
+            if (clue === null || clue === undefined) return false;
+            const runs: number[] = [];
+            let current = '';
+            const flush = () => {
+              if (current !== '') {
+                runs.push(Number(current));
+                current = '';
+              }
+            };
+            for (const cell of line) {
+              if (typeof cell === 'number') current += String(cell);
+              else flush();
+            }
+            flush();
+            return runs.reduce((total, value) => total + value, 0) === clue;
+          };
+          for (let row = 0; row < puzzle.height; row++) {
+            const line = Array.from({ length: puzzle.width }, (_, col) => grid[row]?.[col]);
+            if (sumMatches(line, puzzle.rowSums[row])) satisfied.add(`left-${row}`);
+          }
+          for (let col = 0; col < puzzle.width; col++) {
+            const line = Array.from({ length: puzzle.height }, (_, row) => grid[row]?.[col]);
+            if (sumMatches(line, puzzle.columnSums[col])) satisfied.add(`top-${col}`);
+          }
+          return satisfied;
+        }}
         initialSnapshot={initialSnapshot}
         onSnapshotChange={onSnapshotChange}
         fixedCellSize={fixedCellSize}

@@ -18,6 +18,7 @@ import {
   getBoardTextStyle,
   getInvalidBoardCellColors,
   getResponsiveCellSize,
+  woodBoardTheme,
 } from '../boardTheme';
 import {
   createEmptyAkariGrid,
@@ -377,6 +378,12 @@ export default function AkariBoard({
       moved: false,
     };
     startBatch();
+
+    // 右键按下即生效；松开不再重复触发，拖动继续涂画。
+    if (!isTouchPointer && event.button === 2 && pendingTap?.kind === 'desktop-right-cell' && cellDragMode) {
+      applyDragModeToCell(row, col, cellDragMode);
+      pointerState.current.pendingTap = null;
+    }
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -415,6 +422,27 @@ export default function AkariBoard({
     { borderWidth: BOARD_BORDER, padding: BOARD_PADDING }
   );
   const bulbDiameter = getBoardSymbolDiameter(cellSize);
+  // ==================== 数字线索满足要求后变灰 ====================
+  const satisfiedClueCells = useMemo(() => {
+    const satisfied = new Set<string>();
+    const dirs = [[-1, 0], [1, 0], [0, -1], [0, 1]] as const;
+    for (let r = 0; r < height; r++) {
+      for (let c = 0; c < width; c++) {
+        const clue = cells[r][c];
+        if (typeof clue !== 'number') continue;
+        let lampCount = 0;
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr < 0 || nr >= height || nc < 0 || nc >= width) continue;
+          if (grid[nr][nc] === 1) lampCount += 1;
+        }
+        if (lampCount === clue) satisfied.add(`${r}-${c}`);
+      }
+    }
+    return satisfied;
+  }, [cells, grid, height, width]);
+
   const clueTextStyle = getBoardTextStyle(cellSize);
 
   return (
@@ -481,7 +509,12 @@ export default function AkariBoard({
                   {typeof puzzleCell === 'number' ? (
                     <span
                       className={boardClassNames.cellText}
-                      style={clueTextStyle}
+                      style={{
+                        ...clueTextStyle,
+                        ...(satisfiedClueCells.has(`${row}-${col}`)
+                          ? { color: woodBoardTheme.neutralSoft }
+                          : {}),
+                      }}
                     >
                       {puzzleCell}
                     </span>

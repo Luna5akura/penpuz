@@ -87,10 +87,25 @@ export default function SlovakSumsBoard({
         { mode: 'cycle', label: copy.shared.numberInputModes.normal },
         { mode: 'candidates', label: copy.shared.numberInputModes.candidates },
       ]}
-      renderBlockedCell={(row, col, cellSize) => {
+      renderBlockedCell={(row, col, cellSize, grid) => {
         const clue = puzzle.cells[row][col];
         if (!clue) return null;
-        return <SlovakSumsClue sum={clue.sum} count={clue.count} cellSize={cellSize} />;
+        // 数字线索满足要求：相邻白格已填数字之和 = 上方数字，
+        // 且有圆点数量要求时，相邻已填数字个数 = 圆点数。
+        let sum = 0;
+        let filled = 0;
+        for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) {
+          const nr = row + dr;
+          const nc = col + dc;
+          if (nr < 0 || nr >= puzzle.height || nc < 0 || nc >= puzzle.width) continue;
+          const cell = grid[nr]?.[nc];
+          if (typeof cell === 'number') {
+            sum += cell;
+            filled += 1;
+          }
+        }
+        const satisfied = clue.sum !== null && sum === clue.sum && (clue.count <= 0 || filled === clue.count);
+        return <SlovakSumsClue sum={clue.sum} count={clue.count} cellSize={cellSize} satisfied={satisfied} />;
       }}
       initialSnapshot={initialSnapshot}
       onSnapshotChange={onSnapshotChange}

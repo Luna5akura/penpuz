@@ -420,8 +420,10 @@ export default function KurarinBoard({
         current.cellDragMode = 'mark';
         current.desktopMarkDrag = true;
         current.movedToDraw = false;
-        current.pendingTap = { kind: 'desktop-right-cell', row: hitTarget.row, col: hitTarget.col };
+        current.pendingTap = null;
         startBatch();
+        // 右键按下即生效；拖动继续涂画，松开不会重复触发。
+        applyCellMarkDrag(hitTarget.row, hitTarget.col);
       }
       return;
     }
