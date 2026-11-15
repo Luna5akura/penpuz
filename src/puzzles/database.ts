@@ -944,6 +944,53 @@ export const allPuzzles: PuzzleEntry[] = [
     difficulty: '极难',
     author: 'Silke Berendes',
   },
+
+  // ==================== WPF Puzzle GP 2016（转录自竞赛册） ====================
+
+
+  // Round 5, Cave 25 (10×10, competitive booklet)
+  {
+    puzzLink: 'https://penpuz.today/?cave/10/10/i3k6g3i8j8p5i5h4j7ph4j6h3i8p5j4i7g6k7i',
+    difficulty: '困难',
+    author: 'Roger Barkan',
+  },
+  // Round 5, Cave 26 (10×10)
+  {
+    puzzLink: 'https://penpuz.today/?cave/10/10/5m5i9g5g5pp95l7bh79h57l99pp5g7g5i5m5',
+    difficulty: '困难',
+    author: 'Roger Barkan',
+  },
+  // Round 5, Cave 27 (11×11)
+  {
+    puzzLink: 'https://penpuz.today/?cave/11/11/h5l5n5h55pg5ha98l5gak5ja98j5k7g5l667h5pg55h5n5l5h',
+    difficulty: '极难',
+    author: 'Thomas Snyder',
+  },
+  // Round 1, Nurikabe 8 (10×10, competitive booklet)
+  {
+    puzzLink: 'https://penpuz.today/?nurikabe/10/10/pi2pm5pi3pm2j6phej7pi',
+    difficulty: '困难',
+    author: 'Swaroop Guggilam',
+  },
+
+  // Round 1, Slitherlink 14 (10×10, competitive booklet)
+  {
+    puzzLink: 'https://penpuz.today/?slitherlink/10/10/2i2j0g22g2g02h20g222h02h00g2g0i2i22g0h0g22i2i2g2g22h02h022g22h20g2g02g0j0i2',
+    difficulty: '困难',
+    author: 'Rajesh Kumar',
+  },
+  // Round 1, Slitherlink 15 (9×6)
+  {
+    puzzLink: 'https://penpuz.today/?slitherlink/9/6/g31h1g1h13g3h31g111h11g13g3g1g1k3k1g1g1g31',
+    difficulty: '困难',
+    author: 'Rajesh Kumar',
+  },
+  // Round 1, Slitherlink 16 (9×9)
+  {
+    puzzLink: 'https://penpuz.today/?slitherlink/9/9/g3h2h3g21g1h2g2g1113h1i21g1h3g3h3h1g2h2g21i2h3122g2g1h2g3h3h3h2g',
+    difficulty: '困难',
+    author: 'Rajesh Kumar',
+  },
 ];
 
 /**

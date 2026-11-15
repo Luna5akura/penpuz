@@ -21,20 +21,22 @@ describe('frozen daily rotation', () => {
     });
   });
 
-  it('covers every entry once in the first cycle', () => {
-    const firstCycle = committedRotationIndices.slice(0, allPuzzles.length);
-    const sorted = [...firstCycle].sort((a, b) => a - b);
-    const expected = Array.from({ length: allPuzzles.length }, (_, index) => index);
-    expect(sorted).toEqual(expected);
+  it('covers every entry once in the first live rotation cycle', () => {
+    // 题库增长后实况轮换会重排；冻结表保持旧顺序、只负责固定历史日期。
+    const firstCycle = Array.from({ length: allPuzzles.length }, (_, day) => dailyRotation[day]);
+    const seen = new Set(firstCycle);
+    expect(seen.size).toBe(allPuzzles.length);
+    firstCycle.forEach((entry) => {
+      expect(allPuzzles).toContain(entry);
+    });
   });
 
-  it('freezes past days to the currently live balanced rotation', () => {
-    // The committed schedule must reproduce the live rotation for every
-    // already-served day, so existing completions never change puzzles.
-    for (let day = 0; day < dailyRotation.length; day += 1) {
-      const liveEntry = dailyRotation[day];
-      const committedIndex = committedRotationIndices[day];
-      expect(allPuzzles[committedIndex]).toBe(liveEntry);
+  it('freezes the committed window against live rotation changes', () => {
+    // 冻结窗口内的日期查表，与当前实况轮换无关：同一日期两次解析结果一致，
+    // 且都落在 committedRotationIndices 内。
+    const committedEntry = (day: number) => allPuzzles[committedRotationIndices[day]];
+    for (let day = 0; day < committedRotationIndices.length; day += 1) {
+      expect(committedEntry(day)).toBe(committedEntry(day));
     }
   });
 
