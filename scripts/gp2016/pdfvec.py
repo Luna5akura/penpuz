@@ -70,6 +70,8 @@ def tokenize(content):
             tokens.append(b'T'+content[i+1:i+2]); i += 2; continue
         if c == b'r' and i+1 < n and content[i+1:i+2] == b'e':
             tokens.append(b're'); i += 2; continue
+        if c == b'c' and i+1 < n and content[i+1:i+2] == b'm':
+            tokens.append(b'cm'); i += 2; continue
         if c == b'g' and i+1 < n and content[i+1:i+2] == b's':
             tokens.append(b'gs'); i += 2; continue
         if c == b'B' and i+1 < n and content[i+1:i+2] == b'*':
@@ -154,7 +156,9 @@ class Interp:
                 elif op == b'Do':
                     pass
             else:
-                if t == b'q':
+                if t in (b'S', b's', b'B', b'B*', b'b', b'f', b'F', b'f*', b'n', b'W', b'W*'):
+                    flush()
+                elif t == b'q':
                     ctm_, lw = stack[-1]
                     stack.append((ctm_[:], lw))
                 elif t == b'Q':
