@@ -1024,16 +1024,24 @@ function buildBalancedRotation(entries: PuzzleEntry[]): PuzzleEntry[] {
     buckets[entry.difficulty].push(entry);
   });
 
+  // 从每个难度桶的两端交替取题：新追加的题目在桶尾，交替取法
+  // 让它们分散到整个轮换中，而不是挤在连续的几天里。
   const rotated: PuzzleEntry[] = [];
+  const takeFromFront: Record<PuzzleDifficulty, boolean> = {
+    简单: true,
+    困难: true,
+    极难: true,
+  };
   let placed = true;
   while (placed) {
     placed = false;
     for (const difficulty of DAILY_DIFFICULTY_CYCLE) {
-      const entry = buckets[difficulty].shift();
-      if (entry) {
-        rotated.push(entry);
-        placed = true;
-      }
+      const bucket = buckets[difficulty];
+      if (bucket.length === 0) continue;
+      const entry = takeFromFront[difficulty] ? bucket.shift()! : bucket.pop()!;
+      rotated.push(entry);
+      takeFromFront[difficulty] = !takeFromFront[difficulty];
+      placed = true;
     }
   }
   return rotated;
@@ -1075,11 +1083,11 @@ export interface DatabasePuzzleListItem {
  * uses it to let every stored puzzle be opened and played directly.
  */
 export function getAllDatabasePuzzles(): DatabasePuzzleListItem[] {
+  // 列出当前实况轮换中的全部题库条目（每个恰好一次），不受冻结窗口影响。
   const items: DatabasePuzzleListItem[] = [];
-  const firstCycleLength = Math.min(dailyRotation.length, committedRotationIndices.length);
-  for (let index = 0; index < firstCycleLength; index += 1) {
-    const entry = getRotationEntry(index);
-    const puzzle = getPuzzleForDatabaseIndex(index);
+  for (let index = 0; index < dailyRotation.length; index += 1) {
+    const entry = dailyRotation[index];
+    const puzzle = resolvePuzzleEntry(entry);
     if (!puzzle) continue;
     items.push({ index, type: puzzle.type, entry, puzzle });
   }
