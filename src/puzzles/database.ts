@@ -973,6 +973,20 @@ export const allPuzzles: PuzzleEntry[] = [
     author: 'Swaroop Guggilam',
   },
 
+  // Round 5, Slitherlink 19a (9×10, competitive booklet)
+  {
+    puzzLink: 'https://penpuz.today/?slitherlink/9/10/p30111231g2l3g3g1111g3g1g1h1g3g3g1h1g1g1g1111g0g1l2g13213103o',
+    difficulty: '困难',
+    author: 'Thomas Snyder',
+  },
+
+  // Round 5, Slitherlink 20b (11×5, competitive booklet)
+  {
+    puzzLink: 'https://penpuz.today/?slitherlink/11/5/g311n221g3222i022g2103i213g2232pi',
+    difficulty: '困难',
+    author: 'Thomas Snyder',
+  },
+
   // Round 1, Slitherlink 14 (10×10, competitive booklet)
   {
     puzzLink: 'https://penpuz.today/?slitherlink/10/10/2i2j0g22g2g02h20g222h02h00g2g0i2i22g0h0g22i2i2g2g22h02h022g22h20g2g02g0j0i2',
