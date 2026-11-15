@@ -23,19 +23,46 @@ try {
   const today = new Date(`${getBeijingDateStr()}T00:00:00+08:00`);
   const anchorDay = Math.floor((today.getTime() - start.getTime()) / 86400000);
 
-  // 未来日期（> anchorDay）用当前实况轮换重排，让新题尽快进入轮换；
-  // 历史日期（<= anchorDay）保持原样不动。
-  let changed = 0;
+  // 消除重复：每道题在整张排期表里最多出现一次（直到题库用尽后才会重新轮转）。
+  // 1) 旧轮换的首轮（唯一一轮）保持冻结；首轮之后到今天的重复日改为未使用过的新题。
+  // 2) 未来日期：先排「近 90 天未出现」的题，再排近期出现过的题。
   while (committed.length < targetDays) committed.push(0);
-  for (let d = anchorDay + 1; d < targetDays; d += 1) {
-    const entry = dailyRotation[d % dailyRotation.length];
-    const index = allPuzzles.indexOf(entry);
-    if (committed[d] !== index) {
-      committed[d] = index;
-      changed += 1;
+
+  const oldCycleLength = (() => {
+    for (let d = 1; d < committed.length; d += 1) {
+      if (committed[d] === committed[0]) return d;
+    }
+    return committed.length;
+  })();
+
+  const used = new Set(committed.slice(0, Math.min(oldCycleLength, committed.length)));
+  const unused = allPuzzles.map((_, i) => i).filter((i) => !used.has(i));
+
+  let changes = 0;
+  for (let d = oldCycleLength; d <= anchorDay; d += 1) {
+    const candidate = unused[d - oldCycleLength];
+    if (candidate !== undefined && committed[d] !== candidate) {
+      committed[d] = candidate;
+      changes += 1;
     }
   }
-  console.log(`冻结 ${committed.length} 天；未来 ${targetDays - anchorDay - 1} 天按实况轮换重排（${changed} 天更新），${anchorDay + 1} 天历史保持冻结。`);
+
+  const recent = new Set(committed.slice(Math.max(0, anchorDay - 89), anchorDay + 1));
+  const fresh = [];
+  const stale = [];
+  for (const entry of dailyRotation) {
+    const index = allPuzzles.indexOf(entry);
+    (recent.has(index) ? stale : fresh).push(index);
+  }
+  const futureOrder = [...fresh, ...stale];
+  for (let d = anchorDay + 1; d < targetDays; d += 1) {
+    const candidate = futureOrder[(d - anchorDay - 1) % futureOrder.length];
+    if (committed[d] !== candidate) {
+      committed[d] = candidate;
+      changes += 1;
+    }
+  }
+  console.log(`冻结 ${committed.length} 天（首轮 ${oldCycleLength} 天保持原样）；补齐 ${Math.max(0, anchorDay - oldCycleLength + 1)} 天重复日 + 未来 ${targetDays - anchorDay - 1} 天去重重排（${changes} 天更新）。`);
 
   const rows = [];
   for (let i = 0; i < committed.length; i += 16) {
