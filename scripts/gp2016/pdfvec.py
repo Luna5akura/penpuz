@@ -58,8 +58,10 @@ def tokenize(content):
                 j += 1
             i = j; continue
         if c == b'<':
-            j = content.find(b'>', i) + 1
-            i = j; continue
+            if content[i+1:i+2] == b'<':
+                tokens.append(b'<<'); i += 2; continue
+            j = content.find(b'>', i)
+            i = (j + 1) if j != -1 else n; continue
         if c in b'/[]':
             tokens.append(c); i += 1; continue
         if c == b'B' and i+1 < n and content[i+1:i+2] == b'T':

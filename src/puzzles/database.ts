@@ -1005,6 +1005,25 @@ export const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
     author: 'Rajesh Kumar',
   },
+
+  // Round 7, Domino Search 22 (8×8, competitive booklet)
+  {
+    puzzLink: 'https://penpuz.today/?domino-search/8/8/g611651g2611033000325334005gg646613gg2553225015542264412g043446g',
+    difficulty: '困难',
+    author: 'Bram de Laat',
+  },
+  // Round 7, Domino Search 23 (8×7)
+  {
+    puzzLink: 'https://penpuz.today/?domino-search/8/7/51445253544002465012261356302115161046033320261404663325',
+    difficulty: '困难',
+    author: 'Bram de Laat',
+  },
+  // Round 7, Domino Search 24 (11×10)
+  {
+    puzzLink: 'https://penpuz.today/?domino-search/11/10/62292063566713342088514369859121080026644323518569887484055799725740311106641256357339422879493407817780091957',
+    difficulty: '极难',
+    author: 'Bram de Laat',
+  },
 ];
 
 /**

@@ -24,7 +24,7 @@
    - 辅助脚本模板在 `/tmp/gp2016/`（已清理；重建方法见下）
    - 注意：`inspect` 类脚本曾出现 `_malloc` 误判导致结果不稳定，统一用 `_prepare_input_buffer`
 
-## 已验证入库的题目（9 题，isUnique: true）
+## 已验证入库的题目（12 题，isUnique: true）
 | 题 | 链接 | 难度 | 作者 |
 |---|---|---|---|
 | R1 Nurikabe 8 (10×10) | `nurikabe/10/10/pi2pm5pi3pm2j6phej7pi` | 困难 | Swaroop Guggilam |
@@ -36,6 +36,9 @@
 | R1 Slitherlink 16 (9×9) | `slitherlink/9/9/g3h2h3g21g1h2g2g1113h1i21g1h3g3h3h1g2h2g21i2h3122g2g1h2g3h3h3h2g` | 困难 | Rajesh Kumar |
 | R5 Slitherlink 19a (9×10) | `slitherlink/9/10/p30111231g2l3g3g1111g3g1g1h1g3g3g1h1g1g1g1111g0g1l2g13213103o` | 困难 | Thomas Snyder |
 | R5 Slitherlink 20b (11×5) | `slitherlink/11/5/g311n221g3222i022g2103i213g2232pi` | 困难 | Thomas Snyder |
+| R7 Domino Search 22 (8×8) | `domino-search/8/8/g611651g2611033000325334005gg646613gg2553225015542264412g043446g` | 困难 | Bram de Laat |
+| R7 Domino Search 23 (8×7) | `domino-search/8/7/51445253544002465012261356302115161046033320261404663325` | 困难 | Bram de Laat |
+| R7 Domino Search 24 (11×10) | `domino-search/11/10/62292063566713342088514369859121080026644323518569887484055799725740311106641256357339422879493407817780091957` | 极难 | Bram de Laat |
 
 另有棋盘码牌 ×4（`fillomino-checkerboard/…`，此前会话按官方解答核对入库；cspuz 无该变体求解器，用普通 fillomino 做一致性检查）。
 
@@ -45,14 +48,20 @@
 - **R6 Tapa 24-26**：变体「Tapa (LITS rules)」，标准 tapa 求解器只能做松弛验证，无法确认唯一性。25 号线索已提取（8 个线索格含 [1,4] 双数线索）。
 - **R6 Lighthouses/Akari 18-20**：黑格为矢量填充绘制，与白格网格线无法用线段区分；需要给 pdfvec.py 增加「填充路径（f 操作符）单独输出」能力。
 - **R7 EasyAs 19-21**：字母集 {A,B,C,D}（4 字母），penpuz 的 abc-box 只支持 {A,B,C}。
-- **R7 Domino Search、R8 Arrows 33-35**：已勘察页面；箭头为矢量图形，待提取器支持。
+- **R7 EasyAs 19-21 / R8 EasyAs 30-32（全部 Easy as... 题）**：**题型不匹配，必须跳过**。penpuz 的 abc-box 是「全填字母分组题」（每格必须 A/B/C，外侧线索=连续同字母组的字母/长度，无空格概念），而 GP2016 的 Easy as... 是「留空 + 每行恰好一次 + 首字母线索」题（SB 解答确认 30/31/32 每行均含空格）。两者规则完全不同，无法互相表达。且 cspuz 的 abcbox 求解器是松弛模型（全填、不校验每行恰好一次、`Uniqueness::NotApplicable` 不输出 isUnique），**无法作为唯一性闸门**。30-32 三题的线索与官方解答已完整提取（见下），若日后 penpuz 新增 Easy As ABC 题型可直接复用。
+  - R8 30（5×5）：top c3=C,c4=A；bottom c1=B,c2=B；left r1=C,r2=B；right r2=A,r4=A。解：`XAXCB / CXABX`（30a=r3, 30b=r1）。
+  - R8 31（6×6）：top c0=C,c1=B,c3=B；bottom c0=B,c2=C,c3=C,c5=C；left r1=C,r2=B,r4=A；right r1=A,r2=C,r3=B。解：r0=BAC..., r1=.CB..A., r2=.BA...C, r3=A..CB., r4=...ACB, r5=C..B.A（31a=r4, 31b=r1）。
+  - R8 32（7×7）：top c0=A,c1=C,c3=C,c4=A,c5=B,c6=A；bottom c0=C,c1=A,c2=C,c3=B,c5=C,c6=B；left r1=B,r3=C,r4=A,r6=B；right r1=C,r2=C,r4=B,r6=A。解：`XXAXCXB / BXXAXCX`（32a=r4, 32b=r1）。
+- **R8 Arrows 33-35**：已勘察页面；箭头为矢量图形，待提取器支持。
 
 ## 关键经验教训（重要！）
 1. **CB 数字渲染比例异常**：R5 竞赛册第 2 页数字格距 22.5px vs 真实网格 27px（5/6）；R8 为 13.5 vs 27（1/2）。数字位置不能直接当格子坐标，必须先用**矢量网格线**确定真实几何。
 2. **SB 解答册不可靠**：线索与解答图比例不一致（12.6 vs 16.8 = 3/4），部分区域版面错乱。SB 的布局 txt（非 bbox）完全不可用于位置核对。
 3. **数字对齐**：CB 中数字通常**左对齐**在格左缘，或**居中**在格心——不同 PDF/题型不同，必须用网格线反推。
 4. **网格比数字跨度大**：多道题的网格比线索数字的跨度宽（如 19a=9 宽但数字只占 8 列、20b=11 宽数字占 8 列）——穷举「宽度 × 高度 × 行列偏移」时要把范围放宽。
-5. **编码兼容性**：nurikabe/cave/fillomino/slitherlink 的 g-z 跳格、a-f 十六进制值与 cspuz 一致；tapa 的多数字线索用 base36 对（360+a*6+b）；abc-box 用 excell 流格式（penpuz 的 parsePzprPayload 与 Atol-Solver 一致）。
+5. **编码兼容性**：nurikabe/cave/fillomino/slitherlink/domino-search 的 g-z 跳格、a-f 十六进制值与 cspuz 一致；tapa 的多数字线索用 base36 对（360+a*6+b）；abc-box 用 excell 流格式（penpuz 的 parsePzprPayload 与 Atol-Solver 一致）。**domino-search 的空格必须用 `g`（跳格）而不是 `.`**——cspuz 的 `.` 表示非法格（直接 error），penpuz 两者都当空格。
+6. **isUnique 在 JSON 末尾**：`_solve_problem` 返回的 JSON 中 `isUnique` 字段位于 description 末尾（data 数组之后），且**必须传入完整 `https://puzz.link/p?` 前缀 URL**，否则后端走别的分派路径不输出 isUnique。
+7. **pdfvec.py 已修复 `<` 死循环**：R8 内容流出现 `<</MCID` 字典开头且无配对的 `>`，旧代码 `j=content.find(b'>',i)+1` 得 0 导致死循环。现已把 `<<` 当作独立 token、无 `>` 时跳到流末尾。
 6. **cspuz 唯一性检查**：`isUnique:false` 可能只是「枚举到 2 个解」——大网格/复杂题可能因为线索位置错一格导致。用 `_enumerate_answers_problem` 枚举 2 个解对比差异格，能快速定位错线索。
 
 ## 排期系统（勿破坏）
@@ -61,11 +70,11 @@
 - 新增题目后必须跑 `node scripts/commit-rotation.mjs 1500` 让新题进入未来排期。
 
 ## 下一步（按顺序）
-1. **R8 EasyAs 32**：7×7 网格已解析——左列线索 row0=B,row1=A,row3=A,row4=C,row6=B；右列 row0=A,row1=B,row3=B,row5=C,row6=C；顶部线索属于 31 号题。编码为 abc-box 格式 → cspuz abcbox 验证唯一性。
-2. **R8 EasyAs 30/31**：同页上方，结构待完整提取（31 的顶部线索 B,C,C,C 已见）。
-3. **R7 Domino Search 22-24**：数字 + 数对，文本可提取（penpuz domino-search 支持）。
-4. **增强 pdfvec.py**：填充路径（f 操作符 + rg 颜色）单独输出 → 解锁 R6 灯、星战区域、磁铁等。
-5. **矢量类大题型**：星战（区域粗线）、磁铁（区域）、Yajilin 灰格、Masyu/阴阳圆圈、四风箭头、战舰船形。
+1. ~~R8 EasyAs 30-32~~ → **已定论跳过**（penpuz 无 Easy As ABC 题型；abc-box 规则不匹配），详见跳过清单。
+2. ~~R7 Domino Search 22-24~~ → **已完成**（isUnique: true ×3，已入库）。
+3. **增强 pdfvec.py**：填充路径（f 操作符 + rg 颜色）单独输出 → 解锁 R6 灯、星战区域、磁铁等。
+4. **矢量类大题型**：星战（区域粗线）、磁铁（区域）、Yajilin 灰格、Masyu/阴阳圆圈、四风箭头、战舰船形。
+5. **R8 Arrows 33-35**：箭头为矢量图形，待提取器支持。
 
 ## 每道新题的验证流程（模板）
 1. `pdftotext -bbox` 提取数字/字母 + `pdfvec.py` 提取网格线
