@@ -103,26 +103,52 @@ def mat_mul(a, b):
 def apply(m, x, y):
     return (m[0]*x+m[1]*y+m[2], m[3]*x+m[4]*y+m[5])
 
+def cmyk_to_rgb(c, m, y, k):
+    return (1.0 - min(1.0, c + k), 1.0 - min(1.0, m + k), 1.0 - min(1.0, y + k))
+
+
+def sample_bezier(p0, p1, p2, p3, steps=8):
+    pts = []
+    for s in range(1, steps + 1):
+        t = s / steps
+        u = 1.0 - t
+        x = u*u*u*p0[0] + 3*u*u*t*p1[0] + 3*u*t*t*p2[0] + t*t*t*p3[0]
+        y = u*u*u*p0[1] + 3*u*u*t*p1[1] + 3*u*t*t*p2[1] + t*t*t*p3[1]
+        pts.append((x, y))
+    return pts
+
+
 class Interp:
     def __init__(self, objects):
         self.objects = objects
         self.segs = []
+        self.fills = []   # (fill_rgb_or_None, [(x, y), ...]) in PDF user space
 
     def run(self, tokens, resources, ctm, depth=0):
         if depth > 6: return
-        stack = [[ctm[:], 1.0]]
+        stack = [[ctm[:], 1.0, None, None]]  # ctm, line width, fill color, stroke color
         path = []
         i, n = 0, len(tokens)
-        def flush():
+
+        def stroke_flush():
             nonlocal path
             if len(path) >= 2:
-                ctm_, lw = stack[-1]
+                ctm_, lw = stack[-1][0], stack[-1][1]
                 for k in range(len(path)-1):
                     a, b = path[k], path[k+1]
                     p1 = apply(ctm_, a[0], a[1])
                     p2 = apply(ctm_, b[0], b[1])
                     self.segs.append((p1[0], p1[1], p2[0], p2[1], lw))
             path = []
+
+        def fill_record():
+            nonlocal path
+            if len(path) >= 2:
+                ctm_, fill = stack[-1][0], stack[-1][2]
+                pts = [apply(ctm_, a[0], a[1]) for a in path]
+                self.fills.append((fill, pts))
+            path = []
+
         while i < n:
             t = tokens[i]
             if isinstance(t, float):
@@ -134,35 +160,55 @@ class Interp:
                 i = j + 1
                 if op == b'm' and len(nums) >= 2: path = [(nums[0], nums[1])]
                 elif op == b'l' and len(nums) >= 2: path.append((nums[0], nums[1]))
-                elif op == b'c' and len(nums) >= 6: path.append((nums[4], nums[5]))
-                elif op == b'v' and len(nums) >= 4: path.append((nums[2], nums[3]))
-                elif op == b'y' and len(nums) >= 4: path.append((nums[2], nums[3]))
+                elif op == b'c' and len(nums) >= 6:
+                    p0 = path[-1] if path else None
+                    if p0:
+                        path.extend(sample_bezier(p0, (nums[0], nums[1]), (nums[2], nums[3]), (nums[4], nums[5])))
+                    else:
+                        path.append((nums[4], nums[5]))
+                elif op == b'v' and len(nums) >= 4:
+                    p0 = path[-1] if path else None
+                    if p0:
+                        path.extend(sample_bezier(p0, (nums[0], nums[1]), (nums[2], nums[3]), (nums[2], nums[3])))
+                    else:
+                        path.append((nums[2], nums[3]))
+                elif op == b'y' and len(nums) >= 4:
+                    p0 = path[-1] if path else None
+                    if p0:
+                        path.extend(sample_bezier(p0, (nums[0], nums[1]), (nums[0], nums[1]), (nums[2], nums[3])))
+                    else:
+                        path.append((nums[2], nums[3]))
                 elif op == b'h':
                     if path: path.append(path[0])
                 elif op == b're' and len(nums) >= 4:
                     x, y, w, h = nums[0], nums[1], nums[2], nums[3]
-                    ctm_, lw = stack[-1]
-                    p1 = apply(ctm_, x, y); p2 = apply(ctm_, x+w, y)
-                    p3 = apply(ctm_, x+w, y+h); p4 = apply(ctm_, x, y+h)
-                    for a, b in ((p1,p2),(p2,p3),(p3,p4),(p4,p1)):
-                        self.segs.append((a[0],a[1],b[0],b[1],lw))
-                    path = []
-                elif op in (b'S', b's', b'B', b'B*', b'b', b'f', b'F', b'f*', b'n', b'W', b'W*'):
-                    flush()
+                    path = [(x, y), (x + w, y), (x + w, y + h), (x, y + h), (x, y)]
                 elif op == b'cm' and len(nums) >= 6:
-                    ctm_, lw = stack[-1]
-                    stack[-1] = (mat_mul(ctm_, nums[:6]), lw)
+                    ctm_, lw, fc, sc = stack[-1]
+                    stack[-1] = [mat_mul(ctm_, nums[:6]), lw, fc, sc]
                 elif op == b'w' and len(nums) >= 1:
-                    ctm_, lw = stack[-1]
-                    stack[-1] = (ctm_, nums[0])
+                    stack[-1][1] = nums[0]
+                elif op in (b'rg', b'RG') and len(nums) >= 3:
+                    stack[-1][2 if op == b'rg' else 3] = (nums[0], nums[1], nums[2])
+                elif op in (b'k', b'K') and len(nums) >= 4:
+                    stack[-1][2 if op == b'k' else 3] = cmyk_to_rgb(*nums[:4])
+                elif op in (b'g', b'G') and len(nums) >= 1:
+                    stack[-1][2 if op == b'g' else 3] = (nums[0], nums[0], nums[0])
                 elif op == b'Do':
                     pass
             else:
-                if t in (b'S', b's', b'B', b'B*', b'b', b'f', b'F', b'f*', b'n', b'W', b'W*'):
-                    flush()
+                if t in (b'S', b's'):
+                    stroke_flush()
+                elif t in (b'f', b'F', b'f*'):
+                    fill_record()
+                elif t in (b'B', b'B*', b'b', b'b*'):
+                    fill_record()
+                    stroke_flush()
+                elif t in (b'n', b'W', b'W*'):
+                    path = []
                 elif t == b'q':
-                    ctm_, lw = stack[-1]
-                    stack.append((ctm_[:], lw))
+                    ctm_, lw, fc, sc = stack[-1]
+                    stack.append([ctm_[:], lw, fc, sc])
                 elif t == b'Q':
                     if len(stack) > 1: stack.pop()
                 elif t == b'BI':
@@ -207,9 +253,10 @@ if __name__ == '__main__':
         if m2:
             refs = [int(x) for x in re.findall(rb'(\d+)\s+0\s+R', m2.group(1))]
         before = len(interp.segs)
+        before_f = len(interp.fills)
         for ref in refs:
             if ref in objects:
                 s = get_stream(objects[ref])
                 if s:
                     interp.run(tokenize(s), res, [1,0,0,0,1,0])
-        print('page', idx, 'obj', num, 'streams', len(refs), 'segments', len(interp.segs) - before)
+        print('page', idx, 'obj', num, 'streams', len(refs), 'segments', len(interp.segs) - before, 'fills', len(interp.fills) - before_f)

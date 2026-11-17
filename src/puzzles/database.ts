@@ -727,8 +727,9 @@ export const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/b03a05b03g05d03f04a02c05n05b08n06c02a08f08d09g02b02a02b',
-    difficulty: '简单',
+    puzzLink: 'https://penpuz.today/?fourwinds/10/10/b03a05b03g05d03f04a02c05n05b08n06c02a08f08d09g02b02a02b',
+    difficulty: '困难',
+    author: 'Swaroop Guggilam',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/95g7i55f1g9i35000000000000060000000606000//t',
@@ -743,8 +744,19 @@ export const allPuzzles: PuzzleEntry[] = [
     difficulty: '困难',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/02a08b02b02a02b04b02o04c04c04c04c04o02b02b02a04b02b06a02',
-    difficulty: '简单',
+    puzzLink: 'https://penpuz.today/?fourwinds/9/9/02a08b02b02a02b04b02o04c04c04c04c04o02b02b02a04b02b06a02',
+    difficulty: '困难',
+    author: 'Rajesh Kumar',
+  },
+  {
+    puzzLink: 'https://penpuz.today/?fourwinds/9/9/b01c03f09d03a05e01c03f07b00b05f03c03e05a01d07f03c05b',
+    difficulty: '困难',
+    author: 'Prasanna Seshadri',
+  },
+  {
+    puzzLink: 'https://penpuz.today/?fourwinds/10/10/a01d03g05d05b03d05b03d03g05d03b05d05g05d05b03d05b03d03g03d07a',
+    difficulty: '困难',
+    author: 'Prasanna Seshadri',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/g86g4g86gcc668-10-1044g000000000000000000000606000//t',
