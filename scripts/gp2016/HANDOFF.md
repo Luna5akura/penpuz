@@ -63,7 +63,7 @@
 2. **SB 解答册不可靠**：线索与解答图比例不一致（12.6 vs 16.8 = 3/4），部分区域版面错乱。SB 的布局 txt（非 bbox）完全不可用于位置核对。
 3. **数字对齐**：CB 中数字通常**左对齐**在格左缘，或**居中**在格心——不同 PDF/题型不同，必须用网格线反推。
 4. **网格比数字跨度大**：多道题的网格比线索数字的跨度宽（如 19a=9 宽但数字只占 8 列、20b=11 宽数字占 8 列）——穷举「宽度 × 高度 × 行列偏移」时要把范围放宽。
-5. **编码兼容性**：nurikabe/cave/fillomino/slitherlink/domino-search 的 g-z 跳格、a-f 十六进制值与 cspuz 一致；tapa 的多数字线索用 base36 对（360+a*6+b）；abc-box 用 excell 流格式（penpuz 的 parsePzprPayload 与 Atol-Solver 一致）。**domino-search 的空格必须用 `g`（跳格）而不是 `.`**——cspuz 的 `.` 表示非法格（直接 error），penpuz 两者都当空格。
+5. **编码兼容性**：nurikabe/cave/fillomino/slitherlink/domino-search 的 g-z 跳格、a-f 十六进制值与 cspuz 一致；tapa 的多数字线索用 base36 对（360+a*6+b）；abc-box 用 excell 流格式（penpuz 的 parsePzprPayload 与 Atol-Solver 一致）。**domino-search 的空格必须用 `g`（跳格）而不是 `.`**——cspuz 的 `.` 表示非法格（直接 error），penpuz 两者都当空格。**fourwinds/masyu 用 pzprv3 流**：fourwinds 每格 = 方向数码 0-4 + 数字十六进制（'a'-'z' 跳格）；masyu 用 MultiDigit(3,3) = 每 base36 字符编码 3 格（0=空、1=白圈、2=黑圈，值 0-26，无跳格）。
 6. **isUnique 在 JSON 末尾**：`_solve_problem` 返回的 JSON 中 `isUnique` 字段位于 description 末尾（data 数组之后），且**必须传入完整 `https://puzz.link/p?` 前缀 URL**，否则后端走别的分派路径不输出 isUnique。
 7. **pdfvec.py 已修复 `<` 死循环**：R8 内容流出现 `<</MCID` 字典开头且无配对的 `>`，旧代码 `j=content.find(b'>',i)+1` 得 0 导致死循环。现已把 `<<` 当作独立 token、无 `>` 时跳到流末尾。
 8. **cspuz 唯一性检查**：`isUnique:false` 可能只是「枚举到 2 个解」——大网格/复杂题可能因为线索位置错一格导致。用 `_enumerate_answers_problem` 枚举 2 个解对比差异格，能快速定位错线索。
