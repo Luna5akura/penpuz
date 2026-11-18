@@ -76,7 +76,7 @@
 ## 下一步（按顺序）
 1. ~~R8 EasyAs 30-32~~ → **已定论跳过**（penpuz 无 Easy As ABC 题型；abc-box 规则不匹配），详见跳过清单。
 2. ~~R7 Domino Search 22-24~~ → **已完成**（isUnique: true ×3，已入库）。
-3. ~~R1 Four Winds 19-22~~ → **已完成**（isUnique: true ×4；1/2 号题此前已在库但难度误标简单，已改困难并补作者）。
+3. ~~R1 Four Winds 19-22~~ → **已完成**（isUnique: true ×4；1-4 号题此前已全部在库，本次补验证并修正元数据：1/2/3 难度简单→困难、补作者）。
 4. ~~pdfvec.py 填充路径~~ → **已完成**：Interp 新增 fills 列表（f/F/f*/B/b* + rg/RG/k/K/g/G 颜色追踪，re 改为入 path、n/W 改为丢弃，贝塞尔采样入路径）。主程序打印每页 segments/fills 数。
 5. **矢量类大题型（待做）**：星战（区域粗线+星点）、Yajilin 灰格、Masyu 圆圈（c+f 填充圆）、战舰船形。
 6. **R6 Lighthouses 18-20**：penpuz 无 lighthouses 题型、cspuz 也无该求解器 → **跳过**（黑格填充提取能力已就绪，但无对应题型可入库）。
