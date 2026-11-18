@@ -749,16 +749,6 @@ export const allPuzzles: PuzzleEntry[] = [
     author: 'Rajesh Kumar',
   },
   {
-    puzzLink: 'https://penpuz.today/?fourwinds/9/9/b01c03f09d03a05e01c03f07b00b05f03c03e05a01d07f03c05b',
-    difficulty: '困难',
-    author: 'Prasanna Seshadri',
-  },
-  {
-    puzzLink: 'https://penpuz.today/?fourwinds/10/10/a01d03g05d05b03d05b03d03g05d03b05d05g05d05b03d05b03d03g03d07a',
-    difficulty: '困难',
-    author: 'Prasanna Seshadri',
-  },
-  {
     puzzLink: 'http://localhost:8080/p.html?placebyproduct/9/9/g86g4g86gcc668-10-1044g000000000000000000000606000//t',
     difficulty: '困难',
   },
@@ -775,8 +765,9 @@ export const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?fourwinds/9/9/b01c03f09d03a05e01c03f07b00b05f03c03e05a01d07f03c05b',
-    difficulty: '简单',
+    puzzLink: 'https://penpuz.today/?fourwinds/9/9/b01c03f09d03a05e01c03f07b00b05f03c03e05a01d07f03c05b',
+    difficulty: '困难',
+    author: 'Prasanna Seshadri',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?placebyproduct/12/12/g-151-24919bk4acc4-146ji000000000000006000000i2i20000060000000000000002//p',
@@ -797,6 +788,7 @@ export const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'http://localhost:8080/p.html?fourwinds/10/10/a01d03g05d05b03d05b03d03g05d03b05d05g05d05b03d05b03d03g03d07a',
     difficulty: '困难',
+    author: 'Prasanna Seshadri',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?mashu/10/10/000190c2j0009000iic66000019c000800',
