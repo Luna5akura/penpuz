@@ -88,7 +88,9 @@
    - **R1 Skyscrapers 11-13**（20/60/47）：CB Competitive 页 5（pdf index 4）。网格=白色 27pt 单元方块填充（无矢量线），线索为文字数字，可用 fills 位置+bbox 重建。库中 13 条 skyscrapers 未打标签。
    - **R5 Skyscrapers 17-18**（41/46 分）：在 **Casual 册** 页 10。
    - **R2 Kropki 37-41**（44/48/49/51/103）：CB Competitive 页 6-8。已查明 37/38 = **8×8**（19.13pt 格距，给定数在偶行偶列、点标记在奇位，SB 半比例 8 位行吻合）。**但 GP 的 XO 标记 =「1-2 对既可白点也可黑点」的第三种点类型，penpuz 的 pzpr 格式（base-27 每字符 3 点，每点仅 0/1/2）与 cspuz（MultiDigit(3,3)）均无法表示 → 37-41 无法过唯一性闸门，建议跳过**（除非扩展两种格式支持「either」点）。库中 5 条 kropki 无 XO 支持，非 GP2016 题。
-   - **R1 Place by Product 17-19**（40/36/148）与 **R1 Full Tapa 20-22**（24/27/38）：CB Competitive 页 7-10。PbP 19 在 pdf 页 9（10×10 白格 27pt）。Tapa 20/21 在 pdf 页 10：像素网格线 V=106-538px（12 列含答案列）、H=501-969px，白格 y 389.9-713.9pt；20 线索 6 个：2(332.4,344.9)、4(143.4,452.9)、3(332.4,452.9)、3(359.4,553.5)、5(197.4,580.5)、6(332.4,607.5)；21 线索 4 个：6(332.4,607.5)、6(170.4,634.5)、2(143.4,688.5)、1(116.4,742.5)；22 在 pdf 页 11。字母 A/B/I/L/G/R 为答案行标记（非线索）。库中 placebyproduct 3 条（9×9×2、12×12）、tapa 6 条未打标签。tapa 编码（cspuz）：0-8=单线索、9=[1,1,1,1]、双线索=base36 对 360+6a+b、三线索=396+16a+4b+c、四线索=460+8a+4b+2c+d、'.'=?、空格 g 跳格。
+   - **R1 Full Tapa 20-22** → **跳过**：变体含字母格（「cells with numbers or letters cannot be shaded」——字母=固定白格），penpuz Tapa 与 cspuz tapa 均不支持字母格，无法过唯一性闸门（与 R6 Tapa LITS 同类）。
+   - **R1 Place by Product 17-19**（40/36/148）：CB Competitive 页 7-8（pdf 页 8-9），PbP 19 = 10×10 白格 27pt 线索数字文本。库中 placebyproduct 3 条（9×9×2、12×12）未打标签，需逐题核对。
+   - **R1 Battleships 16-18**（47/21/20，Casual 册页 5）：16 = 10×10（V 线 px 152-440、H 线 172-597），17/18 = 底部（H 线 713-1037，9 行）。船形为填充图形，行列计数为数字文本。cspuz 格式：battleships/W/H/<number16: 先 W 列计数+H 行计数、再 H*W 单元格（1-4=船段、-1=水、0=空）>/<bank>，bank 用预设 //d。
    - **R5 Fillomino 14**（38 分，Casual 册页 8，10×10）：已提取 givens（16 个）+ 发现字母 K/R/E/Q/P 是答案输入点标记（非给定数）。10×10/10×9/9×10 编码均 isUnique:false，疑个别数字误读或行列偏移——需用 SB 解答逐格核对（SB 页 2 中部，13 解在 text y 427-571、14 解在 y 618-762，14.4pt 半比例）。13 号已定论跳过。
 6. **R6 Lighthouses 18-20**：penpuz 无 lighthouses 题型、cspuz 也无该求解器 → **跳过**（黑格填充提取能力已就绪，但无对应题型可入库）。
 7. **磁铁 R3 22-25**：penpuz 有 magnets 题型但 cspuz 无 magnets 求解器，无法过唯一性闸门 → 待定。
