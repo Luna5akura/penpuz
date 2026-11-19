@@ -377,10 +377,6 @@ export const allPuzzles: PuzzleEntry[] = [
     difficulty: '简单',
   },
   {
-    puzzLink: 'http://localhost:8080/p.html?lakes/8/8/3j3k2k3j3k3k2j33j1k3k3j3g',
-    difficulty: '困难',
-  },
-  {
     puzzLink: 'https://luna5akura.github.io/Atol-Solver/p.html?slither/8/8/77c222772c222272727722c27c7c2c7227277c',
     difficulty: '困难',
   },
@@ -637,10 +633,6 @@ export const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'http://localhost:8080/p.html?skyscrapers/7/7/i2h2362k2i624h6i',
     difficulty: '极难',
-  },
-  {
-    puzzLink: 'http://localhost:8080/p.html?fillomino/10/10/g3o1h3ah1j2h2k21h12i7h-14i4h6l9i21h12k2h2j1h85h1g6m5g',
-    difficulty: '简单',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?fillomino/10/10/g3o1h3ah1j2h2k21h12i7h-14i4h6l9i21h12k2h2j1h85h1g6m5g',
