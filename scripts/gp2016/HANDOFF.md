@@ -78,7 +78,9 @@
 2. ~~R7 Domino Search 22-24~~ → **已完成**（isUnique: true ×3，已入库）。
 3. ~~R1 Four Winds 19-22~~ → **已完成**（isUnique: true ×4；1-4 号题此前已全部在库，本次补验证并修正元数据：1/2/3 难度简单→困难、补作者）。
 4. ~~pdfvec.py 填充路径~~ → **已完成**：Interp 新增 fills 列表（f/F/f*/B/b* + rg/RG/k/K/g/G 颜色追踪，re 改为入 path、n/W 改为丢弃，贝塞尔采样入路径）。主程序打印每页 segments/fills 数。
-5. **矢量类大题型（待做）**：星战（区域粗线+星点）、Yajilin 灰格、Masyu 圆圈（c+f 填充圆）、战舰船形。
+5. **Masyu 全部完成**：R2 21-24、R4 24-26 共 7 题此前已全部入库（带 PGP2016R4 标签或 localhost 链接），本次 cspuz 逐题验证 isUnique:true ×7，并修正难度（简单→困难）与作者（Matus Demiger / Zoltán Horváth）。
+6. **库内已转录且 cspuz 验证通过**（带 PGP2016R3/R4 标签，20 条）：星战 R3×3、R4×3；Yajilin R3×4；Cave R4×3；Masyu R4×3；磁铁 R3×4（cspuz 无求解器，无法验证）。
+7. **待补齐缺口（下次优先）**：R3 星战第 4 题（12/17/32/67 分共 4 题，库中仅 3 条）；R5 星战 22-24（3 题）；R6 Yajilin 15-17（3 题）；R1 Battleships 16-18；R1/R5 Skyscrapers；R2 Kropki 37-41（库中 5 条 kropki 未打标签，需逐题核对 givens 是否齐全）；R1 Place by Product / Full Tapa；R5 Fillomino 14a/b。
 6. **R6 Lighthouses 18-20**：penpuz 无 lighthouses 题型、cspuz 也无该求解器 → **跳过**（黑格填充提取能力已就绪，但无对应题型可入库）。
 7. **磁铁 R3 22-25**：penpuz 有 magnets 题型但 cspuz 无 magnets 求解器，无法过唯一性闸门 → 待定。
 

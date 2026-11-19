@@ -729,7 +729,8 @@ export const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8080/p.html?mashu/8/8/000316oa0900i6aa320000',
-    difficulty: '简单',
+    difficulty: '困难',
+    author: 'Matus Demiger',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?kropki/6/6/39039c03a3044009a00a',
@@ -750,7 +751,8 @@ export const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8080/p.html?mashu/8/8/0003011i0g07i0f3010000',
-    difficulty: '简单',
+    difficulty: '困难',
+    author: 'Matus Demiger',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/0000i0160022606ij02ci610000',
@@ -784,7 +786,8 @@ export const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8080/p.html?mashu/10/10/000190c2j0009000iic66000019c000800',
-    difficulty: '简单',
+    difficulty: '困难',
+    author: 'Matus Demiger',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?battleships/8/8/2g4222g61g1h5g5p00g00h0i00h0g0g0j00g0zl/12/11g/11g/11g/11g/11g/11g/11g/11g/31s/31s/31s/31s',
@@ -814,6 +817,7 @@ export const allPuzzles: PuzzleEntry[] = [
   {
     puzzLink: 'http://localhost:8080/p.html?mashu/10/10/l230l000570i0030ai760000li00372900',
     difficulty: '困难',
+    author: 'Matus Demiger',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?yinyang/9/9/000630k036300a0003399030000',
@@ -862,8 +866,8 @@ export const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8642/p.html?mashu/10/10/0030i300i2310062062003230902091000',
-    difficulty: '简单',
-    author: 'PGP2016R4',
+    difficulty: '困难',
+    author: 'Zoltán Horváth',
   },
   {
     puzzLink: 'https://pzprxs.vercel.app/p?heyawake/16/16/28i28i8a28a28a28a28a28a28a28a28a28a28a28a2948948000fvv0000007g000003vv000fvvo000001s000000vvu0000221311411242421141131130',
@@ -887,8 +891,8 @@ export const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8642/p.html?mashu/10/10/2100311061232000000062661033100330',
-    difficulty: '简单',
-    author: 'PGP2016R4',
+    difficulty: '困难',
+    author: 'Zoltán Horváth',
   },
   {
     puzzLink: 'http://localhost:8642/p.html?magnets/10/10/g42g45h32h25h23h53h3354g533h44g424ldlrnftvntvnutrlmlfr7nbe4tbq75eqttru',
@@ -907,8 +911,8 @@ export const allPuzzles: PuzzleEntry[] = [
   },
   {
     puzzLink: 'http://localhost:8642/p.html?mashu/10/10/0i200i2000000i660i0i00i0i0020000i0',
-    difficulty: '简单',
-    author: 'PGP2016R4',
+    difficulty: '困难',
+    author: 'Zoltán Horváth',
   },
   {
     puzzLink: 'http://localhost:8080/p.html?yajilin/10/10/f31e41a21k31a21c21n11b21b41a11k31e31a11k31l',

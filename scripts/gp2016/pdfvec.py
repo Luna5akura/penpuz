@@ -23,13 +23,28 @@ def get_stream(body):
     return raw
 
 def get_resources(objects, body, inherited=None):
-    m = re.search(rb'/Resources\s*<<(.*?)>>', body, re.S)
+    # 嵌套字典感知的 /Resources 解析：旧的 `<<(.*?)>>` 非贪婪匹配会被
+    # 内部字典（如 /XObject<</Im0 1 0 R>>）截断。
+    m = re.search(rb'/Resources\s*<<', body)
     if not m:
-        m = re.search(rb'/Resources\s*(\d+)\s+0\s+R', body)
-        if m and int(m.group(1)) in objects:
-            return get_resources(objects, objects[int(m.group(1))])
+        m2 = re.search(rb'/Resources\s*(\d+)\s+0\s+R', body)
+        if m2 and int(m2.group(1)) in objects:
+            return get_resources(objects, objects[int(m2.group(1))])
         return {}
-    res = m.group(1)
+    i = m.end()
+    depth = 1
+    j = i
+    n = len(body)
+    while j < n and depth > 0:
+        if body[j:j+2] == b'<<':
+            depth += 1
+            j += 2
+        elif body[j:j+2] == b'>>':
+            depth -= 1
+            j += 2
+        else:
+            j += 1
+    res = body[i:j-2]
     xo = {}
     xm = re.search(rb'/XObject\s*<<(.*?)>>', res, re.S)
     if xm:
@@ -72,6 +87,8 @@ def tokenize(content):
             tokens.append(b'T'+content[i+1:i+2]); i += 2; continue
         if c == b'r' and i+1 < n and content[i+1:i+2] == b'e':
             tokens.append(b're'); i += 2; continue
+        if c == b'D' and i+1 < n and content[i+1:i+2] == b'o':
+            tokens.append(b'Do'); i += 2; continue
         if c == b'c' and i+1 < n and content[i+1:i+2] == b'm':
             tokens.append(b'cm'); i += 2; continue
         if c == b'g' and i+1 < n and content[i+1:i+2] == b's':
@@ -95,13 +112,19 @@ def tokenize(content):
     return tokens
 
 def mat_mul(a, b):
+    # PDF cm 矩阵 [a b c d e f]：x' = a*x + c*y + e；y' = b*x + d*y + f。
+    # M1 ∘ M2：
+    #   a' = a1*a2 + c1*b2   b' = b1*a2 + d1*b2
+    #   c' = a1*c2 + c1*d2   d' = b1*c2 + d1*d2
+    #   e' = a1*e2 + c1*f2 + e1   f' = b1*e2 + d1*f2 + f1
     return [
-        a[0]*b[0]+a[1]*b[3], a[0]*b[1]+a[1]*b[4], a[0]*b[2]+a[1]*b[5]+a[2],
-        a[3]*b[0]+a[4]*b[3], a[3]*b[1]+a[4]*b[4], a[3]*b[2]+a[4]*b[5]+a[5],
+        a[0]*b[0] + a[2]*b[1], a[1]*b[0] + a[3]*b[1],
+        a[0]*b[2] + a[2]*b[3], a[1]*b[2] + a[3]*b[3],
+        a[0]*b[4] + a[2]*b[5] + a[4], a[1]*b[4] + a[3]*b[5] + a[5],
     ]
 
 def apply(m, x, y):
-    return (m[0]*x+m[1]*y+m[2], m[3]*x+m[4]*y+m[5])
+    return (m[0]*x + m[2]*y + m[4], m[1]*x + m[3]*y + m[5])
 
 def cmyk_to_rgb(c, m, y, k):
     return (1.0 - min(1.0, c + k), 1.0 - min(1.0, m + k), 1.0 - min(1.0, y + k))
@@ -258,5 +281,5 @@ if __name__ == '__main__':
             if ref in objects:
                 s = get_stream(objects[ref])
                 if s:
-                    interp.run(tokenize(s), res, [1,0,0,0,1,0])
+                    interp.run(tokenize(s), res, [1,0,0,1,0,0])
         print('page', idx, 'obj', num, 'streams', len(refs), 'segments', len(interp.segs) - before, 'fills', len(interp.fills) - before_f)
