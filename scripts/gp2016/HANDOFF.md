@@ -78,9 +78,18 @@
 2. ~~R7 Domino Search 22-24~~ → **已完成**（isUnique: true ×3，已入库）。
 3. ~~R1 Four Winds 19-22~~ → **已完成**（isUnique: true ×4；1-4 号题此前已全部在库，本次补验证并修正元数据：1/2/3 难度简单→困难、补作者）。
 4. ~~pdfvec.py 填充路径~~ → **已完成**：Interp 新增 fills 列表（f/F/f*/B/b* + rg/RG/k/K/g/G 颜色追踪，re 改为入 path、n/W 改为丢弃，贝塞尔采样入路径）。主程序打印每页 segments/fills 数。
-5. **Masyu 全部完成**：R2 21-24、R4 24-26 共 7 题此前已全部入库（带 PGP2016R4 标签或 localhost 链接），本次 cspuz 逐题验证 isUnique:true ×7，并修正难度（简单→困难）与作者（Matus Demiger / Zoltán Horváth）。
+5. **Masyu 全部完成**：R2 21-24、R4 24-26 共 7 题此前已全部入库，本次 cspuz 逐题验证 isUnique:true ×7，并修正难度（简单→困难）与作者（Matus Demiger / Zoltán Horváth）。
 6. **库内已转录且 cspuz 验证通过**（带 PGP2016R3/R4 标签，20 条）：星战 R3×3、R4×3；Yajilin R3×4；Cave R4×3；Masyu R4×3；磁铁 R3×4（cspuz 无求解器，无法验证）。
-7. **待补齐缺口（下次优先）**：R3 星战第 4 题（12/17/32/67 分共 4 题，库中仅 3 条）；R5 星战 22-24（3 题）；R6 Yajilin 15-17（3 题）；R1 Battleships 16-18；R1/R5 Skyscrapers；R2 Kropki 37-41（库中 5 条 kropki 未打标签，需逐题核对 givens 是否齐全）；R1 Place by Product / Full Tapa；R5 Fillomino 14a/b。
+7. **待补齐缺口（逐题详录，含勘察结论）**：
+   - **R3 星战 14**（12分，9×9）：R3 页 1-2（pdf index 0-1）。星战渲染=白色 22pt 单元方块+黑色粗边框矩形+小方块星点，网格无细线（点阵式），需从 fills 位置重建。库中 R3 标签 3 条（10×10/11×11/12×12 = 15/16/17 号），缺 14 号。
+   - **R5 星战 22-24**（22/70/21 分，注意 CB 与 IB 分值不同）：R5 CB Competitive 页 3-4（无 a/b 标签）。
+   - **R6 Yajilin 15-17**（3/17/30 分）：R6 CB Competitive 页 1-2。
+   - **R1 Battleships 16-18**（47/21/20 分）：在 **Casual 册**（16-18 号）。库中 battleship 条目未打标签需核对。
+   - **R1 Skyscrapers 11-13**（20/60/47）：CB Competitive 页 5（pdf index 4）。网格=白色 27pt 单元方块填充（无矢量线），线索为文字数字，可用 fills 位置+bbox 重建。库中 13 条 skyscrapers 未打标签。
+   - **R5 Skyscrapers 17-18**（41/46 分）：在 **Casual 册** 页 10。
+   - **R2 Kropki 37-41**（44/48/49/51/103）：CB Competitive 页 6-8。37/38 = 4×4 全给定+点标记（O=白点、X=黑点、XO=1-2 对、.=无），但 44/48 分与 4×4 不符，SB 显示 8 位行——网格间距 38.25pt 与 19.13pt 的关系待核实（疑为 8×8 每两格一给定）。库中 5 条 kropki（6×6×2、7×7×2、10×10）未打标签。
+   - **R1 Place by Product 17-19**（40/36/148）与 **R1 Full Tapa 20-22**（24/27/38）：CB Competitive 页 7-10。库中 placebyproduct 3 条（9×9×2、12×12）、tapa 6 条未打标签，需逐题核对。
+   - **R5 Fillomino 14**（38 分，Casual 册页 8，10×10）：已提取 givens（16 个）+ 发现字母 K/R/E/Q/P 是答案输入点标记（非给定数）。10×10/10×9/9×10 编码均 isUnique:false，疑个别数字误读或行列偏移——需用 SB 解答逐格核对（SB 页 2 中部，13 解在 text y 427-571、14 解在 y 618-762，14.4pt 半比例）。13 号已定论跳过。
 6. **R6 Lighthouses 18-20**：penpuz 无 lighthouses 题型、cspuz 也无该求解器 → **跳过**（黑格填充提取能力已就绪，但无对应题型可入库）。
 7. **磁铁 R3 22-25**：penpuz 有 magnets 题型但 cspuz 无 magnets 求解器，无法过唯一性闸门 → 待定。
 
